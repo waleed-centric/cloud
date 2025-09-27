@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clicklogic - Infrastructure by Design</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden; /* Prevent scrolling of the entire page */
+        }
+        /* Custom scrollbar for a more modern look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+        .canvas-bg {
+            background-color: #111827;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        /* Custom styles for component states */
+        .component-selected {
+            box-shadow: 0 0 0 2px #3b82f6, 0 0 15px rgba(59, 130, 246, 0.5);
+        }
+        .ai-suggestion-glow {
+            box-shadow: 0 0 0 2px #10b981, 0 0 20px rgba(16, 185, 129, 0.6);
+        }
+        /* Custom styles for connectors */
+        .connector-line {
+            stroke: #4b5563;
+            stroke-width: 2;
+            fill: none;
+        }
+        .connector-line-animated {
+            stroke-dasharray: 4;
+            animation: dash 1s linear infinite;
+        }
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -8;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white h-screen">
+
+    <!-- Main Application Wrapper -->
+    <div class="flex h-full w-full">
+
+        <!-- Left Sidebar: Navigation and Component Palette -->
+        <aside class="w-64 bg-gray-900 border-r border-gray-700 flex flex-col">
+            <!-- Project/Board Navigation -->
+            <div class="p-4 border-b border-gray-700">
+                <div class="flex items-center justify-between">
+                    <h1 class="text-xl font-bold">Clicklogic</h1>
+                    <div class="text-gray-400 hover:text-white cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="flex items-center justify-between text-sm text-gray-400 mb-2">
+                        <span>PROJECTS</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cursor-pointer hover:text-white"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    </div>
+                    <ul class="space-y-1">
+                        <li><a href="#" class="block px-2 py-1.5 rounded bg-gray-700 text-white text-sm font-medium">Production VPC</a></li>
+                        <li><a href="#" class="block px-2 py-1.5 rounded hover:bg-gray-800 text-gray-300 text-sm">Staging K8s Cluster</a></li>
+                        <li><a href="#" class="block px-2 py-1.5 rounded hover:bg-gray-800 text-gray-300 text-sm">Data Analytics Pipeline</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Component Palette -->
+            <div class="flex-1 p-4 overflow-y-auto">
+                <input type="text" placeholder="Search components..." class="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-1.5 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="mt-4 space-y-4">
+                    <!-- Networking -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Networking</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="bg-gray-800 p-2 rounded-md text-center cursor-pointer hover:bg-gray-700 transition">
+                                <img src="https://placehold.co/40x40/374151/e5e7eb?text=VPC" class="mx-auto rounded-sm">
+                                <span class="text-xs mt-1 block">VPC</span>
+                            </div>
+                            <div class="bg-gray-800 p-2 rounded-md text-center cursor-pointer hover:bg-gray-700 transition">
+                                <img src="https://placehold.co/40x40/374151/e5e7eb?text=Subnet" class="mx-auto rounded-sm">
+                                <span class="text-xs mt-1 block">Subnet</span>
+                            </div>
+                             <div class="bg-gray-800 p-2 rounded-md text-center cursor-pointer hover:bg-gray-700 transition">
+                                <img src="https://placehold.co/40x40/374151/e5e7eb?text=ELB" class="mx-auto rounded-sm">
+                                <span class="text-xs mt-1 block">Load Balancer</span>
+                            </div>
+                             <div class="bg-gray-800 p-2 rounded-md text-center cursor-pointer hover:bg-gray-700 transition">
+                                <img src="https://placehold.co/40x40/374151/e5e7eb?text=GW" class="mx-auto rounded-sm">
+                                <span class="text-xs mt-1 block">API Gateway</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Compute -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Compute</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="bg-gray-800 p-2 rounded-md text-center cursor-pointer hover:bg-gray-700 transition">
+                                <img src="https://placehold.co/40x40/374151/e5e7eb?text=EC2" class="mx-auto rounded-sm">
+                                <span class="text-xs mt-1 block">Server</span>
+                            </div>
+                            <div class="bg-gray-800 p-2 rounded-md text-center cursor-pointer hover:bg-gray-700 transition">
+                                <img src="https://placehold.co/40x40/374151/e5e7eb?text=λ" class="mx-auto rounded-sm">
+                                <span class="text-xs mt-1 block">Lambda</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Database -->
+                    <div>
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Database</h3>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="bg-gray-800 p-2 rounded-md text-center cursor-pointer hover:bg-gray-700 transition">
+                                <img src="https://placehold.co/40x40/374151/e5e7eb?text=RDS" class="mx-auto rounded-sm">
+                                <span class="text-xs mt-1 block">RDS</span>
+                            </div>
+                            <div class="bg-gray-800 p-2 rounded-md text-center cursor-pointer hover:bg-gray-700 transition">
+                                <img src="https://placehold.co/40x40/374151/e5e7eb?text=DB" class="mx-auto rounded-sm">
+                                <span class="text-xs mt-1 block">DynamoDB</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col">
+            <!-- Top Header Bar -->
+            <header class="bg-gray-900 border-b border-gray-700 h-16 flex items-center justify-between px-6 flex-shrink-0">
+                <div>
+                    <h2 class="text-lg font-semibold">Production VPC / Main Architecture</h2>
+                    <p class="text-xs text-gray-400">Last saved 2 minutes ago</p>
+                </div>
+
+                <!-- Collaboration & Actions -->
+                <div class="flex items-center space-x-4">
+                    <!-- Real-Time Price Estimation -->
+                    <div class="bg-green-600/20 border border-green-500 text-green-300 px-3 py-1.5 rounded-lg text-sm font-mono">
+                        Est. Cost: $1,250.75/mo
+                    </div>
+                    
+                    <!-- Collaboration Tools -->
+                    <div class="flex items-center -space-x-2">
+                        <img class="w-8 h-8 rounded-full ring-2 ring-gray-800" src="https://i.pravatar.cc/32?u=a" alt="User 1">
+                        <img class="w-8 h-8 rounded-full ring-2 ring-gray-800" src="https://i.pravatar.cc/32?u=b" alt="User 2">
+                        <div class="w-8 h-8 rounded-full ring-2 ring-gray-800 bg-gray-600 flex items-center justify-center text-xs font-bold">+3</div>
+                    </div>
+
+                    <button class="text-gray-300 hover:text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/><path d="M12 19c-4 0-7-3-7-3s3-7 7-7 7 3 7 3-3 7-7 7Z"/></svg>
+                    </button>
+                     <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center space-x-2 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                        <span>Export</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Canvas Area -->
+            <div id="canvas-wrapper" class="flex-1 canvas-bg relative overflow-hidden">
+                <!-- SVG layer for connectors -->
+                <svg id="connector-svg" class="absolute top-0 left-0 w-full h-full pointer-events-none">
+                    <!-- Example connectors -->
+                    <path class="connector-line connector-line-animated" d="M 280 200 C 350 200, 350 320, 420 320"></path>
+                    <path class="connector-line" d="M 580 320 C 650 320, 650 200, 720 200"></path>
+                    <path class="connector-line" d="M 580 320 C 650 320, 650 440, 720 440"></path>
+                </svg>
+
+                <!-- Draggable Components -->
+                <div class="absolute p-8">
+                    <!-- Load Balancer -->
+                    <div class="absolute top-[160px] left-[150px] p-4 bg-gray-800 border border-gray-600 rounded-lg w-32 text-center component-selected">
+                         <img src="https://placehold.co/40x40/1f2937/9ca3af?text=ELB" class="mx-auto rounded-sm">
+                        <p class="text-sm font-medium mt-2">Load Balancer</p>
+                        <p class="text-xs text-gray-400">public-facing</p>
+                    </div>
+
+                    <!-- Web Servers -->
+                    <div class="absolute top-[280px] left-[380px] p-4 bg-gray-800 border-2 border-dashed border-gray-600 rounded-lg">
+                        <p class="text-xs text-gray-400 absolute -top-5 left-2">Auto-scaling Group</p>
+                        <div class="flex space-x-4">
+                             <div class="p-4 bg-gray-800 border border-gray-600 rounded-lg w-32 text-center">
+                                <img src="https://placehold.co/40x40/1f2937/9ca3af?text=EC2" class="mx-auto rounded-sm">
+                                <p class="text-sm font-medium mt-2">Web Server 1</p>
+                                <p class="text-xs text-gray-400">t3.medium</p>
+                            </div>
+                             <div class="p-4 bg-gray-800 border border-gray-600 rounded-lg w-32 text-center">
+                                <img src="https://placehold.co/40x40/1f2937/9ca3af?text=EC2" class="mx-auto rounded-sm">
+                                <p class="text-sm font-medium mt-2">Web Server 2</p>
+                                <p class="text-xs text-gray-400">t3.medium</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- AI Composition Validation -->
+                    <div class="absolute top-[260px] left-[650px] ai-suggestion-glow p-2 bg-green-900/50 rounded-full cursor-pointer transition transform hover:scale-110">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-300"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+                    </div>
+                    <div class="absolute top-[300px] left-[650px] p-3 bg-gray-800 border border-gray-600 rounded-lg text-xs shadow-2xl">
+                        <p class="font-bold text-green-400 mb-1">AI Suggestion:</p>
+                        <p class="text-gray-300">Consider using Graviton instances for better price/performance.</p>
+                        <button class="text-blue-400 hover:underline mt-1">Learn more</button>
+                    </div>
+
+
+                    <!-- Databases -->
+                    <div class="absolute top-[160px] left-[700px] p-4 bg-gray-800 border border-gray-600 rounded-lg w-40 text-center">
+                         <img src="https://placehold.co/40x40/1f2937/9ca3af?text=RDS" class="mx-auto rounded-sm">
+                        <p class="text-sm font-medium mt-2">RDS Primary</p>
+                        <p class="text-xs text-gray-400">db.r5.large</p>
+                    </div>
+                     <div class="absolute top-[400px] left-[700px] p-4 bg-gray-800 border border-gray-600 rounded-lg w-40 text-center">
+                         <img src="https://placehold.co/40x40/1f2937/9ca3af?text=RDS" class="mx-auto rounded-sm">
+                        <p class="text-sm font-medium mt-2">RDS Read Replica</p>
+                        <p class="text-xs text-gray-400">db.r5.large</p>
+                    </div>
+                </div>
+
+                <!-- Bottom Navigation/Controls -->
+                <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center space-x-2 bg-gray-800/80 backdrop-blur-sm border border-gray-700 rounded-lg p-2 shadow-lg">
+                    <button class="p-2 hover:bg-gray-700 rounded-md"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+                    <span class="text-sm font-medium px-2">100%</span>
+                    <button class="p-2 hover:bg-gray-700 rounded-md"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+                    <div class="w-px h-6 bg-gray-600"></div>
+                    <button class="p-2 hover:bg-gray-700 rounded-md"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="3" x2="9" y2="21"></line></svg></button>
+                    <button class="p-2 hover:bg-gray-700 rounded-md"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 12a9.5 9.5 0 1 1-9.5-9.5A9.5 9.5 0 0 1 21.5 12z"></path><path d="M12 8v4l2 1"></path></svg></button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Sidebar: Properties/Inspector Panel -->
+        <aside class="w-80 bg-gray-900 border-l border-gray-700 flex flex-col">
+            <!-- Tab Navigation -->
+            <div class="flex border-b border-gray-700">
+                <button id="tab-design" class="flex-1 py-2 text-sm font-medium border-b-2 border-blue-500 text-white">Design</button>
+                <button id="tab-layers" class="flex-1 py-2 text-sm font-medium text-gray-400 hover:text-white">Layers</button>
+                <button id="tab-comments" class="flex-1 py-2 text-sm font-medium text-gray-400 hover:text-white">Comments</button>
+            </div>
+
+            <!-- Panels -->
+            <div class="flex-1 overflow-y-auto">
+                <!-- Design Panel -->
+                <div id="panel-design" class="p-4 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold">Load Balancer</h3>
+                        <span class="text-xs bg-gray-700 px-2 py-0.5 rounded">AWS::ELBv2</span>
+                    </div>
+                    <!-- Properties -->
+                    <div>
+                        <label class="text-xs font-medium text-gray-400">Instance Name</label>
+                        <input type="text" value="public-facing-alb" class="w-full mt-1 bg-gray-800 border border-gray-600 rounded-md px-3 py-1.5 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-gray-400">Type</label>
+                         <select class="w-full mt-1 bg-gray-800 border border-gray-600 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option>Application</option>
+                            <option>Network</option>
+                            <option>Gateway</option>
+                        </select>
+                    </div>
+                     <div>
+                        <label class="text-xs font-medium text-gray-400">IP Address Type</label>
+                         <select class="w-full mt-1 bg-gray-800 border border-gray-600 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option>IPv4</option>
+                            <option>Dualstack</option>
+                        </select>
+                    </div>
+                     <div class="border-t border-gray-700 my-4"></div>
+                     <h4 class="font-semibold text-sm mb-2">Listeners</h4>
+                     <div class="p-3 bg-gray-800 rounded-lg">
+                        <p class="text-sm">HTTPS: 443</p>
+                        <p class="text-xs text-gray-400">Forward to: tg-web-servers</p>
+                     </div>
+                     <button class="w-full mt-2 text-center text-sm text-blue-400 hover:underline">Add listener</button>
+                </div>
+                
+                <!-- Layers Panel -->
+                <div id="panel-layers" class="p-4 hidden">
+                    <ul class="space-y-1 text-sm">
+                        <li class="flex items-center space-x-2 p-1 rounded hover:bg-gray-800 cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M12 12h-8m8-8v8m0 0h8m-8 0v8"/></svg> <span>Auto-scaling Group</span></li>
+                        <li class="flex items-center space-x-2 p-1 rounded hover:bg-gray-800 cursor-pointer pl-6"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><rect x="2" y="2" width="20" height="20" rx="2" ry="2"></rect></svg> <span>Web Server 1</span></li>
+                        <li class="flex items-center space-x-2 p-1 rounded hover:bg-gray-800 cursor-pointer pl-6"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><rect x="2" y="2" width="20" height="20" rx="2" ry="2"></rect></svg> <span>Web Server 2</span></li>
+                        <li class="flex items-center space-x-2 p-1 rounded hover:bg-gray-800 bg-gray-700"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400"><rect x="2" y="2" width="20" height="20" rx="2" ry="2"></rect></svg> <span class="text-white">Load Balancer</span></li>
+                        <li class="flex items-center space-x-2 p-1 rounded hover:bg-gray-800"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> <span>RDS Primary</span></li>
+                        <li class="flex items-center space-x-2 p-1 rounded hover:bg-gray-800"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> <span>RDS Read Replica</span></li>
+                    </ul>
+                </div>
+                
+                <!-- Comments Panel -->
+                 <div id="panel-comments" class="p-4 hidden space-y-4">
+                    <div class="space-y-3">
+                        <div class="flex items-start space-x-3">
+                            <img class="w-8 h-8 rounded-full" src="https://i.pravatar.cc/32?u=b" alt="User 2">
+                            <div class="flex-1 bg-gray-800 p-2 rounded-lg">
+                                <p class="text-sm font-semibold">Jane Doe</p>
+                                <p class="text-sm text-gray-300">Are we sure about `t3.medium`? We might need more memory.</p>
+                                <p class="text-xs text-gray-500 mt-1">5m ago</p>
+                            </div>
+                        </div>
+                         <div class="flex items-start space-x-3">
+                            <img class="w-8 h-8 rounded-full" src="https://i.pravatar.cc/32?u=a" alt="User 1">
+                            <div class="flex-1 bg-gray-800 p-2 rounded-lg">
+                                <p class="text-sm font-semibold">You</p>
+                                <p class="text-sm text-gray-300">Good point. Let's run some tests. The AI also suggested Graviton for cost savings.</p>
+                                <p class="text-xs text-gray-500 mt-1">2m ago</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pt-4 border-t border-gray-700">
+                        <textarea class="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-1.5 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3" placeholder="Add a comment..."></textarea>
+                        <button class="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition">Post</button>
+                    </div>
+                 </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <script>
+        // Simple tab switching logic for the right sidebar
+        const tabs = ['design', 'layers', 'comments'];
+        
+        tabs.forEach(tabId => {
+            const tabButton = document.getElementById(`tab-${tabId}`);
+            const panel = document.getElementById(`panel-${tabId}`);
+
+            tabButton.addEventListener('click', () => {
+                // Deactivate all tabs and hide all panels
+                tabs.forEach(id => {
+                    document.getElementById(`tab-${id}`).classList.remove('border-blue-500', 'text-white');
+                    document.getElementById(`tab-${id}`).classList.add('text-gray-400');
+                    document.getElementById(`panel-${id}`).classList.add('hidden');
+                });
+
+                // Activate the clicked tab and show its panel
+                tabButton.classList.add('border-blue-500', 'text-white');
+                tabButton.classList.remove('text-gray-400');
+                panel.classList.remove('hidden');
+            });
+        });
+    </script>
+</body>
+</html>

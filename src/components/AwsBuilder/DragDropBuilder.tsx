@@ -1,0 +1,176 @@
+import React, { useState } from 'react';
+import { useAwsBuilder } from '@/context/AwsBuilderContext';
+import { IconPalette } from '@/components/AwsBuilder/IconPalette';
+import { CanvasArea } from '@/components/AwsBuilder/CanvasArea';
+import { ExportPanel } from '@/components/AwsBuilder/ExportPanel';
+import { ServiceDetailModal } from '@/components/AwsBuilder/ServiceDetailModal';
+import { PropertiesPanel } from '@/components/AwsBuilder/PropertiesPanel';
+import { PricingDisplay } from '@/components/PricingDisplay';
+import { TopNavbar } from '@/components/AwsBuilder/TopNavbar';
+
+// Summary: Main DnD Builder component - combines palette, canvas, export, and service modals
+// - Layout management for drag and drop interface with detailed service functionality
+
+export function DragDropBuilder() {
+  const { state, clearAll } = useAwsBuilder();
+  const [selectedTool, setSelectedTool] = useState<'select' | 'connect'>('select');
+  const [showExportPanel, setShowExportPanel] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [isClient, setIsClient] = useState(false);
+
+  // Auto-collapse sidebar on mobile devices
+  React.useEffect(() => {
+    setIsClient(true);
+    
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      setSidebarExpanded(false);
+    }
+    
+    const handleResize = () => {
+      if (typeof window !== 'undefined' && window.innerWidth < 640) {
+        setSidebarExpanded(false);
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, []);
+
+  return (
+    <div className="h-screen bg-slate-900 text-slate-200 flex flex-col">
+      {/* Top Navigation Bar */}
+      <TopNavbar />
+      
+      {/* Main Content Area */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Toggle Button - Top Left Corner */}
+        <div className="absolute top-4 left-4 z-50">
+          <button
+            onClick={() => setSidebarExpanded(!sidebarExpanded)}
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded-lg shadow-lg transition-colors border border-slate-600"
+            title={sidebarExpanded ? 'Collapse Sidebar' : 'Expand Sidebar'}
+          >
+            <svg 
+              className={`w-5 h-5 transition-transform duration-200 ${sidebarExpanded ? 'rotate-180' : ''}`} 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Mobile Overlay for Sidebar (only on very small screens) */}
+        {isClient && sidebarExpanded && typeof window !== 'undefined' && window.innerWidth < 640 && (
+          <div
+            className="sm:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+            onClick={() => setSidebarExpanded(false)}
+          />
+        )}
+
+        {/* Left Sidebar - Icon Palette */}
+        <div 
+          className={`${
+            sidebarExpanded ? 'w-64' : 'w-16'
+          } transition-all duration-300 ease-in-out bg-slate-800 border-r border-slate-700 flex-shrink-0 relative z-20`}
+        >
+          <IconPalette sidebarExpanded={sidebarExpanded} />
+        </div>
+
+        {/* Main Content Container */}
+        <div className="flex-1 flex flex-col sm:flex-row gap-6 h-full overflow-hidden">
+          {/* Export Button - Top Right Corner */}
+          <div className="absolute top-4 right-4 z-50">
+            <button
+              onClick={() => setShowExportPanel(!showExportPanel)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-2 sm:px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 text-sm font-medium transition-colors"
+            >
+              <span>📤</span>
+              <span className="hidden sm:inline">Export</span>
+            </button>
+            
+            {/* Export Panel Dropdown */}
+            {showExportPanel && (
+              <div className="absolute top-12 right-0 z-50">
+                <div className="bg-white rounded-lg shadow-xl border p-1 min-w-[250px] sm:min-w-[300px]">
+                  <ExportPanel />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Main Canvas Area */}
+          <div className={`flex-1 flex flex-col transition-all duration-300`}>
+            <div className="bg-slate-900 rounded-lg shadow-xl border border-slate-700 flex-1 overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b border-slate-700">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-lg font-semibold text-slate-200">Canvas</h2>
+                  
+                  {/* Tool Selector */}
+                  <div className="flex items-center gap-2 bg-slate-800 rounded-lg p-1">
+                    <button
+                      onClick={() => setSelectedTool('select')}
+                      className={`px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-2 ${
+                        selectedTool === 'select'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-slate-300 hover:text-white hover:bg-slate-700'
+                      }`}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                      </svg>
+                      <span className="hidden sm:inline">Select</span>
+                    </button>
+                    <button
+                      onClick={() => setSelectedTool('connect')}
+                      className={`px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-2 ${
+                        selectedTool === 'connect'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-slate-300 hover:text-white hover:bg-slate-700'
+                      }`}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      </svg>
+                      <span className="hidden sm:inline">Connect</span>
+                    </button>
+                  </div>
+                  
+                  <div className="text-sm text-slate-400 hidden sm:block">
+                    {state.placedNodes.length} nodes, {state.connections.length} connections
+                  </div>
+                </div>
+                <button
+                  onClick={clearAll}
+                  className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                >
+                  <span className="hidden sm:inline">Clear All</span>
+                  <span className="sm:hidden">Clear</span>
+                </button>
+              </div>
+              <CanvasArea selectedTool={selectedTool} />
+            </div>
+          </div>
+
+          {/* Right Sidebar - Pricing Display */}
+          <div className="w-full sm:w-80 flex-shrink-0 order-first sm:order-last h-full">
+            <PricingDisplay className="h-full max-h-screen overflow-hidden" />
+          </div>
+        </div>
+      </div>
+
+      {/* Service Detail Modal */}
+      {state.showServiceModal && state.selectedService && (
+        <ServiceDetailModal />
+      )}
+
+      {/* Properties Panel */}
+      {state.showPropertiesPanel && state.selectedService && (
+        <PropertiesPanel />
+      )}
+    </div>
+  );
+}
