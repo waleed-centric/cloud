@@ -1,6 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { useAwsBuilder, type PlacedNode } from '@/context/AwsBuilderContext';
-import { DETAILED_AWS_SERVICES } from '@/data/aws-services-detailed';
+import { DETAILED_AWS_SERVICES } from '../../data/aws-services-detailed';
+import { DETAILED_AZURE_SERVICES } from '../../data/azure-services-detailed';
+import { DETAILED_GCP_SERVICES } from '../../data/gcp-services-detailed';
+import { useCloudProvider } from '@/context/CloudProviderContext';
 
 // Summary: Draggable Node component - individual AWS service on canvas
 // - Handles node dragging, selection, connection interactions, and service detail modal
@@ -12,6 +15,7 @@ type DraggableNodeProps = {
 };
 
 export function DraggableNode({ node, selectedTool, isSelected }: DraggableNodeProps) {
+  const { currentProvider } = useCloudProvider();
   const { updateNodePosition, removeNode, setSelectedNode, setConnecting, addConnection, state, openServiceModal } = useAwsBuilder();
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -105,8 +109,22 @@ export function DraggableNode({ node, selectedTool, isSelected }: DraggableNodeP
     
     // If in select mode and not dragging, open service modal
     if (selectedTool === 'select' && !isDragging) {
+      // Get the appropriate detailed services based on current provider
+      let detailedServices;
+      switch (currentProvider) {
+        case 'azure':
+          detailedServices = DETAILED_AZURE_SERVICES;
+          break;
+        case 'gcp':
+          detailedServices = DETAILED_GCP_SERVICES;
+          break;
+        default: // aws
+          detailedServices = DETAILED_AWS_SERVICES;
+          break;
+      }
+      
       // Find the detailed service data
-      const detailedService = DETAILED_AWS_SERVICES.find((service: any) => 
+      const detailedService = detailedServices.find((service: any) => 
         service.name.toLowerCase() === node.icon.name.toLowerCase() ||
         service.id === node.icon.id
       );

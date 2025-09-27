@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CloudProviderDropdown } from './CloudProviderDropdown';
 
 interface TopNavbarProps {
   className?: string;
@@ -28,7 +29,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ className }) => {
           {/* Logo/Brand */}
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <h1 className="text-xl font-bold text-white">AWS Builder</h1>
+              <CloudProviderDropdown />
             </div>
           </div>
 

@@ -1,6 +1,9 @@
 import React from 'react';
 import { useAwsBuilder } from '@/context/AwsBuilderContext';
 import { DetailedAwsService, SubService } from '../../data/aws-services-detailed';
+import { DetailedAzureService, AzureSubService } from '../../data/azure-services-detailed';
+import { DetailedGcpService, GcpSubService } from '../../data/gcp-services-detailed';
+import type { DetailedService, SubServiceType } from '@/context/AwsBuilderContext';
 
 // Summary: Service Detail Modal component - shows AWS service details and sub-services
 // - Displays service information, sub-services, and allows adding to canvas
@@ -14,7 +17,7 @@ const ServiceDetailModal: React.FC = () => {
 
   const service = state.selectedService;
 
-  const handleSubServiceSelect = (subService: SubService) => {
+  const handleSubServiceSelect = (subService: SubServiceType) => {
     openPropertiesPanel(service, subService);
   };
 

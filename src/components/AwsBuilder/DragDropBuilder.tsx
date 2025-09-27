@@ -11,7 +11,11 @@ import { TopNavbar } from '@/components/AwsBuilder/TopNavbar';
 // Summary: Main DnD Builder component - combines palette, canvas, export, and service modals
 // - Layout management for drag and drop interface with detailed service functionality
 
-export function DragDropBuilder() {
+interface DragDropBuilderProps {
+  clearCanvasRef?: React.MutableRefObject<(() => void) | null>;
+}
+
+export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
   const { state, clearAll } = useAwsBuilder();
   const [selectedTool, setSelectedTool] = useState<'select' | 'connect'>('select');
   const [showExportPanel, setShowExportPanel] = useState(false);
@@ -21,6 +25,11 @@ export function DragDropBuilder() {
   // Auto-collapse sidebar on mobile devices
   React.useEffect(() => {
     setIsClient(true);
+    
+    // Assign clearAll function to ref for external access
+    if (clearCanvasRef) {
+      clearCanvasRef.current = clearAll;
+    }
     
     if (typeof window !== 'undefined' && window.innerWidth < 640) {
       setSidebarExpanded(false);
@@ -36,7 +45,7 @@ export function DragDropBuilder() {
       window.addEventListener('resize', handleResize);
       return () => window.removeEventListener('resize', handleResize);
     }
-  }, []);
+  }, [clearCanvasRef, clearAll]);
 
   return (
     <div className="h-screen bg-slate-900 text-slate-200 flex flex-col">

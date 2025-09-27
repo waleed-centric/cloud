@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 import { DetailedAwsService, SubService } from "../data/aws-services-detailed";
+import { DetailedAzureService, AzureSubService } from "../data/azure-services-detailed";
+import { DetailedGcpService, GcpSubService } from "../data/gcp-services-detailed";
 import { usePricing } from "./PricingContext";
 
 // Summary: AwsBuilderContext for AWS DnD Builder state management
@@ -35,15 +37,19 @@ export type Connection = {
   color?: string;
 };
 
+// Union types for multi-provider support
+export type DetailedService = DetailedAwsService | DetailedAzureService | DetailedGcpService;
+export type SubServiceType = SubService | AzureSubService | GcpSubService;
+
 export type AwsBuilderState = {
   placedNodes: PlacedNode[];
   connections: Connection[];
   isConnecting: boolean;
   connectingFromId: string | null;
   selectedNodeId: string | null;
-  // Added detailed service state
-  selectedService: DetailedAwsService | null;
-  selectedSubService: SubService | null;
+  // Updated detailed service state for multi-provider support
+  selectedService: DetailedService | null;
+  selectedSubService: SubServiceType | null;
   showServiceModal: boolean;
   showPropertiesPanel: boolean;
 };
@@ -60,14 +66,14 @@ export type AwsBuilderContextValue = {
   clearAll: () => void;
   exportData: () => { nodes: PlacedNode[]; connections: Connection[] };
   exportToDrawIo: () => string;
-  // Added detailed service management functions
-  openServiceModal: (service: DetailedAwsService) => void;
+  // Updated detailed service management functions for multi-provider support
+  openServiceModal: (service: DetailedService) => void;
   closeServiceModal: () => void;
-  openPropertiesPanel: (service: DetailedAwsService, subService?: SubService) => void;
+  openPropertiesPanel: (service: DetailedService, subService?: SubServiceType) => void;
   closePropertiesPanel: () => void;
-  addSubServiceNode: (subService: SubService, service: DetailedAwsService, x: number, y: number, properties?: Record<string, any>) => void;
+  addSubServiceNode: (subService: SubServiceType, service: DetailedService, x: number, y: number, properties?: Record<string, any>) => void;
   updateNodeProperties: (nodeId: string, properties: Record<string, any>) => void;
-  getNodeDetails: (nodeId: string) => { service?: DetailedAwsService; subService?: SubService; properties?: Record<string, any> } | null;
+  getNodeDetails: (nodeId: string) => { service?: DetailedService; subService?: SubServiceType; properties?: Record<string, any> } | null;
 };
 
 const AwsBuilderContext = createContext<AwsBuilderContextValue | undefined>(undefined);
@@ -221,8 +227,8 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
 </mxfile>`;
   };
 
-  // Added detailed service management functions
-  const openServiceModal = (service: DetailedAwsService) => {
+  // Updated detailed service management functions for multi-provider support
+  const openServiceModal = (service: DetailedService) => {
     setState(prev => ({
       ...prev,
       selectedService: service,
@@ -238,7 +244,7 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  const openPropertiesPanel = (service: DetailedAwsService, subService?: SubService) => {
+  const openPropertiesPanel = (service: DetailedService, subService?: SubServiceType) => {
     setState(prev => ({
       ...prev,
       selectedService: service,
@@ -259,8 +265,8 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
   };
 
   const addSubServiceNode = (
-    subService: SubService, 
-    service: DetailedAwsService, 
+    subService: SubServiceType, 
+    service: DetailedService, 
     x: number, 
     y: number, 
     properties?: Record<string, any>
@@ -320,8 +326,8 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
     if (!node) return null;
 
     return {
-      service: node.serviceId ? { id: node.serviceId } as DetailedAwsService : undefined,
-      subService: node.subServiceId ? { id: node.subServiceId } as SubService : undefined,
+      service: node.serviceId ? { id: node.serviceId } as DetailedService : undefined,
+      subService: node.subServiceId ? { id: node.subServiceId } as SubServiceType : undefined,
       properties: node.properties,
     };
   };
