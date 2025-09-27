@@ -422,3 +422,53 @@ Notes:
 - Context API ko base architecture ka hissa rakhenge (no props drilling).  
 - Components reusable aur modular rahenge.  
 - Visual/UI change hone par local preview check karna.
+
+---
+
+## Sprint: Connection UX & Live Preview
+Status: [-] In Progress
+Owner: Assistant
+Timestamp: 2025-09-27 12:24
+
+### Goals
+- Hover-based connection dots add karna (4 sides per node)
+- Click-to-start, click-to-complete connection flow banani
+- Live connection preview line mouse ke saath move karna
+- Connection lines ko visually enhance karna (curved + dashed + arrow + delete)
+
+### Tasks
+1. DraggableNode: Hover par connection dots show karo (top/right/bottom/left)
+   - Status: [x] Done
+   - Owner: Assistant
+   - Timestamp: 2025-09-27 11:40
+2. DraggableNode: handleConnectionStart implement karo (setConnecting + fromNodeId)
+   - Status: [x] Done
+   - Owner: Assistant
+   - Timestamp: 2025-09-27 11:55
+3. DraggableNode: handleClick mein connection complete logic add karo
+   - Status: [x] Done
+   - Owner: Assistant
+   - Timestamp: 2025-09-27 12:05
+4. ConnectionLayer: Live preview line add karo (mouse follow)
+   - Status: [x] Done
+   - Owner: Assistant
+   - Timestamp: 2025-09-27 12:15
+5. CanvasArea: mouse position track karo aur ConnectionLayer ko pass karo
+   - Status: [x] Done
+   - Owner: Assistant
+   - Timestamp: 2025-09-27 12:20
+6. DragDropBuilder: Build error fix (function signature props restore)
+   - Status: [x] Done
+   - Owner: Assistant
+   - Timestamp: 2025-09-27 12:22
+7. DraggableNode: Purani selectedTool wali cursor logic remove karo
+   - Status: [x] Done
+   - Owner: Assistant
+   - Timestamp: 2025-09-27 12:23
+8. Connection lines visual polish (curved path, arrow markers, dashed animation, mid delete button)
+   - Status: [-] In Progress
+   - Owner: Assistant
+
+### Notes
+- Dev preview verified: http://localhost:3001/aws-builder
+- Next: connection line polish finalize karna aur UX micro-interactions smooth karna.

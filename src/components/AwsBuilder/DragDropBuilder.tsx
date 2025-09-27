@@ -17,7 +17,6 @@ interface DragDropBuilderProps {
 
 export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
   const { state, clearAll } = useAwsBuilder();
-  const [selectedTool, setSelectedTool] = useState<'select' | 'connect'>('select');
   const [showExportPanel, setShowExportPanel] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [isClient, setIsClient] = useState(false);
@@ -118,36 +117,6 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
                 <div className="flex items-center gap-4">
                   <h2 className="text-lg font-semibold text-slate-200">Canvas</h2>
                   
-                  {/* Tool Selector */}
-                  <div className="flex items-center gap-2 bg-slate-800 rounded-lg p-1">
-                    <button
-                      onClick={() => setSelectedTool('select')}
-                      className={`px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-2 ${
-                        selectedTool === 'select'
-                          ? 'bg-blue-600 text-white'
-                          : 'text-slate-300 hover:text-white hover:bg-slate-700'
-                      }`}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-                      </svg>
-                      <span className="hidden sm:inline">Select</span>
-                    </button>
-                    <button
-                      onClick={() => setSelectedTool('connect')}
-                      className={`px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-2 ${
-                        selectedTool === 'connect'
-                          ? 'bg-blue-600 text-white'
-                          : 'text-slate-300 hover:text-white hover:bg-slate-700'
-                      }`}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                      </svg>
-                      <span className="hidden sm:inline">Connect</span>
-                    </button>
-                  </div>
-                  
                   <div className="text-sm text-slate-400 hidden sm:block">
                     {state.placedNodes.length} nodes, {state.connections.length} connections
                   </div>
@@ -160,7 +129,7 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
                   <span className="sm:hidden">Clear</span>
                 </button>
               </div>
-              <CanvasArea selectedTool={selectedTool} />
+              <CanvasArea />
             </div>
           </div>
 

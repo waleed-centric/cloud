@@ -10,24 +10,23 @@ import { useCloudProvider } from '@/context/CloudProviderContext';
 
 type DraggableNodeProps = {
   node: PlacedNode;
-  selectedTool: 'select' | 'connect';
   isSelected: boolean;
 };
 
-export function DraggableNode({ node, selectedTool, isSelected }: DraggableNodeProps) {
+export function DraggableNode({ node, isSelected }: DraggableNodeProps) {
   const { currentProvider } = useCloudProvider();
   const { updateNodePosition, removeNode, setSelectedNode, setConnecting, addConnection, state, openServiceModal } = useAwsBuilder();
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
   const nodeRef = useRef<HTMLDivElement>(null);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (selectedTool === 'connect') {
-      handleConnectionClick();
-      return;
-    }
+  const handleConnectionStart = (position: 'top' | 'right' | 'bottom' | 'left') => {
+    setConnecting(true, node.id);
+  };
 
-    // Select mode - start dragging
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // Start dragging
     setSelectedNode(node.id);
     setIsDragging(true);
     
@@ -103,35 +102,17 @@ export function DraggableNode({ node, selectedTool, isSelected }: DraggableNodeP
     removeNode(node.id);
   };
 
-  // Handle single click to open service modal
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // If in select mode and not dragging, open service modal
-    if (selectedTool === 'select' && !isDragging) {
-      // Get the appropriate detailed services based on current provider
-      let detailedServices;
-      switch (currentProvider) {
-        case 'azure':
-          detailedServices = DETAILED_AZURE_SERVICES;
-          break;
-        case 'gcp':
-          detailedServices = DETAILED_GCP_SERVICES;
-          break;
-        default: // aws
-          detailedServices = DETAILED_AWS_SERVICES;
-          break;
-      }
-      
-      // Find the detailed service data
-      const detailedService = detailedServices.find((service: any) => 
-        service.name.toLowerCase() === node.icon.name.toLowerCase() ||
-        service.id === node.icon.id
-      );
-      
-      if (detailedService) {
-        openServiceModal(detailedService);
-      }
+    // If we're in connecting mode and this isn't the source node
+    if (state.isConnecting && state.connectingFromId && state.connectingFromId !== node.id) {
+      // Create connection
+      addConnection(state.connectingFromId, node.id);
+      setConnecting(false);
+    } else {
+      // Just select the node
+      setSelectedNode(node.id);
     }
   };
 
@@ -143,11 +124,13 @@ export function DraggableNode({ node, selectedTool, isSelected }: DraggableNodeP
       } ${
         isSelected ? 'ring-2 ring-blue-400 ring-offset-2' : ''
       } ${
-        selectedTool === 'connect' ? 'cursor-crosshair' : 'cursor-move'
+        'cursor-move'
       } ${
         state.isConnecting && state.connectingFromId === node.id 
           ? 'ring-2 ring-green-400 ring-offset-2' 
           : ''
+      } ${
+        isHovered ? 'border-2 border-dashed border-blue-400' : ''
       }`}
       style={{
         left: node.x,
@@ -158,6 +141,8 @@ export function DraggableNode({ node, selectedTool, isSelected }: DraggableNodeP
       onMouseDown={handleMouseDown}
       onDoubleClick={handleDoubleClick}
       onClick={handleClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Icon Container with improved styling */}
       <div 
@@ -187,10 +172,75 @@ export function DraggableNode({ node, selectedTool, isSelected }: DraggableNodeP
         </div>
       </div>
 
-      {/* Connection indicator */}
-      {selectedTool === 'connect' && (
-        <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg">
-          <span className="text-white text-xs font-bold">+</span>
+      {/* Connection Dots - visible on hover */}
+      {isHovered && (
+        <>
+          {/* Top dot */}
+          <div 
+            className="absolute w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-lg cursor-pointer hover:bg-blue-600 transition-colors"
+            style={{ 
+              top: '-6px', 
+              left: '50%', 
+              transform: 'translateX(-50%)',
+              zIndex: 60
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              handleConnectionStart('top');
+            }}
+          />
+          
+          {/* Right dot */}
+          <div 
+            className="absolute w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-lg cursor-pointer hover:bg-blue-600 transition-colors"
+            style={{ 
+              top: '50%', 
+              right: '-6px', 
+              transform: 'translateY(-50%)',
+              zIndex: 60
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              handleConnectionStart('right');
+            }}
+          />
+          
+          {/* Bottom dot */}
+          <div 
+            className="absolute w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-lg cursor-pointer hover:bg-blue-600 transition-colors"
+            style={{ 
+              bottom: '-6px', 
+              left: '50%', 
+              transform: 'translateX(-50%)',
+              zIndex: 60
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              handleConnectionStart('bottom');
+            }}
+          />
+          
+          {/* Left dot */}
+          <div 
+            className="absolute w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-lg cursor-pointer hover:bg-blue-600 transition-colors"
+            style={{ 
+              top: '50%', 
+              left: '-6px', 
+              transform: 'translateY(-50%)',
+              zIndex: 60
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              handleConnectionStart('left');
+            }}
+          />
+        </>
+      )}
+
+      {/* Connection indicator when actively connecting */}
+      {state.isConnecting && state.connectingFromId === node.id && (
+        <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg animate-pulse">
+          <span className="text-white text-xs font-bold">→</span>
         </div>
       )}
       

@@ -6,6 +6,7 @@ type ConnectionLayerProps = {
   connections: Connection[];
   isConnecting: boolean;
   connectingFromId: string | null;
+  mousePosition?: { x: number; y: number };
   onRemoveConnection?: (connectionId: string) => void;
 };
 
@@ -14,6 +15,7 @@ export function ConnectionLayer({
   connections, 
   isConnecting, 
   connectingFromId,
+  mousePosition,
   onRemoveConnection
 }: ConnectionLayerProps) {
   const getNodeCenter = (nodeId: string) => {
@@ -148,16 +150,37 @@ export function ConnectionLayer({
       })}
       
       {/* Show connecting line when in connection mode */}
-      {isConnecting && connectingFromId && (
+      {isConnecting && connectingFromId && mousePosition && (
         <g>
+          {(() => {
+            const fromCenter = getNodeCenter(connectingFromId);
+            const path = createArrowPath(fromCenter, mousePosition);
+            
+            return (
+              <path
+                d={path}
+                stroke="#10b981"
+                strokeWidth="3"
+                strokeDasharray="8 4"
+                fill="none"
+                markerEnd="url(#arrowhead-10b981)"
+                className="drop-shadow-lg"
+                style={{
+                  filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))',
+                  opacity: 0.7
+                }}
+              />
+            );
+          })()}
+          
           <text
             x="20"
             y="30"
             fontSize="14"
-            fill="#3b82f6"
+            fill="#10b981"
             className="font-medium"
           >
-            Click on another node to connect, or press Escape to cancel
+            Drag to another node to connect, or click anywhere to cancel
           </text>
         </g>
       )}

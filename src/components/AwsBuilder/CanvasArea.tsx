@@ -5,18 +5,15 @@ import { DraggableNode } from '@/components/AwsBuilder/DraggableNode';
 import { AISuggestionTooltip } from './AISuggestionTooltip';
 
 // Summary: Canvas Area component - main drop zone for AWS icons
-// - Handles drop events, node positioning, and connection mode
+// - Handles drop events, node positioning, and hover-based connection mode
 
-type CanvasAreaProps = {
-  selectedTool: 'select' | 'connect';
-};
-
-export function CanvasArea({ selectedTool }: CanvasAreaProps) {
+export function CanvasArea() {
   const { state, addNode, setConnecting, removeConnection } = useAwsBuilder();
   const canvasRef = useRef<HTMLDivElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [showAISuggestion, setShowAISuggestion] = useState(false);
   const [suggestionPosition, setSuggestionPosition] = useState({ x: 0, y: 0 });
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -60,8 +57,18 @@ export function CanvasArea({ selectedTool }: CanvasAreaProps) {
 
   const handleCanvasClick = (e: React.MouseEvent) => {
     // If in connect mode and clicking on empty canvas, cancel connection
-    if (selectedTool === 'connect' && state.isConnecting) {
+    if (state.isConnecting) {
       setConnecting(false);
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      setMousePosition({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      });
     }
   };
 
@@ -93,6 +100,7 @@ export function CanvasArea({ selectedTool }: CanvasAreaProps) {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={handleCanvasClick}
+        onMouseMove={handleMouseMove}
       >
 
         {/* Connection Layer (SVG overlay) */}
@@ -101,6 +109,7 @@ export function CanvasArea({ selectedTool }: CanvasAreaProps) {
           connections={state.connections}
           isConnecting={state.isConnecting}
           connectingFromId={state.connectingFromId}
+          mousePosition={mousePosition}
           onRemoveConnection={removeConnection}
         />
 
@@ -109,7 +118,6 @@ export function CanvasArea({ selectedTool }: CanvasAreaProps) {
           <DraggableNode
             key={node.id}
             node={node}
-            selectedTool={selectedTool}
             isSelected={state.selectedNodeId === node.id}
           />
         ))}
