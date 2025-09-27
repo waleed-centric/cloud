@@ -4,11 +4,14 @@ import { DetailedAwsService, SubService } from '../../data/aws-services-detailed
 import { DetailedAzureService, AzureSubService } from '../../data/azure-services-detailed';
 import { DetailedGcpService, GcpSubService } from '../../data/gcp-services-detailed';
 import type { DetailedService, SubServiceType } from '@/context/AwsBuilderContext';
+import { useCloudProvider } from '@/context/CloudProviderContext';
+import { getProviderTheme } from '@/data/theme-colors';
 
 // Summary: Service Detail Modal component - shows AWS service details and sub-services
 // - Displays service information, sub-services, and allows adding to canvas
 
 const ServiceDetailModal: React.FC = () => {
+  const { currentProvider } = useCloudProvider();
   const { state, closeServiceModal, openPropertiesPanel, addSubServiceNode } = useAwsBuilder();
   
   if (!state.showServiceModal || !state.selectedService) {
@@ -16,6 +19,7 @@ const ServiceDetailModal: React.FC = () => {
   }
 
   const service = state.selectedService;
+  const theme = getProviderTheme(currentProvider);
 
   const handleSubServiceSelect = (subService: SubServiceType) => {
     openPropertiesPanel(service, subService);
@@ -24,10 +28,21 @@ const ServiceDetailModal: React.FC = () => {
   // Removed Add to Canvas button: flow shifted to Configure -> Properties -> Save
 
   return (
-    <div className="fixed top-0 right-0 h-full w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-l border-gray-200">
+    <div 
+      className="fixed top-0 right-0 h-full w-96 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out"
+      style={{
+        backgroundColor: theme.background,
+        borderLeft: `1px solid ${theme.border}`
+      }}
+    >
       <div className="h-full flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4">
+        <div 
+          className="text-white p-4"
+          style={{
+            background: `linear-gradient(to right, ${theme.gradient.from}, ${theme.gradient.to})`
+          }}
+        >
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
               <div 
@@ -42,45 +57,83 @@ const ServiceDetailModal: React.FC = () => {
               />
               <div className="min-w-0 flex-1">
                 <h2 className="text-lg font-bold truncate">{service.name}</h2>
-                <span className="inline-block bg-blue-500 text-xs px-2 py-0.5 rounded-full">
+                <span 
+                  className="inline-block text-xs px-2 py-0.5 rounded-full"
+                  style={{
+                    backgroundColor: theme.accent,
+                    color: 'white'
+                  }}
+                >
                   {service.category}
                 </span>
               </div>
             </div>
             <button
               onClick={closeServiceModal}
-              className="text-white hover:text-gray-200 text-xl font-bold w-6 h-6 flex items-center justify-center flex-shrink-0"
+              className="text-white hover:text-opacity-80 text-2xl"
             >
               ×
             </button>
           </div>
-          <p className="text-blue-100 text-sm">{service.description}</p>
+          <p className="text-white text-opacity-90 text-sm">{service.description}</p>
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-4 overflow-y-auto">
+        <div 
+          className="flex-1 p-4 overflow-y-auto"
+          style={{
+            backgroundColor: theme.background
+          }}
+        >
           {/* Common Properties Section */}
           {service.commonProperties.length > 0 && (
             <div className="mb-6">
-              <h3 className="text-md font-semibold text-gray-800 mb-3 flex items-center">
+              <h3 
+                className="text-md font-semibold mb-3 flex items-center"
+                style={{ color: theme.text }}
+              >
                 <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
                 Common Properties
               </h3>
               <div className="space-y-3">
                 {service.commonProperties.map((prop) => (
-                  <div key={prop.id} className="bg-gray-50 p-3 rounded-lg border">
+                  <div 
+                    key={prop.id}
+                    className="p-3 rounded-lg border"
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      color: theme.text
+                    }}
+                  >
                     <div className="flex items-center justify-between mb-1">
-                      <label className="font-medium text-gray-700 text-sm">{prop.name}</label>
-                      {prop.required && (
-                        <span className="text-red-500 text-xs">Required</span>
-                      )}
-                    </div>
-                    {prop.description && (
-                      <p className="text-xs text-gray-600 mb-2">{prop.description}</p>
-                    )}
-                    <div className="text-xs text-gray-500">
-                      Type: {prop.type} | Default: {String(prop.defaultValue || 'None')}
-                    </div>
+                        <label 
+                          className="font-medium text-sm"
+                          style={{ color: theme.text }}
+                        >
+                          {prop.name}
+                        </label>
+                        {prop.required && (
+                          <span 
+                            className="text-xs px-2 py-0.5 rounded-full"
+                            style={{
+                              backgroundColor: theme.accent,
+                              color: 'white'
+                            }}
+                          >
+                            Required
+                          </span>
+                        )}
+                      </div>
+                      <p 
+                        className="text-xs mb-2"
+                        style={{ color: theme.textSecondary }}
+                      >
+                        {prop.description}
+                      </p>
+                      <div className="text-xs" style={{ color: theme.textSecondary }}>
+                        Type: {prop.type} | Default: {String(prop.defaultValue || 'None')}
+                      </div>
                   </div>
                 ))}
               </div>
@@ -89,23 +142,46 @@ const ServiceDetailModal: React.FC = () => {
 
           {/* Sub-Services Section */}
           <div>
-            <h3 className="text-md font-semibold text-gray-800 mb-3 flex items-center">
-              <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-              Sub-Services ({service.subServices.length})
+            <h3 
+              className="text-lg font-semibold mb-3"
+              style={{ color: theme.text }}
+            >
+              Available Sub-Services ({service.subServices.length})
             </h3>
             <div className="space-y-3">
               {service.subServices.map((subService) => (
                 <div
-                  key={subService.id}
-                  className="bg-white border border-gray-200 rounded-lg p-3 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer group"
-                >
+                    key={subService.id}
+                    className="border rounded-lg p-3 hover:shadow-sm transition-all cursor-pointer group"
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      color: theme.text
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = theme.hover;
+                      e.currentTarget.style.borderColor = theme.primary;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = theme.surface;
+                      e.currentTarget.style.borderColor = theme.border;
+                    }}
+                  >
                   <div className="flex items-start space-x-2 mb-2">
                     <span className="text-lg">{subService.icon}</span>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-800 group-hover:text-blue-600 text-sm truncate">
+                      <h4 
+                        className="font-medium text-sm truncate"
+                        style={{ color: theme.text }}
+                      >
                         {subService.name}
                       </h4>
-                      <p className="text-xs text-gray-600 line-clamp-2">{subService.description}</p>
+                      <p 
+                        className="text-xs mt-1"
+                        style={{ color: theme.textSecondary }}
+                      >
+                        {subService.description}
+                      </p>
                     </div>
                   </div>
                   
@@ -116,7 +192,16 @@ const ServiceDetailModal: React.FC = () => {
                   <div className="space-y-1">
                     <button
                       onClick={() => handleSubServiceSelect(subService)}
-                      className="w-full bg-blue-500 text-white px-2 py-1.5 rounded text-xs hover:bg-blue-600 transition-colors"
+                      className="w-full text-white px-3 py-1.5 rounded text-xs font-medium transition-colors"
+                      style={{
+                        backgroundColor: theme.primary
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.primaryDark;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.primary;
+                      }}
                     >
                       Configure
                     </button>

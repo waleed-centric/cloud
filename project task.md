@@ -141,26 +141,43 @@ Azure aur GCP ke liye sub-services functionality successfully implement kar di g
      - No errors in browser console
      - Multi-provider switching working
 
+5. **Theme-Based Right Sidebar Colors** ✅
+   - Status: [x] Done
+   - Owner: Assistant
+   - Timestamp: 2025-01-27
+   - Details:
+     - Created theme colors configuration (`theme-colors.ts`) with dark theme colors
+     - Updated ServiceDetailModal with dark theme colors consistent with Cost Estimation section
+     - Updated PropertiesPanel with dark theme colors (slate-900, slate-800, slate-700)
+     - Implemented provider-specific accent colors while maintaining dark theme consistency
+     - Added dark background, surface, border, and text colors for better visual consistency
+
 ### Implementation Details
 - **Azure Services**: Virtual Machines, Azure Functions, Storage Account, Azure SQL Database, Virtual Network
 - **GCP Services**: Compute Engine, Cloud Functions, Cloud Storage, Cloud SQL, VPC Network, Google Kubernetes Engine
 - **Sub-services**: Har service mein multiple sub-services with properties
 - **Context Integration**: Multi-provider union types use kiye
 - **Component Updates**: DraggableNode aur ServiceDetailModal updated
+- **Theme Colors System**:
+  - **AWS**: Orange theme (#FF9900, #FF7700)
+  - **Azure**: Blue theme (#0078D4, #106EBE)
+  - **GCP**: Multi-color theme (#4285F4, #34A853)
 
 ### How It Works
 1. User koi bhi provider select karta hai (AWS/Azure/GCP)
 2. Canvas par service click karta hai
-3. Provider-specific detailed service modal open hota hai
+3. Provider-specific detailed service modal open hota hai with theme colors
 4. Sub-services list show hoti hai with Configure buttons
-5. Configure click par Properties panel open hota hai
+5. Configure click par Properties panel open hota hai with matching theme
+6. Right sidebar components automatically adapt colors based on selected provider
 
 ### Next Steps
 Sub-services functionality ab fully implemented hai. User ab:
 - AWS, Azure, ya GCP services click kar sakta hai
-- Sub-services dekh sakta hai
-- Properties configure kar sakta hai
+- Sub-services dekh sakta hai with provider-specific themes
+- Properties configure kar sakta hai with matching colors
 - Canvas par add kar sakta hai
+- Theme switching between different providers test kar sakta hai
 - Azure aur Google Cloud support add karo
 - Provider change par canvas clear karo
 - Proper state management with Context API

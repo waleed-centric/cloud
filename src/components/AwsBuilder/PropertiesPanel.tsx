@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState ,useEffect} from 'react';
 import { useAwsBuilder } from '@/context/AwsBuilderContext';
+import { useCloudProvider } from '@/context/CloudProviderContext';
+import { getProviderTheme } from '@/data/theme-colors';
 import { ServiceProperty, SubService, DetailedAwsService } from '../../data/aws-services-detailed';
 
 // Summary: Properties Panel component - shows configuration options for selected service/sub-service
 // - Displays properties form and allows saving configuration
 
 const PropertiesPanel: React.FC = () => {
+  const { currentProvider } = useCloudProvider();
   const { state, closePropertiesPanel, updateNodeProperties, openServiceModal, addSubServiceNode } = useAwsBuilder();
   const [propertyValues, setPropertyValues] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -16,6 +19,7 @@ const PropertiesPanel: React.FC = () => {
 
   const service = state.selectedService;
   const subService = state.selectedSubService;
+  const theme = getProviderTheme(currentProvider);
 
   // Combine common properties and sub-service properties
   const allProperties = [
@@ -175,10 +179,21 @@ const PropertiesPanel: React.FC = () => {
   if (!state.showPropertiesPanel) return null;
 
   return (
-    <div className="fixed top-0 right-0 h-full w-96 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-l border-gray-200">
+    <div 
+      className="fixed top-0 right-0 h-full w-96 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-l"
+      style={{
+        backgroundColor: theme.background,
+        borderColor: theme.border
+      }}
+    >
       <div className="h-full flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-4">
+        <div 
+          className="text-white p-4"
+          style={{
+            background: `linear-gradient(to right, ${theme.gradient.from}, ${theme.gradient.to})`
+          }}
+        >
           <div className="flex items-center justify-between mb-2">
             <div className="min-w-0 flex-1">
               <div className="flex items-center space-x-2">
@@ -197,9 +212,18 @@ const PropertiesPanel: React.FC = () => {
                 </button>
                 <div className="min-w-0">
                   <h2 className="text-lg font-bold truncate">Configure Properties</h2>
-                  <p className="text-green-100 text-sm truncate">
-                    {service?.name} {subService ? `- ${subService.name}` : ''}
+                  <p className="text-white text-opacity-90 text-sm truncate">
+                    Configure properties for {subService ? subService.name : service?.name}
                   </p>
+                  <span 
+                    className="inline-block text-xs px-2 py-0.5 rounded-full mt-1"
+                    style={{
+                      backgroundColor: theme.accent,
+                      color: 'white'
+                    }}
+                  >
+                    Configuration
+                  </span>
                 </div>
               </div>
             </div>
@@ -213,10 +237,18 @@ const PropertiesPanel: React.FC = () => {
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-4 overflow-y-auto">
+        <div 
+          className="flex-1 p-6 overflow-y-auto"
+          style={{
+            backgroundColor: theme.background
+          }}
+        >
           {allProperties.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>No properties available for configuration</p>
+            <div 
+              className="text-center py-8"
+              style={{ color: theme.textSecondary }}
+            >
+              <p>Select a service to configure its properties</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -229,17 +261,33 @@ const PropertiesPanel: React.FC = () => {
                   </h3>
                   <div className="space-y-3">
                     {service.commonProperties.map((property) => (
-                      <div key={property.id} className="bg-gray-50 p-3 rounded-lg border">
+                      <div key={property.id} className="p-3 rounded-lg border" style={{
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border
+                      }}>
                         <div className="flex items-center justify-between mb-1">
-                          <label className="font-medium text-gray-700 text-sm">
+                          <label 
+                            className="font-medium text-sm"
+                            style={{ color: theme.text }}
+                          >
                             {property.name}
                           </label>
                           {property.required && (
-                            <span className="text-red-500 text-xs">Required</span>
+                            <span 
+                              className="text-xs px-2 py-0.5 rounded text-white"
+                              style={{ backgroundColor: theme.accent }}
+                            >
+                              Required
+                            </span>
                           )}
                         </div>
                         {property.description && (
-                          <p className="text-xs text-gray-600 mb-2">{property.description}</p>
+                          <p 
+                            className="text-xs mb-2"
+                            style={{ color: theme.textSecondary }}
+                          >
+                            {property.description}
+                          </p>
                         )}
                         {renderPropertyInput(property)}
                         {errors[property.id] && (
@@ -262,11 +310,19 @@ const PropertiesPanel: React.FC = () => {
                     {subService.properties.map((property) => (
                       <div key={property.id} className="bg-gray-50 p-3 rounded-lg border">
                         <div className="flex items-center justify-between mb-1">
-                          <label className="font-medium text-gray-700 text-sm">
+                          <label 
+                            className="font-medium text-sm"
+                            style={{ color: theme.text }}
+                          >
                             {property.name}
                           </label>
                           {property.required && (
-                            <span className="text-red-500 text-xs">Required</span>
+                            <span 
+                              className="text-xs px-2 py-0.5 rounded text-white"
+                              style={{ backgroundColor: theme.accent }}
+                            >
+                              Required
+                            </span>
                           )}
                         </div>
                         {property.description && (
