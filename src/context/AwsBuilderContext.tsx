@@ -53,6 +53,8 @@ export type AwsBuilderState = {
   selectedSubService: SubServiceType | null;
   showServiceModal: boolean;
   showPropertiesPanel: boolean;
+  // Virtual anchors to allow connecting from aggregated boxes
+  virtualAnchors: { id: string; x: number; y: number }[];
 };
 
 export type AwsBuilderContextValue = {
@@ -75,6 +77,9 @@ export type AwsBuilderContextValue = {
   addSubServiceNode: (subService: SubServiceType, service: DetailedService, x: number, y: number, properties?: Record<string, any>) => void;
   updateNodeProperties: (nodeId: string, properties: Record<string, any>) => void;
   getNodeDetails: (nodeId: string) => { service?: DetailedService; subService?: SubServiceType; properties?: Record<string, any> } | null;
+  // Virtual anchor registration for aggregated boxes
+  registerVirtualAnchors: (anchors: { id: string; x: number; y: number }[]) => void;
+  unregisterVirtualAnchorsByPrefix: (prefix: string) => void;
 };
 
 const AwsBuilderContext = createContext<AwsBuilderContextValue | undefined>(undefined);
@@ -91,6 +96,7 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
     selectedSubService: null,
     showServiceModal: false,
     showPropertiesPanel: false,
+    virtualAnchors: [],
   });
 
   const { currentProvider } = useCloudProvider();
@@ -186,6 +192,7 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
       selectedSubService: null,
       showServiceModal: false,
       showPropertiesPanel: false,
+      virtualAnchors: [],
     });
 
     // Also clear pricing state
@@ -263,6 +270,25 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
       selectedService: null,
       selectedSubService: null,
       showPropertiesPanel: false,
+    }));
+  };
+
+  // Virtual anchor helpers
+  const registerVirtualAnchors = (anchors: { id: string; x: number; y: number }[]) => {
+    setState(prev => ({
+      ...prev,
+      virtualAnchors: [
+        // Remove duplicates by id then add
+        ...prev.virtualAnchors.filter(a => !anchors.some(n => n.id === a.id)),
+        ...anchors,
+      ],
+    }));
+  };
+
+  const unregisterVirtualAnchorsByPrefix = (prefix: string) => {
+    setState(prev => ({
+      ...prev,
+      virtualAnchors: prev.virtualAnchors.filter(a => !a.id.startsWith(prefix)),
     }));
   };
 
@@ -382,6 +408,9 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
     addSubServiceNode,
     updateNodeProperties,
     getNodeDetails,
+     // Virtual anchor helpers
+     registerVirtualAnchors,
+     unregisterVirtualAnchorsByPrefix,
   };
 
   return (

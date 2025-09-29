@@ -122,6 +122,59 @@ export function ExportPanel() {
     URL.revokeObjectURL(url);
   };
 
+  // --- Terraform (HCL) Export ---
+  const sanitizeResourceName = (name: string) =>
+    name.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_{2,}/g, '_').replace(/^_+|_+$/g, '');
+
+  const getAwsRegionFromNodes = (): string => {
+    // Try to read a configured region from any node properties, default to us-east-1
+    for (const n of state.placedNodes) {
+      const region = (n as any)?.properties?.region;
+      if (typeof region === 'string' && region.trim()) return region;
+    }
+    return 'us-east-1';
+  };
+
+  const generateTerraformHCL = (): string => {
+    const providerBlock = `provider "aws" {\n  region = "${getAwsRegionFromNodes()}"\n}`;
+
+    const resources: string[] = [];
+
+    state.placedNodes.forEach((node) => {
+      const isEc2Instance = node.subServiceId === 'ec2-instance' || node.icon.id === 'ec2-instance';
+      if (!isEc2Instance) return;
+
+      const ami = (node as any)?.properties?.ami || 'ami-0c55b159cbfafe1f0';
+      const instanceType = (node as any)?.properties?.instanceType || 't2.micro';
+      const nameTag = (node as any)?.properties?.name || node.icon.name || 'web_server';
+      const resourceName = sanitizeResourceName(nameTag);
+
+      resources.push(`resource "aws_instance" "${resourceName}" {\n  ami           = "${ami}"\n  instance_type = "${instanceType}"\n\n  tags = {\n    Name = "${nameTag}"\n  }\n}`);
+    });
+
+    return [providerBlock, ...resources].join('\n\n');
+  };
+
+  const handleExportTerraform = () => {
+    // For now, support AWS EC2 Instance export
+    const hcl = generateTerraformHCL();
+
+    if (!hcl || !hcl.includes('resource "aws_instance"')) {
+      alert('No EC2 Instance found to export. Add an EC2 Instance sub-service.');
+      return;
+    }
+
+    const blob = new Blob([hcl], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'main.tf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-3">
       <div className="flex items-center justify-between mb-3">
@@ -168,6 +221,19 @@ export function ExportPanel() {
           <div className="text-left">
             <div className="font-medium text-gray-900">Export JSON</div>
             <div className="text-xs text-gray-500">Save as JSON data</div>
+          </div>
+        </button>
+
+        {/* Export Terraform (HCL) */}
+        <button
+          onClick={handleExportTerraform}
+          disabled={state.placedNodes.length === 0}
+          className="w-full flex items-center gap-2 p-2 text-sm border border-gray-200 rounded hover:border-orange-300 hover:bg-orange-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span className="text-lg">🧱</span>
+          <div className="text-left">
+            <div className="font-medium text-gray-900">Export Terraform</div>
+            <div className="text-xs text-gray-500">Provider + aws_instance (AWS)</div>
           </div>
         </button>
       </div>

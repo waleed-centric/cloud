@@ -1,5 +1,6 @@
 import React from 'react';
 import { type PlacedNode, type Connection } from '@/context/AwsBuilderContext';
+import { useAwsBuilder } from '@/context/AwsBuilderContext';
 
 type ConnectionLayerProps = {
   nodes: PlacedNode[];
@@ -18,9 +19,17 @@ export function ConnectionLayer({
   mousePosition,
   onRemoveConnection
 }: ConnectionLayerProps) {
+  const { state } = useAwsBuilder();
   const getNodeCenter = (nodeId: string) => {
     const node = nodes.find(n => n.id === nodeId);
-    if (!node) return { x: 0, y: 0 };
+    if (!node) {
+      // Try virtual anchors (for aggregated box dots)
+      const anchor = state.virtualAnchors.find(a => a.id === nodeId);
+      if (anchor) {
+        return { x: anchor.x, y: anchor.y };
+      }
+      return { x: 0, y: 0 };
+    }
     
     return {
       x: node.x + (node.icon.width / 2),

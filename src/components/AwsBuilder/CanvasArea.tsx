@@ -1,7 +1,9 @@
 import React, { useRef, useState } from 'react';
 import { useAwsBuilder, type AwsIcon } from '@/context/AwsBuilderContext';
+import { useCloudProvider } from '@/context/CloudProviderContext';
 import { ConnectionLayer } from './ConnectionLayer';
 import { DraggableNode } from '@/components/AwsBuilder/DraggableNode';
+import AggregatedServiceGroup from '@/components/AwsBuilder/AggregatedServiceGroup';
 import { AISuggestionTooltip } from './AISuggestionTooltip';
 
 // Summary: Canvas Area component - main drop zone for AWS icons
@@ -9,6 +11,7 @@ import { AISuggestionTooltip } from './AISuggestionTooltip';
 
 export function CanvasArea() {
   const { state, addNode, setConnecting, removeConnection } = useAwsBuilder();
+  const { currentProvider } = useCloudProvider();
   const canvasRef = useRef<HTMLDivElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [showAISuggestion, setShowAISuggestion] = useState(false);
@@ -113,14 +116,64 @@ export function CanvasArea() {
           onRemoveConnection={removeConnection}
         />
 
-        {/* Placed Nodes */}
-        {state.placedNodes.map((node) => (
-          <DraggableNode
-            key={node.id}
-            node={node}
-            isSelected={state.selectedNodeId === node.id}
-          />
-        ))}
+        {/* Placed Nodes (with aggregation per service) */}
+        {(() => {
+          // Generic aggregation: group all sub-services under their parent service for current provider
+          const subServiceNodes = state.placedNodes.filter((n) => n.isSubService);
+          const serviceIds = Array.from(new Set(subServiceNodes.map((n) => n.serviceId).filter(Boolean)));
+
+          const rendered: React.ReactNode[] = [];
+
+          // Determine services that have one or more sub-service nodes (hide parent when any exist)
+          const servicesWithAny = new Set<string>();
+          for (const svcId of serviceIds) {
+            const count = subServiceNodes.filter((n) => n.serviceId === svcId).length;
+            if (count >= 1) servicesWithAny.add(String(svcId));
+          }
+
+          // Render non-subservice nodes normally, but hide parent tile if this service has exactly two items
+          const nonSubNodesAll = state.placedNodes.filter((n) => !n.isSubService);
+          const nonSubNodes = nonSubNodesAll.filter((n) => {
+            const sid = n.icon?.id || n.serviceId || '';
+            return !servicesWithAny.has(sid);
+          });
+          for (const node of nonSubNodes) {
+            rendered.push(
+              <DraggableNode
+                key={node.id}
+                node={node}
+                isSelected={state.selectedNodeId === node.id}
+              />
+            );
+          }
+
+          // Render aggregated boxes per service
+          for (const svcId of serviceIds) {
+            const svcSubNodes = subServiceNodes.filter((n) => n.serviceId === svcId);
+            if (svcSubNodes.length === 0) continue;
+
+            // Try to anchor under the parent tile of this service
+            const parent = nonSubNodesAll.find((n) => n.icon.id === svcId || n.serviceId === svcId);
+            const defaultX = Math.min(...svcSubNodes.map((n) => n.x));
+            const defaultY = Math.min(...svcSubNodes.map((n) => n.y)) - 20;
+            const groupX = parent ? parent.x : defaultX;
+            const groupY = parent ? parent.y + (parent.icon?.height || 50) + 16 : defaultY;
+
+            rendered.push(
+              <AggregatedServiceGroup
+                key={`agg-${svcId}`}
+                serviceId={svcId!}
+                nodeIds={svcSubNodes.map((n) => n.id)}
+                title={`${(parent?.icon?.name || svcId || '').replace(/Amazon |Microsoft |Google /g, '')} Resources`}
+                category={parent?.icon?.category || 'Service'}
+                x={Math.max(0, groupX)}
+                y={Math.max(0, groupY)}
+              />
+            );
+          }
+
+          return rendered;
+        })()}
 
         {/* Empty State */}
         {state.placedNodes.length === 0 && !dragOver && (
