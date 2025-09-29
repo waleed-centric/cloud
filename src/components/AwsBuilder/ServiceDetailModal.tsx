@@ -6,6 +6,7 @@ import { DetailedGcpService, GcpSubService } from '../../data/gcp-services-detai
 import type { DetailedService, SubServiceType } from '@/context/AwsBuilderContext';
 import { useCloudProvider } from '@/context/CloudProviderContext';
 import { getProviderTheme } from '@/data/theme-colors';
+import { usePricing } from '@/context/PricingContext';
 
 // Summary: Service Detail Modal component - shows AWS service details and sub-services
 // - Displays service information, sub-services, and allows adding to canvas
@@ -13,12 +14,16 @@ import { getProviderTheme } from '@/data/theme-colors';
 const ServiceDetailModal: React.FC = () => {
   const { currentProvider } = useCloudProvider();
   const { state, closeServiceModal, openPropertiesPanel, addSubServiceNode } = useAwsBuilder();
+  const { getPricingSummaryForService } = usePricing();
   
   if (!state.showServiceModal || !state.selectedService) {
     return null;
   }
 
   const service = state.selectedService;
+  // Defensive defaults in case a partial service object is present
+  const commonProperties = Array.isArray(service?.commonProperties) ? service.commonProperties : [];
+  const subServices = Array.isArray(service?.subServices) ? service.subServices : [];
   const theme = getProviderTheme(currentProvider);
 
   const handleSubServiceSelect = (subService: SubServiceType) => {
@@ -53,10 +58,10 @@ const ServiceDetailModal: React.FC = () => {
                   maxWidth: '32px',
                   maxHeight: '32px'
                 }}
-                dangerouslySetInnerHTML={{ __html: service.icon }}
+                dangerouslySetInnerHTML={{ __html: service.icon || '' }}
               />
               <div className="min-w-0 flex-1">
-                <h2 className="text-lg font-bold truncate">{service.name}</h2>
+                <h2 className="text-lg font-bold truncate">{service.name || 'Service'}</h2>
                 <span 
                   className="inline-block text-xs px-2 py-0.5 rounded-full"
                   style={{
@@ -64,8 +69,11 @@ const ServiceDetailModal: React.FC = () => {
                     color: 'white'
                   }}
                 >
-                  {service.category}
+                  {service.category || 'Unknown'}
                 </span>
+                <div className="text-xs mt-1" style={{ color: 'white' }}>
+                  {getPricingSummaryForService(service.id)}
+                </div>
               </div>
             </div>
             <button
@@ -75,7 +83,7 @@ const ServiceDetailModal: React.FC = () => {
               ×
             </button>
           </div>
-          <p className="text-white text-opacity-90 text-sm">{service.description}</p>
+          <p className="text-white text-opacity-90 text-sm">{service.description || ''}</p>
         </div>
 
         {/* Content */}
@@ -86,7 +94,7 @@ const ServiceDetailModal: React.FC = () => {
           }}
         >
           {/* Common Properties Section */}
-          {service.commonProperties.length > 0 && (
+          {commonProperties.length > 0 && (
             <div className="mb-6">
               <h3 
                 className="text-md font-semibold mb-3 flex items-center"
@@ -96,7 +104,7 @@ const ServiceDetailModal: React.FC = () => {
                 Common Properties
               </h3>
               <div className="space-y-3">
-                {service.commonProperties.map((prop) => (
+                {commonProperties.map((prop) => (
                   <div 
                     key={prop.id}
                     className="p-3 rounded-lg border"
@@ -146,10 +154,10 @@ const ServiceDetailModal: React.FC = () => {
               className="text-lg font-semibold mb-3"
               style={{ color: theme.text }}
             >
-              Available Sub-Services ({service.subServices.length})
+              Available Sub-Services ({subServices.length})
             </h3>
             <div className="space-y-3">
-              {service.subServices.map((subService) => (
+              {subServices.map((subService) => (
                 <div
                     key={subService.id}
                     className="border rounded-lg p-3 hover:shadow-sm transition-all cursor-pointer group"
@@ -186,7 +194,7 @@ const ServiceDetailModal: React.FC = () => {
                   </div>
                   
                   <div className="text-xs text-gray-500 mb-2">
-                    {subService.properties.length} properties
+                    {(subService.properties || []).length} properties
                   </div>
 
                   <div className="space-y-1">
@@ -211,15 +219,15 @@ const ServiceDetailModal: React.FC = () => {
                   <div className="mt-2 pt-2 border-t border-gray-100">
                     <div className="text-xs text-gray-600 mb-1">Key Properties:</div>
                     <div className="space-y-0.5">
-                      {subService.properties.slice(0, 2).map((prop) => (
+                      {(subService.properties || []).slice(0, 2).map((prop) => (
                         <div key={prop.id} className="flex justify-between text-xs">
                           <span className="text-gray-600 truncate">{prop.name}</span>
                           <span className="text-gray-500 ml-1">{prop.type}</span>
                         </div>
                       ))}
-                      {subService.properties.length > 2 && (
+                      {(subService.properties || []).length > 2 && (
                         <div className="text-xs text-gray-500 italic">
-                          +{subService.properties.length - 2} more...
+                          +{(subService.properties || []).length - 2} more...
                         </div>
                       )}
                     </div>
@@ -234,8 +242,8 @@ const ServiceDetailModal: React.FC = () => {
         <div className="bg-gray-50 px-6 py-4 border-t">
           <div className="flex justify-between items-center">
             <div className="text-sm text-gray-600">
-              Total Sub-Services: {service.subServices.length} | 
-              Common Properties: {service.commonProperties.length}
+              Total Sub-Services: {subServices.length} | 
+              Common Properties: {commonProperties.length}
             </div>
             <button
               onClick={closeServiceModal}

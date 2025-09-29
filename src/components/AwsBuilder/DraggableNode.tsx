@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { useAwsBuilder, type PlacedNode } from '@/context/AwsBuilderContext';
+import { useAwsBuilder, type PlacedNode, type DetailedService } from '@/context/AwsBuilderContext';
 import { DETAILED_AWS_SERVICES } from '../../data/aws-services-detailed';
 import { DETAILED_AZURE_SERVICES } from '../../data/azure-services-detailed';
 import { DETAILED_GCP_SERVICES } from '../../data/gcp-services-detailed';
@@ -15,7 +15,7 @@ type DraggableNodeProps = {
 
 export function DraggableNode({ node, isSelected }: DraggableNodeProps) {
   const { currentProvider } = useCloudProvider();
-  const { updateNodePosition, removeNode, setSelectedNode, setConnecting, addConnection, state, openServiceModal } = useAwsBuilder();
+  const { updateNodePosition, removeNode, setSelectedNode, setConnecting, addConnection, state, openServiceModal, openPropertiesPanel, getNodeDetails } = useAwsBuilder();
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
@@ -23,6 +23,20 @@ export function DraggableNode({ node, isSelected }: DraggableNodeProps) {
 
   const handleConnectionStart = (position: 'top' | 'right' | 'bottom' | 'left') => {
     setConnecting(true, node.id);
+  };
+
+  // Dot interaction: start if idle, complete if already connecting from another node
+  const handleDotMouseDown = (
+    e: React.MouseEvent,
+    position: 'top' | 'right' | 'bottom' | 'left'
+  ) => {
+    e.stopPropagation();
+    if (state.isConnecting && state.connectingFromId && state.connectingFromId !== node.id) {
+      addConnection(state.connectingFromId, node.id);
+      setConnecting(false);
+    } else {
+      setConnecting(true, node.id);
+    }
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -111,8 +125,15 @@ export function DraggableNode({ node, isSelected }: DraggableNodeProps) {
       addConnection(state.connectingFromId, node.id);
       setConnecting(false);
     } else {
-      // Just select the node
+      // Select the node and open service detail modal on the right
       setSelectedNode(node.id);
+      const details = getNodeDetails(node.id);
+      if (details?.service) {
+        openServiceModal(details.service as DetailedService);
+      } else {
+        // Fallback to minimal service id; defensive guards in modal handle partials
+        openServiceModal({ id: node.icon.id } as DetailedService);
+      }
     }
   };
 
@@ -121,17 +142,7 @@ export function DraggableNode({ node, isSelected }: DraggableNodeProps) {
       ref={nodeRef}
       className={`absolute cursor-pointer select-none transition-all ${
         isDragging ? 'z-50 scale-105' : 'z-10'
-      } ${
-        isSelected ? 'ring-2 ring-blue-400 ring-offset-2' : ''
-      } ${
-        'cursor-move'
-      } ${
-        state.isConnecting && state.connectingFromId === node.id 
-          ? 'ring-2 ring-green-400 ring-offset-2' 
-          : ''
-      } ${
-        isHovered ? 'border-2 border-dashed border-blue-400' : ''
-      }`}
+      } cursor-move`}
       style={{
         left: node.x,
         top: node.y,
@@ -146,7 +157,11 @@ export function DraggableNode({ node, isSelected }: DraggableNodeProps) {
     >
       {/* Icon Container with improved styling */}
       <div 
-        className="w-full h-full flex flex-col items-center justify-center bg-slate-900 rounded-lg shadow-xl border border-slate-700 hover:shadow-2xl hover:border-slate-600 hover:bg-slate-800 transition-all duration-300 group"
+        className={`relative w-full h-full flex flex-col items-center justify-center bg-slate-900 rounded-lg shadow-xl border border-slate-700 hover:shadow-2xl hover:border-slate-600 hover:bg-slate-800 transition-all duration-300 group ${
+          isSelected ? 'ring-2 ring-blue-400' : ''
+        } ${
+          state.isConnecting && state.connectingFromId === node.id ? 'ring-2 ring-green-400' : ''
+        }`}
         style={{
           minWidth: '80px',
           minHeight: '80px',
@@ -170,86 +185,62 @@ export function DraggableNode({ node, isSelected }: DraggableNodeProps) {
         <div className="text-xs text-slate-400 text-center">
           {node.icon.category?.replace('-', ' ') || 'Service'}
         </div>
+
+        {/* Connection Dots - visible on hover, positioned around the main box */}
+        {isHovered && (
+          <>
+            {/* Top dot */}
+            <div 
+              className="absolute w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-lg cursor-pointer hover:bg-blue-600 transition-colors"
+              style={{ 
+                top: '-6px', 
+                left: '50%', 
+                transform: 'translateX(-50%)',
+                zIndex: 60
+              }}
+              onMouseDown={(e) => handleDotMouseDown(e, 'top')}
+            />
+            
+            {/* Right dot */}
+            <div 
+              className="absolute w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-lg cursor-pointer hover:bg-blue-600 transition-colors"
+              style={{ 
+                top: '50%', 
+                right: '-6px', 
+                transform: 'translateY(-50%)',
+                zIndex: 60
+              }}
+              onMouseDown={(e) => handleDotMouseDown(e, 'right')}
+            />
+            
+            {/* Bottom dot */}
+            <div 
+              className="absolute w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-lg cursor-pointer hover:bg-blue-600 transition-colors"
+              style={{ 
+                bottom: '-6px', 
+                left: '50%', 
+                transform: 'translateX(-50%)',
+                zIndex: 60
+              }}
+              onMouseDown={(e) => handleDotMouseDown(e, 'bottom')}
+            />
+            
+            {/* Left dot */}
+            <div 
+              className="absolute w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-lg cursor-pointer hover:bg-blue-600 transition-colors"
+              style={{ 
+                top: '50%', 
+                left: '-6px', 
+                transform: 'translateY(-50%)',
+                zIndex: 60
+              }}
+              onMouseDown={(e) => handleDotMouseDown(e, 'left')}
+            />
+          </>
+        )}
       </div>
 
-      {/* Connection Dots - visible on hover */}
-      {isHovered && (
-        <>
-          {/* Top dot */}
-          <div 
-            className="absolute w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-lg cursor-pointer hover:bg-blue-600 transition-colors"
-            style={{ 
-              top: '-6px', 
-              left: '50%', 
-              transform: 'translateX(-50%)',
-              zIndex: 60
-            }}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              handleConnectionStart('top');
-            }}
-          />
-          
-          {/* Right dot */}
-          <div 
-            className="absolute w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-lg cursor-pointer hover:bg-blue-600 transition-colors"
-            style={{ 
-              top: '50%', 
-              right: '-6px', 
-              transform: 'translateY(-50%)',
-              zIndex: 60
-            }}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              handleConnectionStart('right');
-            }}
-          />
-          
-          {/* Bottom dot */}
-          <div 
-            className="absolute w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-lg cursor-pointer hover:bg-blue-600 transition-colors"
-            style={{ 
-              bottom: '-6px', 
-              left: '50%', 
-              transform: 'translateX(-50%)',
-              zIndex: 60
-            }}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              handleConnectionStart('bottom');
-            }}
-          />
-          
-          {/* Left dot */}
-          <div 
-            className="absolute w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-lg cursor-pointer hover:bg-blue-600 transition-colors"
-            style={{ 
-              top: '50%', 
-              left: '-6px', 
-              transform: 'translateY(-50%)',
-              zIndex: 60
-            }}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              handleConnectionStart('left');
-            }}
-          />
-        </>
-      )}
-
-      {/* Connection indicator when actively connecting */}
-      {state.isConnecting && state.connectingFromId === node.id && (
-        <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg animate-pulse">
-          <span className="text-white text-xs font-bold">→</span>
-        </div>
-      )}
-      
-      {/* Connection state indicator */}
-      {state.isConnecting && state.connectingFromId === node.id && (
-        <div className="absolute -top-3 -left-3 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg animate-pulse">
-          <span className="text-white text-sm font-bold">●</span>
-        </div>
-      )}
+      {/* Removed green connection indicators per UX request */}
     </div>
   );
 }

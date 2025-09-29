@@ -12,6 +12,7 @@ const PropertiesPanel: React.FC = () => {
   const { state, closePropertiesPanel, updateNodeProperties, openServiceModal, addSubServiceNode } = useAwsBuilder();
   const [propertyValues, setPropertyValues] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [listeners, setListeners] = useState<{ protocol: string; port: number; target: string }[]>([]);
 
   if (!state.showPropertiesPanel || !state.selectedService) {
     return null;
@@ -35,6 +36,13 @@ const PropertiesPanel: React.FC = () => {
     });
     setPropertyValues(initialProps);
     setErrors({});
+    // Seed listeners only for Load Balancer-like services for UI preview
+    const name = (subService?.name || service?.name || '').toLowerCase();
+    if (name.includes('load balancer') || name.includes('elb') || name.includes('alb')) {
+      setListeners([{ protocol: 'HTTPS', port: 443, target: 'tg-web-servers' }]);
+    } else {
+      setListeners([]);
+    }
   }, [service, subService]);
 
   const handlePropertyChange = (propertyId: string, value: any) => {
@@ -96,8 +104,8 @@ const PropertiesPanel: React.FC = () => {
             type="text"
             value={value}
             onChange={(e) => handlePropertyChange(property.id, e.target.value)}
-            className={`w-full text-black px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              hasError ? 'border-red-500' : 'border-gray-300'
+            className={`w-full mt-1 bg-slate-800 border rounded-md px-3 py-1.5 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              hasError ? 'border-red-500' : 'border-slate-600'
             }`}
             placeholder={`Enter ${property.name.toLowerCase()}`}
           />
@@ -109,8 +117,8 @@ const PropertiesPanel: React.FC = () => {
             type="number"
             value={value}
             onChange={(e) => handlePropertyChange(property.id, e.target.value)}
-            className={`w-full text-black px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              hasError ? 'border-red-500' : 'border-gray-300'
+            className={`w-full mt-1 bg-slate-800 border rounded-md px-3 py-1.5 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              hasError ? 'border-red-500' : 'border-slate-600'
             }`}
             placeholder={`Enter ${property.name.toLowerCase()}`}
           />
@@ -121,13 +129,13 @@ const PropertiesPanel: React.FC = () => {
           <select
             value={value}
             onChange={(e) => handlePropertyChange(property.id, e.target.value)}
-            className={`w-full text-black px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              hasError ? 'border-red-500' : 'border-gray-300'
+            className={`w-full mt-1 bg-slate-800 border rounded-md px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              hasError ? 'border-red-500' : 'border-slate-600'
             }`}
           >
-            <option value="">Select {property.name}</option>
+            <option className="bg-slate-800" value="">Select {property.name}</option>
             {property.options?.map((option) => (
-              <option key={option} value={option}>
+              <option className="bg-slate-800" key={option} value={option}>
                 {option}
               </option>
             ))}
@@ -141,9 +149,9 @@ const PropertiesPanel: React.FC = () => {
               type="checkbox"
               checked={Boolean(value)}
               onChange={(e) => handlePropertyChange(property.id, e.target.checked)}
-              className="w-4 text-black h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              className="w-4 h-4 text-blue-600 border-slate-600 rounded focus:ring-blue-500"
             />
-            <span className="text-sm text-gray-600">
+            <span className="text-xs text-slate-400">
               {Boolean(value) ? 'Enabled' : 'Disabled'}
             </span>
           </div>
@@ -155,8 +163,8 @@ const PropertiesPanel: React.FC = () => {
             value={value}
             onChange={(e) => handlePropertyChange(property.id, e.target.value)}
             rows={3}
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical ${
-              hasError ? 'border-red-500' : 'border-gray-300'
+            className={`w-full mt-1 bg-slate-800 border rounded-md px-3 py-1.5 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical ${
+              hasError ? 'border-red-500' : 'border-slate-600'
             }`}
             placeholder={`Enter ${property.name.toLowerCase()}`}
           />
@@ -168,8 +176,8 @@ const PropertiesPanel: React.FC = () => {
             type="text"
             value={value}
             onChange={(e) => handlePropertyChange(property.id, e.target.value)}
-            className={`w-full text-black px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              hasError ? 'border-red-500' : 'border-gray-300'
+            className={`w-full mt-1 bg-slate-800 border rounded-md px-3 py-1.5 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              hasError ? 'border-red-500' : 'border-slate-600'
             }`}
           />
         );
@@ -211,9 +219,9 @@ const PropertiesPanel: React.FC = () => {
                   ←
                 </button>
                 <div className="min-w-0">
-                  <h2 className="text-lg font-bold truncate">Configure Properties</h2>
+                  <h2 className="text-lg font-bold truncate">{subService ? subService.name : service?.name || 'Service'}</h2>
                   <p className="text-white text-opacity-90 text-sm truncate">
-                    Configure properties for {subService ? subService.name : service?.name}
+                    {currentProvider.toUpperCase()}::{(service?.id || 'service').toUpperCase()}
                   </p>
                   <span 
                     className="inline-block text-xs px-2 py-0.5 rounded-full mt-1"
@@ -222,7 +230,7 @@ const PropertiesPanel: React.FC = () => {
                       color: 'white'
                     }}
                   >
-                    Configuration
+                    Properties
                   </span>
                 </div>
               </div>
@@ -255,10 +263,7 @@ const PropertiesPanel: React.FC = () => {
               {/* Common Properties */}
               {service?.commonProperties && service.commonProperties.length > 0 && (
                 <div>
-                  <h3 className="text-md font-semibold text-gray-800 mb-3 flex items-center">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                    Common Properties
-                  </h3>
+                  <h3 className="text-xs font-semibold text-slate-300 mb-2">Common Properties</h3>
                   <div className="space-y-3">
                     {service.commonProperties.map((property) => (
                       <div key={property.id} className="p-3 rounded-lg border" style={{
@@ -267,7 +272,7 @@ const PropertiesPanel: React.FC = () => {
                       }}>
                         <div className="flex items-center justify-between mb-1">
                           <label 
-                            className="font-medium text-sm"
+                            className="text-xs font-medium text-slate-300"
                             style={{ color: theme.text }}
                           >
                             {property.name}
@@ -282,10 +287,7 @@ const PropertiesPanel: React.FC = () => {
                           )}
                         </div>
                         {property.description && (
-                          <p 
-                            className="text-xs mb-2"
-                            style={{ color: theme.textSecondary }}
-                          >
+                          <p className="text-xs mb-2" style={{ color: theme.textSecondary }}>
                             {property.description}
                           </p>
                         )}
@@ -302,16 +304,16 @@ const PropertiesPanel: React.FC = () => {
               {/* Sub-Service Properties */}
               {subService?.properties && subService.properties.length > 0 && (
                 <div>
-                  <h3 className="text-md font-semibold text-gray-800 mb-3 flex items-center">
-                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                    {subService.name} Properties
-                  </h3>
+                  <h3 className="text-xs font-semibold text-slate-300 mb-2">{subService.name} Properties</h3>
                   <div className="space-y-3">
                     {subService.properties.map((property) => (
-                      <div key={property.id} className="bg-gray-50 p-3 rounded-lg border">
+                      <div key={property.id} className="p-3 rounded-lg border" style={{
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border
+                      }}>
                         <div className="flex items-center justify-between mb-1">
                           <label 
-                            className="font-medium text-sm"
+                            className="text-xs font-medium text-slate-300"
                             style={{ color: theme.text }}
                           >
                             {property.name}
@@ -326,7 +328,7 @@ const PropertiesPanel: React.FC = () => {
                           )}
                         </div>
                         {property.description && (
-                          <p className="text-xs text-gray-600 mb-2">{property.description}</p>
+                          <p className="text-xs mb-2" style={{ color: theme.textSecondary }}>{property.description}</p>
                         )}
                         {renderPropertyInput(property)}
                         {errors[property.id] && (
@@ -337,26 +339,47 @@ const PropertiesPanel: React.FC = () => {
                   </div>
                 </div>
               )}
+              {/* Listeners section for Load Balancer-style UI */}
+              {listeners.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-semibold text-slate-300 mb-2">Listeners</h3>
+                  <div className="space-y-2">
+                    {listeners.map((l, idx) => (
+                      <div key={idx} className="rounded-lg border bg-slate-700 text-slate-200 p-3" style={{ borderColor: theme.border }}>
+                        <div className="font-medium text-sm">{l.protocol}: {l.port}</div>
+                        <div className="text-xs text-slate-300">Forward to: {l.target}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setListeners(prev => [...prev, { protocol: 'HTTPS', port: 443, target: 'tg-web-servers' }])}
+                    className="mt-2 text-blue-400 text-xs hover:text-blue-300"
+                  >
+                    Add listener
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="bg-gray-50 px-4 py-3 border-t">
+        <div className="px-4 py-3 border-t" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
           <div className="flex justify-between items-center text-sm">
-            <div className="text-gray-600">
+            <div className="text-slate-300">
               {allProperties.length} properties
             </div>
             <div className="flex space-x-2">
               <button
                 onClick={closePropertiesPanel}
-                className="bg-gray-500 text-white px-3 py-1.5 rounded text-xs hover:bg-gray-600 transition-colors"
+                className="bg-slate-600 text-white px-3 py-1.5 rounded text-xs hover:bg-slate-500 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
-                className="bg-green-500 text-white px-3 py-1.5 rounded text-xs hover:bg-green-600 transition-colors"
+                className="bg-green-600 text-white px-3 py-1.5 rounded text-xs hover:bg-green-500 transition-colors"
               >
                 Save
               </button>

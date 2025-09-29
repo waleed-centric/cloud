@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { DetailedAwsService, SubService } from "../data/aws-services-detailed";
-import { DetailedAzureService, AzureSubService } from "../data/azure-services-detailed";
-import { DetailedGcpService, GcpSubService } from "../data/gcp-services-detailed";
+import { DetailedAwsService, SubService, getServiceById as getAwsServiceById, getSubServiceById as getAwsSubServiceById } from "../data/aws-services-detailed";
+import { DetailedAzureService, AzureSubService, getAzureServiceById, getAzureSubServiceById } from "../data/azure-services-detailed";
+import { DetailedGcpService, GcpSubService, getGcpServiceById, getGcpSubServiceById } from "../data/gcp-services-detailed";
 import { usePricing } from "./PricingContext";
+import { useCloudProvider } from "./CloudProviderContext";
 
 // Summary: AwsBuilderContext for AWS DnD Builder state management
 // - Manages placed nodes, connections, drag state, and export functionality
@@ -92,6 +93,7 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
     showPropertiesPanel: false,
   });
 
+  const { currentProvider } = useCloudProvider();
   const { addServiceCost, removeServiceCost, updateServiceCost, clearAllCosts } = usePricing();
 
   const addNode = (icon: AwsIcon, x: number, y: number) => {
@@ -325,9 +327,37 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
     const node = state.placedNodes.find(n => n.id === nodeId);
     if (!node) return null;
 
+    // Resolve service by provider, preferring explicit serviceId, otherwise use icon.id
+    const serviceId = node.serviceId || node.icon.id;
+    let service: DetailedService | undefined;
+    let subService: SubServiceType | undefined;
+
+    switch (currentProvider) {
+      case 'aws':
+        service = getAwsServiceById(serviceId) as DetailedService | undefined;
+        if (node.subServiceId && service) {
+          subService = getAwsSubServiceById(service.id, node.subServiceId) as SubServiceType | undefined;
+        }
+        break;
+      case 'azure':
+        service = getAzureServiceById(serviceId) as DetailedService | undefined;
+        if (node.subServiceId && service) {
+          subService = getAzureSubServiceById(service.id, node.subServiceId) as SubServiceType | undefined;
+        }
+        break;
+      case 'gcp':
+        service = getGcpServiceById(serviceId) as DetailedService | undefined;
+        if (node.subServiceId && service) {
+          subService = getGcpSubServiceById(service.id, node.subServiceId) as SubServiceType | undefined;
+        }
+        break;
+      default:
+        break;
+    }
+
     return {
-      service: node.serviceId ? { id: node.serviceId } as DetailedService : undefined,
-      subService: node.subServiceId ? { id: node.subServiceId } as SubServiceType : undefined,
+      service,
+      subService,
       properties: node.properties,
     };
   };

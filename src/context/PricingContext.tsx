@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { calculateServiceCost, getPricingSummary } from '../data/aws-pricing';
+import { calculateServiceCost as calculateAwsCost, getPricingSummary as getAwsPricingSummary } from '../data/aws-pricing';
+import { calculateAzureMonthlyCost, getAzurePricingByServiceId } from '../data/azure-pricing';
+import { calculateGcpMonthlyCost, getGcpPricingByServiceId } from '../data/gcp-pricing';
+import { useCloudProvider } from './CloudProviderContext';
 
 interface ServiceCost {
   nodeId: string;
@@ -27,6 +30,7 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [serviceCosts, setServiceCosts] = useState<ServiceCost[]>([]);
   const [totalMonthlyCost, setTotalMonthlyCost] = useState<number>(0);
   const [totalHourlyCost, setTotalHourlyCost] = useState<number>(0);
+  const { currentProvider } = useCloudProvider();
 
   // Calculate total costs whenever serviceCosts change
   useEffect(() => {
@@ -43,8 +47,20 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     serviceName: string, 
     configuration: any
   ) => {
-    const monthlyCost = calculateServiceCost(serviceId, configuration, 730); // 730 hours = 1 month
-    const hourlyCost = calculateServiceCost(serviceId, configuration, 1);
+    // Provider-aware pricing calculation
+    let monthlyCost = 0;
+    let hourlyCost = 0;
+
+    if (currentProvider === 'aws') {
+      monthlyCost = calculateAwsCost(serviceId, configuration, 730);
+      hourlyCost = calculateAwsCost(serviceId, configuration, 1);
+    } else if (currentProvider === 'azure') {
+      monthlyCost = calculateAzureMonthlyCost(serviceId, configuration?.usage || 1);
+      hourlyCost = monthlyCost / 730;
+    } else if (currentProvider === 'gcp') {
+      monthlyCost = calculateGcpMonthlyCost(serviceId, configuration?.usage || 1);
+      hourlyCost = monthlyCost / 730;
+    }
 
     const newServiceCost: ServiceCost = {
       nodeId,
@@ -66,8 +82,19 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setServiceCosts(prev => 
       prev.map(cost => {
         if (cost.nodeId === nodeId) {
-          const monthlyCost = calculateServiceCost(cost.serviceId, configuration, 730);
-          const hourlyCost = calculateServiceCost(cost.serviceId, configuration, 1);
+          let monthlyCost = 0;
+          let hourlyCost = 0;
+
+          if (currentProvider === 'aws') {
+            monthlyCost = calculateAwsCost(cost.serviceId, configuration, 730);
+            hourlyCost = calculateAwsCost(cost.serviceId, configuration, 1);
+          } else if (currentProvider === 'azure') {
+            monthlyCost = calculateAzureMonthlyCost(cost.serviceId, configuration?.usage || 1);
+            hourlyCost = monthlyCost / 730;
+          } else if (currentProvider === 'gcp') {
+            monthlyCost = calculateGcpMonthlyCost(cost.serviceId, configuration?.usage || 1);
+            hourlyCost = monthlyCost / 730;
+          }
           
           return {
             ...cost,
@@ -90,8 +117,29 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const getPricingSummaryForService = useCallback((serviceId: string) => {
-    return getPricingSummary(serviceId);
-  }, []);
+    if (currentProvider === 'aws') {
+      return getAwsPricingSummary(serviceId);
+    } else if (currentProvider === 'azure') {
+      const pricing = getAzurePricingByServiceId(serviceId);
+      if (!pricing) return 'Pricing not available';
+      if (pricing.pricingTiers && pricing.pricingTiers.length > 0) {
+        const firstTier = pricing.pricingTiers[0];
+        return `Starting from $${firstTier.price} ${firstTier.unit}`;
+      }
+      if (pricing.basePrice) return `$${pricing.basePrice} per hour`;
+      return 'Custom pricing';
+    } else if (currentProvider === 'gcp') {
+      const pricing = getGcpPricingByServiceId(serviceId);
+      if (!pricing) return 'Pricing not available';
+      if (pricing.pricingTiers && pricing.pricingTiers.length > 0) {
+        const firstTier = pricing.pricingTiers[0];
+        return `Starting from $${firstTier.price} ${firstTier.unit}`;
+      }
+      if (pricing.basePrice) return `$${pricing.basePrice} per hour`;
+      return 'Custom pricing';
+    }
+    return 'Pricing not available';
+  }, [currentProvider]);
 
   const value: PricingContextType = {
     serviceCosts,
