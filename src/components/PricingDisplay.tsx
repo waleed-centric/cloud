@@ -20,19 +20,19 @@ export const PricingDisplay: React.FC<{ className?: string }> = ({ className }) 
 
   const diagnostics: { type: 'warning' | 'info' | 'error'; message: string }[] = [];
   if (!hasServices && nodeIds.length === 0) {
-    diagnostics.push({ type: 'info', message: 'Koi service add nahi ki gayi. Canvas mein service drag karo taake pricing dikhe.' });
+    diagnostics.push({ type: 'info', message: 'No services added. Drag a service onto the canvas to see pricing.' });
   }
   if (unpricedIds.length > 0) {
-    diagnostics.push({ type: 'warning', message: `${unpricedIds.length} node(s) ke liye pricing nahi mili. Service properties set karo ya configuration complete karo.` });
+    diagnostics.push({ type: 'warning', message: `${unpricedIds.length} node(s) missing pricing. Set service properties or complete configuration.` });
   }
   if (zeroCostItems.length > 0) {
-    diagnostics.push({ type: 'warning', message: `${zeroCostItems.length} service(s) ka cost 0 aa raha hai. Yeh misconfiguration ho sakta hai (quantity/size set karo).` });
+    diagnostics.push({ type: 'warning', message: `${zeroCostItems.length} service(s) have 0 cost. This may be a misconfiguration (set quantity/size).` });
   }
   if (noConnections) {
-    diagnostics.push({ type: 'info', message: 'Multiple nodes hain lekin koi connection nahi. Architecture diagram complete karne ke liye connections add karo.' });
+    diagnostics.push({ type: 'info', message: 'Multiple nodes present but no connections. Add connections to complete the architecture diagram.' });
   }
   if (highCost) {
-    diagnostics.push({ type: 'warning', message: 'Total monthly cost zyada hai (> $1000). Cost optimize karne ke liye sizes/regions check karo.' });
+    diagnostics.push({ type: 'warning', message: 'Total monthly cost is high (> $1000). Review sizes/regions to optimize cost.' });
   }
 
   const containerClass = `bg-slate-900 rounded-lg shadow-xl border border-slate-700 p-4 text-slate-200 flex flex-col ${className || ''}`;
@@ -52,7 +52,7 @@ export const PricingDisplay: React.FC<{ className?: string }> = ({ className }) 
         <div className="mt-4 p-3 bg-slate-800 border border-slate-700 rounded-lg">
           <h4 className="text-sm font-semibold text-slate-200 mb-2">Problems & Diagnostics</h4>
           {diagnostics.length === 0 ? (
-            <p className="text-xs text-slate-400">Abhi koi issue nahi mila. Pehle services add karo.</p>
+            <p className="text-xs text-slate-400">No issues found yet. Add services first.</p>
           ) : (
             <ul className="space-y-1">
               {diagnostics.map((d, idx) => (

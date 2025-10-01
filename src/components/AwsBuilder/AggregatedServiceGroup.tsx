@@ -45,7 +45,7 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
   const { currentProvider } = useCloudProvider();
   const theme = getProviderTheme(currentProvider);
   const { serviceCosts } = usePricing();
-  const { state, registerVirtualAnchors, unregisterVirtualAnchorsByPrefix, setConnecting, addConnection, openServiceModal } = useAwsBuilder();
+  const { state, registerVirtualAnchors, unregisterVirtualAnchorsByPrefix, setConnecting, addConnection, openServiceModal, setSelectedNode, openPropertiesPanel } = useAwsBuilder();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [pos, setPos] = useState<{ x: number; y: number }>({ x, y });
@@ -108,7 +108,7 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
     // Clear old anchors first
     unregisterVirtualAnchorsByPrefix(prefix);
 
-    if (nodeIds.length >= 1 && containerRef.current) {
+    if (containerRef.current) {
       const w = containerRef.current.offsetWidth || 0;
       const h = containerRef.current.offsetHeight || 0;
       const pad = 8; // inset from edges, matching the dot placement
@@ -171,12 +171,6 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
           // If connecting, complete to nearest corner dot of this box
           if (state.isConnecting && state.connectingFromId) {
             e.stopPropagation();
-            // Avoid self-connection when starting from this same aggregated box
-            if (state.connectingFromId.startsWith(prefix)) {
-              // Require explicit dot click for intra-box connections
-              setConnecting(false);
-              return;
-            }
 
             const rect = containerRef.current?.getBoundingClientRect();
             const canvasRect = containerRef.current?.parentElement?.getBoundingClientRect();
@@ -196,6 +190,12 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
               return dist < best.dist ? { id: p.id, dist } : best;
             }, { id: points[0].id, dist: Infinity });
 
+            // Allow intra-box completion: if starting from this box, complete to the nearest dot
+            if (state.connectingFromId.startsWith(prefix) && state.connectingFromId === nearest.id) {
+              // Clicking nearest dot identical to origin: no-op
+              setConnecting(false);
+              return;
+            }
             addConnection(state.connectingFromId, nearest.id);
             setConnecting(false);
             return;
@@ -207,27 +207,67 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
           }
         }}
       >
-        {hovered && nodeIds.length >= 1 && (
+        {hovered && (
           <>
             <span
               className="absolute top-2 left-2 w-3 h-3 rounded-full ring-2"
               style={{ backgroundColor: theme.accent, cursor: 'crosshair', boxShadow: '0 0 0 2px rgba(255,255,255,0.18)', zIndex: 50 }}
-              onMouseDown={(e) => { e.stopPropagation(); setConnecting(true, `agg-${serviceId}-tl`); }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                const prefix = `agg-${serviceId}-`;
+                const dotId = `${prefix}tl`;
+                if (state.isConnecting && state.connectingFromId && state.connectingFromId !== dotId) {
+                  addConnection(state.connectingFromId, dotId);
+                  setConnecting(false);
+                  return;
+                }
+                setConnecting(true, dotId);
+              }}
             />
             <span
               className="absolute top-2 right-2 w-3 h-3 rounded-full ring-2"
               style={{ backgroundColor: theme.accent, cursor: 'crosshair', boxShadow: '0 0 0 2px rgba(255,255,255,0.18)', zIndex: 50 }}
-              onMouseDown={(e) => { e.stopPropagation(); setConnecting(true, `agg-${serviceId}-tr`); }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                const prefix = `agg-${serviceId}-`;
+                const dotId = `${prefix}tr`;
+                if (state.isConnecting && state.connectingFromId && state.connectingFromId !== dotId) {
+                  addConnection(state.connectingFromId, dotId);
+                  setConnecting(false);
+                  return;
+                }
+                setConnecting(true, dotId);
+              }}
             />
             <span
               className="absolute bottom-2 left-2 w-3 h-3 rounded-full ring-2"
               style={{ backgroundColor: theme.accent, cursor: 'crosshair', boxShadow: '0 0 0 2px rgba(255,255,255,0.18)', zIndex: 50 }}
-              onMouseDown={(e) => { e.stopPropagation(); setConnecting(true, `agg-${serviceId}-bl`); }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                const prefix = `agg-${serviceId}-`;
+                const dotId = `${prefix}bl`;
+                if (state.isConnecting && state.connectingFromId && state.connectingFromId !== dotId) {
+                  addConnection(state.connectingFromId, dotId);
+                  setConnecting(false);
+                  return;
+                }
+                setConnecting(true, dotId);
+              }}
             />
             <span
               className="absolute bottom-2 right-2 w-3 h-3 rounded-full ring-2"
               style={{ backgroundColor: theme.accent, cursor: 'crosshair', boxShadow: '0 0 0 2px rgba(255,255,255,0.18)', zIndex: 50 }}
-              onMouseDown={(e) => { e.stopPropagation(); setConnecting(true, `agg-${serviceId}-br`); }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                const prefix = `agg-${serviceId}-`;
+                const dotId = `${prefix}br`;
+                if (state.isConnecting && state.connectingFromId && state.connectingFromId !== dotId) {
+                  addConnection(state.connectingFromId, dotId);
+                  setConnecting(false);
+                  return;
+                }
+                setConnecting(true, dotId);
+              }}
             />
           </>
         )}
@@ -276,6 +316,13 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
                 key={id}
                 className="rounded-md border bg-slate-900/60"
                 style={{ borderColor: theme.border }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedNode(id);
+                  if (service) {
+                    openPropertiesPanel(service as any, sub as any);
+                  }
+                }}
               >
                 <div className="flex items-center gap-2 p-2">
                   <div className="w-5 h-5 [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: node.icon.svg }} />
