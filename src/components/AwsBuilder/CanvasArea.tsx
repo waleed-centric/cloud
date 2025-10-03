@@ -202,10 +202,10 @@ export function CanvasArea() {
 
           const rendered: React.ReactNode[] = [];
 
-          // FIXED: Don't hide parent nodes - allow multiple instances
-          // Render ALL non-subservice nodes normally (including parents with sub-services)
-          const nonSubNodes = state.placedNodes.filter((n) => !n.isSubService);
-          
+          // Parent nodes that have aggregated sub-services should not render separately
+          const parentsWithGroups = new Set<string>(Array.from(parentNodeGroups.keys()));
+          const nonSubNodes = state.placedNodes.filter((n) => !n.isSubService && !parentsWithGroups.has(n.id));
+
           for (const node of nonSubNodes) {
             rendered.push(
               <DraggableNode

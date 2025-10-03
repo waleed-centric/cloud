@@ -302,16 +302,16 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
   ) => {
     // Auto-increment naming for duplicate additions
     const baseName = subService.name;
-    const existingCount = state.placedNodes.filter(n => n.icon.name.startsWith(baseName)).length;
     
-    // Check if parent service has sub-services - if yes, hide numbers for cleaner UI
-    const parentNode = state.placedNodes.find(n => n.id === state.selectedNodeId);
-    const parentHasSubServices = state.placedNodes.some(n => 
-      n.isSubService && n.parentNodeId === state.selectedNodeId
-    );
+    // Count existing instances of this specific sub-service type for this parent
+    const existingCount = state.placedNodes.filter(n => 
+      n.isSubService && 
+      n.parentNodeId === state.selectedNodeId && 
+      n.subServiceId === subService.id
+    ).length;
     
-    // Hide numbers if parent already has sub-services for cleaner design
-    const displayName = parentHasSubServices ? baseName : `${baseName} (${existingCount + 1})`;
+    // Hide numbers if this is the first instance, show numbers only for multiple instances
+    const displayName = existingCount === 0 ? baseName : `${baseName} (${existingCount + 1})`;
 
     const newNode: PlacedNode = {
       id: `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

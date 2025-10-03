@@ -280,18 +280,24 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
             />
           </>
         )}
-        {/* Header */}
-        <div className="px-4 pt-3 pb-2 border-b border-slate-700/50">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-semibold" style={{ color: theme.text }}>
-                {title || 'Resources'}
-              </div>
-              <div className="text-xs opacity-75" style={{ color: theme.textSecondary }}>
-                {category || 'Service'} • {nodeIds.length} instance{nodeIds.length !== 1 ? 's' : ''}
+        {/* Header (merged icon + title) */}
+        <div className="px-4 py-3 border-b border-slate-700/50">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className="w-6 h-6 shrink-0 rounded-md ring-1 ring-slate-600/40 bg-slate-800/60 [&>svg]:w-full [&>svg]:h-full"
+                dangerouslySetInnerHTML={{ __html: service?.icon || '' }}
+              />
+              <div className="min-w-0">
+                <div className="text-sm font-semibold truncate" style={{ color: theme.text }}>
+                  {title || 'Resources'}
+                </div>
+                <div className="text-xs opacity-75 truncate" style={{ color: theme.textSecondary }}>
+                  {category || 'Service'} • {nodeIds.length} instance{nodeIds.length !== 1 ? 's' : ''}
+                </div>
               </div>
             </div>
-            <div className="text-xs px-2 py-1 rounded-full bg-slate-800/60 border border-slate-600/30" style={{ color: theme.accent }}>
+            <div className="text-xs px-2 py-1 rounded-full bg-slate-800/60 border border-slate-600/30 shrink-0" style={{ color: theme.accent }}>
               {nodeIds.length}
             </div>
           </div>
