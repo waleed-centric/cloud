@@ -28,6 +28,7 @@ export type PlacedNode = {
   subServiceId?: string;
   properties?: Record<string, any>;
   isSubService?: boolean;
+  parentNodeId?: string; // Track which specific parent instance this sub-service belongs to
 };
 
 export type Connection = {
@@ -302,7 +303,15 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
     // Auto-increment naming for duplicate additions
     const baseName = subService.name;
     const existingCount = state.placedNodes.filter(n => n.icon.name.startsWith(baseName)).length;
-    const displayName = `${baseName} (${existingCount + 1})`;
+    
+    // Check if parent service has sub-services - if yes, hide numbers for cleaner UI
+    const parentNode = state.placedNodes.find(n => n.id === state.selectedNodeId);
+    const parentHasSubServices = state.placedNodes.some(n => 
+      n.isSubService && n.parentNodeId === state.selectedNodeId
+    );
+    
+    // Hide numbers if parent already has sub-services for cleaner design
+    const displayName = parentHasSubServices ? baseName : `${baseName} (${existingCount + 1})`;
 
     const newNode: PlacedNode = {
       id: `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -324,6 +333,7 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
       subServiceId: subService.id,
       properties: properties || {},
       isSubService: true,
+      parentNodeId: state.selectedNodeId || undefined, // Associate with the currently selected parent instance
     };
     
     // Add pricing for the service with configured properties

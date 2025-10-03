@@ -84,8 +84,24 @@ const PropertiesPanel: React.FC = () => {
       
       // Add node directly to canvas with these properties
       if (service && subService) {
-        const x = Math.random() * 400 + 100;
-        const y = Math.random() * 300 + 100;
+        // FIXED: Position sub-service near the selected parent node instead of random position
+        let x = Math.random() * 400 + 100;
+        let y = Math.random() * 300 + 100;
+        
+        // If there's a selected node (parent service), position sub-service near it
+        if (state.selectedNodeId) {
+          const parentNode = state.placedNodes.find(n => n.id === state.selectedNodeId);
+          if (parentNode) {
+            // Position sub-service below and slightly offset from parent
+            x = parentNode.x + Math.random() * 100 - 50; // Small random offset
+            y = parentNode.y + 100 + Math.random() * 50; // Below parent with small variation
+            
+            // Ensure sub-service stays within reasonable bounds
+            x = Math.max(50, Math.min(x, 750));
+            y = Math.max(50, Math.min(y, 550));
+          }
+        }
+        
         addSubServiceNode(subService, service, x, y, propertyValues);
       }
 

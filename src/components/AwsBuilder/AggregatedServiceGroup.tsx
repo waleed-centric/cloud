@@ -104,7 +104,10 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
 
   // Register virtual anchors (corner dots) so arrows can originate from the aggregated box
   useEffect(() => {
-    const prefix = `agg-${serviceId}-`;
+    // Use a unique prefix that includes position to avoid conflicts between multiple instances
+    const uniqueId = nodeIds.length > 0 ? nodeIds[0] : 'default';
+    const prefix = `agg-${serviceId}-${uniqueId}-`;
+    
     // Clear old anchors first
     unregisterVirtualAnchorsByPrefix(prefix);
 
@@ -124,7 +127,7 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
     return () => {
       unregisterVirtualAnchorsByPrefix(prefix);
     };
-  }, [serviceId, pos.x, pos.y, nodeIds.length, registerVirtualAnchors, unregisterVirtualAnchorsByPrefix]);
+  }, [serviceId, pos.x, pos.y, nodeIds, registerVirtualAnchors, unregisterVirtualAnchorsByPrefix]);
 
   return (
     <div
@@ -167,7 +170,9 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
           window.addEventListener('mouseup', onUp);
         }}
         onClick={(e) => {
-          const prefix = `agg-${serviceId}-`;
+          // Use the same unique prefix as in useEffect
+          const uniqueId = nodeIds.length > 0 ? nodeIds[0] : 'default';
+          const prefix = `agg-${serviceId}-${uniqueId}-`;
           // If connecting, complete to nearest corner dot of this box
           if (state.isConnecting && state.connectingFromId) {
             e.stopPropagation();
@@ -214,7 +219,8 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
               style={{ backgroundColor: theme.accent, cursor: 'crosshair', boxShadow: '0 0 0 2px rgba(255,255,255,0.18)', zIndex: 50 }}
               onMouseDown={(e) => {
                 e.stopPropagation();
-                const prefix = `agg-${serviceId}-`;
+                const uniqueId = nodeIds.length > 0 ? nodeIds[0] : 'default';
+                const prefix = `agg-${serviceId}-${uniqueId}-`;
                 const dotId = `${prefix}tl`;
                 if (state.isConnecting && state.connectingFromId && state.connectingFromId !== dotId) {
                   addConnection(state.connectingFromId, dotId);
@@ -229,7 +235,8 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
               style={{ backgroundColor: theme.accent, cursor: 'crosshair', boxShadow: '0 0 0 2px rgba(255,255,255,0.18)', zIndex: 50 }}
               onMouseDown={(e) => {
                 e.stopPropagation();
-                const prefix = `agg-${serviceId}-`;
+                const uniqueId = nodeIds.length > 0 ? nodeIds[0] : 'default';
+                const prefix = `agg-${serviceId}-${uniqueId}-`;
                 const dotId = `${prefix}tr`;
                 if (state.isConnecting && state.connectingFromId && state.connectingFromId !== dotId) {
                   addConnection(state.connectingFromId, dotId);
@@ -244,7 +251,8 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
               style={{ backgroundColor: theme.accent, cursor: 'crosshair', boxShadow: '0 0 0 2px rgba(255,255,255,0.18)', zIndex: 50 }}
               onMouseDown={(e) => {
                 e.stopPropagation();
-                const prefix = `agg-${serviceId}-`;
+                const uniqueId = nodeIds.length > 0 ? nodeIds[0] : 'default';
+                const prefix = `agg-${serviceId}-${uniqueId}-`;
                 const dotId = `${prefix}bl`;
                 if (state.isConnecting && state.connectingFromId && state.connectingFromId !== dotId) {
                   addConnection(state.connectingFromId, dotId);
@@ -259,7 +267,8 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
               style={{ backgroundColor: theme.accent, cursor: 'crosshair', boxShadow: '0 0 0 2px rgba(255,255,255,0.18)', zIndex: 50 }}
               onMouseDown={(e) => {
                 e.stopPropagation();
-                const prefix = `agg-${serviceId}-`;
+                const uniqueId = nodeIds.length > 0 ? nodeIds[0] : 'default';
+                const prefix = `agg-${serviceId}-${uniqueId}-`;
                 const dotId = `${prefix}br`;
                 if (state.isConnecting && state.connectingFromId && state.connectingFromId !== dotId) {
                   addConnection(state.connectingFromId, dotId);
@@ -272,37 +281,50 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
           </>
         )}
         {/* Header */}
-        <div className="px-3 pt-2">
-          <div className="text-xs font-semibold" style={{ color: theme.text }}>
-            {title || 'Resources'} ({nodeIds.length})
-          </div>
-          <div className="text-[10px] mb-2" style={{ color: theme.textSecondary }}>
-            {category || 'Service'}
+        <div className="px-4 pt-3 pb-2 border-b border-slate-700/50">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-semibold" style={{ color: theme.text }}>
+                {title || 'Resources'}
+              </div>
+              <div className="text-xs opacity-75" style={{ color: theme.textSecondary }}>
+                {category || 'Service'} • {nodeIds.length} instance{nodeIds.length !== 1 ? 's' : ''}
+              </div>
+            </div>
+            <div className="text-xs px-2 py-1 rounded-full bg-slate-800/60 border border-slate-600/30" style={{ color: theme.accent }}>
+              {nodeIds.length}
+            </div>
           </div>
         </div>
 
         {/* Totals / Gating */}
-        <div className="px-3 pb-2">
-          <div className="text-[11px]" style={{ color: theme.text }}>
+        <div className="px-4 py-3 bg-slate-800/30">
+          <div className="text-sm" style={{ color: theme.text }}>
             {allConfigured ? (
-              <>
-                <div className="font-medium">Total Monthly</div>
-                <div className="text-sm">${totalMonthly.toFixed(2)}</div>
-              </>
-            ) : (
-              <>
-                <div className="font-medium">Cost pending</div>
-                <div className="text-[10px]" style={{ color: theme.textSecondary }}>
-                  Configure {nodeIds.length - configuredCount} resource(s)
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs opacity-75" style={{ color: theme.textSecondary }}>Total Monthly</div>
+                  <div className="text-lg font-bold" style={{ color: theme.accent }}>${totalMonthly.toFixed(2)}</div>
                 </div>
-              </>
+                <div className="w-2 h-2 rounded-full bg-green-400"></div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium" style={{ color: theme.textSecondary }}>Configuration Required</div>
+                  <div className="text-xs opacity-75" style={{ color: theme.textSecondary }}>
+                    {nodeIds.length - configuredCount} resource{nodeIds.length - configuredCount !== 1 ? 's' : ''} pending
+                  </div>
+                </div>
+                <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+              </div>
             )}
           </div>
         </div>
 
         {/* Resource tiles */}
-        <div className="px-3 pb-3">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="px-4 pb-4">
+          <div className="grid grid-cols-2 gap-2">
             {nodeIds.map((id) => {
               const node = state.placedNodes.find((n) => n.id === id);
               if (!node) return null;
@@ -314,7 +336,7 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
             return (
               <div
                 key={id}
-                className="rounded-md border bg-slate-900/60"
+                className="rounded-lg border bg-slate-900/40 hover:bg-slate-800/60 transition-all duration-200 cursor-pointer group"
                 style={{ borderColor: theme.border }}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -324,13 +346,13 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
                   }
                 }}
               >
-                <div className="flex items-center gap-2 p-2">
-                  <div className="w-5 h-5 [&>svg]:w-full [&>svg]:h-full" dangerouslySetInnerHTML={{ __html: node.icon.svg }} />
-                  <div>
-                    <div className="text-xs font-medium" style={{ color: theme.text }}>
+                <div className="flex items-center gap-3 p-3">
+                  <div className="w-6 h-6 [&>svg]:w-full [&>svg]:h-full opacity-90 group-hover:opacity-100 transition-opacity" dangerouslySetInnerHTML={{ __html: node.icon.svg }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium truncate" style={{ color: theme.text }}>
                       {node.icon.name}
                     </div>
-                    <div className="text-[10px]" style={{ color: theme.textSecondary }}>
+                    <div className="text-[10px] opacity-75 truncate" style={{ color: theme.textSecondary }}>
                       {subtitleValue ? String(subtitleValue) : (sub?.name || node.icon.category || '')}
                     </div>
                   </div>

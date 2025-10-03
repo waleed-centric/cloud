@@ -10,7 +10,7 @@ export function ExportPanel() {
 
   const generateDrawioXML = () => {
     const { placedNodes, connections } = state;
-    
+
     // Draw.io XML structure
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <mxfile host="app.diagrams.net" modified="${new Date().toISOString()}" agent="AWS-Builder" version="24.7.17">
@@ -33,12 +33,12 @@ export function ExportPanel() {
     connections.forEach((connection, index) => {
       const fromIndex = placedNodes.findIndex(n => n.id === connection.fromNodeId);
       const toIndex = placedNodes.findIndex(n => n.id === connection.toNodeId);
-      
+
       if (fromIndex !== -1 && toIndex !== -1) {
         const connectionId = `connection-${index + placedNodes.length + 2}`;
         const fromCellId = `node-${fromIndex + 2}`;
         const toCellId = `node-${toIndex + 2}`;
-        
+
         xml += `
         <mxCell id="${connectionId}" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=${connection.color || '#3B82F6'};strokeWidth=2;" edge="1" parent="1" source="${fromCellId}" target="${toCellId}">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
@@ -65,10 +65,10 @@ export function ExportPanel() {
     }
 
     setIsExporting(true);
-    
+
     try {
       const xmlContent = generateDrawioXML();
-      
+
       // Create and download file
       const blob = new Blob([xmlContent], { type: 'application/xml' });
       const url = URL.createObjectURL(blob);
@@ -79,7 +79,7 @@ export function ExportPanel() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
+
     } catch (error) {
       console.error('Export failed:', error);
       alert('Export failed. Please try again.');
@@ -97,18 +97,16 @@ export function ExportPanel() {
     const xmlContent = generateDrawioXML();
     const encodedXml = encodeURIComponent(xmlContent);
     const drawioUrl = `https://app.diagrams.net/?xml=${encodedXml}`;
-    
+
     window.open(drawioUrl, '_blank');
   };
 
   const handleExportJSON = () => {
     const exportData = {
-      nodes: state.placedNodes,
-      connections: state.connections,
-      metadata: {
-        exportedAt: new Date().toISOString(),
-        version: '1.0'
-      }
+      // Only include nodes that have non-empty properties
+      nodes: (state?.placedNodes || [])
+        .map(n => n?.properties)
+        .filter(p => p && Object.keys(p).length > 0),
     };
 
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
