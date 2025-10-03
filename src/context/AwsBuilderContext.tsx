@@ -103,20 +103,72 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
   const { currentProvider } = useCloudProvider();
   const { addServiceCost, removeServiceCost, updateServiceCost, clearAllCosts } = usePricing();
 
+  // Helper: resolve service by id for current provider
+  const resolveServiceById = (id: string | undefined): DetailedService | undefined => {
+    if (!id) return undefined;
+    switch (currentProvider) {
+      case 'aws':
+        return getAwsServiceById(id) as DetailedService | undefined;
+      case 'azure':
+        return getAzureServiceById(id) as DetailedService | undefined;
+      case 'gcp':
+        return getGcpServiceById(id) as DetailedService | undefined;
+      default:
+        return undefined;
+    }
+  };
+
+  // Helper: resolve sub-service by serviceId/subServiceId for current provider
+  const resolveSubServiceById = (serviceId: string | undefined, subServiceId: string | undefined): SubServiceType | undefined => {
+    if (!serviceId || !subServiceId) return undefined;
+    switch (currentProvider) {
+      case 'aws':
+        return getAwsSubServiceById(serviceId, subServiceId) as SubServiceType | undefined;
+      case 'azure':
+        return getAzureSubServiceById(serviceId, subServiceId) as SubServiceType | undefined;
+      case 'gcp':
+        return getGcpSubServiceById(serviceId, subServiceId) as SubServiceType | undefined;
+      default:
+        return undefined;
+    }
+  };
+
+  // Helper: determine the primary "name-like" property id from a service's common properties
+  const resolvePrimaryNameId = (service: DetailedService | undefined): string | null => {
+    if (!service || !Array.isArray((service as any).commonProperties)) return null;
+    const commons: any[] = (service as any).commonProperties || [];
+    // Prefer exact "name" id, otherwise pick first id/name containing "name" or "identifier"
+    const exact = commons.find(p => p.id === 'name');
+    if (exact) return exact.id;
+    const nameLike = commons.find(p =>
+      typeof p.id === 'string' && /name|identifier/i.test(p.id)
+      || (typeof p.name === 'string' && /name|identifier/i.test(p.name))
+    );
+    return nameLike ? nameLike.id : null;
+  };
+
+  // Helper: get primary name value from a node using its service schema
+  const getPrimaryNameValue = (node: PlacedNode | undefined): string | null => {
+    if (!node) return null;
+    const svc = resolveServiceById(node.serviceId || node.icon.id);
+    const primaryId = resolvePrimaryNameId(svc);
+    if (!primaryId) return null;
+    const val = node.properties?.[primaryId];
+    return typeof val === 'string' ? val : null;
+  };
+
   const addNode = (icon: AwsIcon, x: number, y: number) => {
-    // Initialize node with potential default properties for known services
+    // Initialize node with potential default properties from provider schema
     let defaultProperties: Record<string, any> = {};
     let serviceId: string | undefined = icon.id;
 
-    // Seed common properties defaults for AWS EC2
-    if (currentProvider === 'aws' && icon.id === 'ec2') {
-      const svc = getAwsServiceById('ec2');
-      if (svc) {
-        (svc.commonProperties || []).forEach((prop) => {
-          defaultProperties[prop.id] = prop.defaultValue ?? '';
-        });
-        serviceId = svc.id;
-      }
+    const svc = resolveServiceById(icon.id);
+    if (svc) {
+      const commons: any[] = (svc as any).commonProperties || [];
+      commons.forEach((prop: any) => {
+        defaultProperties[prop.id] = prop.defaultValue ?? '';
+      });
+      serviceId = (svc as any).id;
     }
 
     const newNode: PlacedNode = {
@@ -141,9 +193,9 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
     if (currentProvider === 'aws' && icon.id === 'ec2') {
       autoAddDefaultEc2SubServices(newNode);
       // Open the properties panel immediately for quick rename
-      const svc = getAwsServiceById('ec2');
-      if (svc) {
-        openPropertiesPanel(svc);
+      const ec2Svc = getAwsServiceById('ec2');
+      if (ec2Svc) {
+        openPropertiesPanel(ec2Svc as DetailedService);
       }
     }
   };
@@ -373,10 +425,11 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
     if (parentIdToUse) {
       const parentNode = state.placedNodes.find(n => n.id === parentIdToUse);
       if (parentNode) {
-        // Prefer a friendly instance name from common properties, fallback to icon name
-        const commonName = parentNode.properties?.['name'];
-        const friendlyParent = (typeof commonName === 'string' && commonName) 
-          ? commonName 
+        // Prefer a friendly instance name from common properties (primary id), fallback to icon/service name
+        const primaryId = resolvePrimaryNameId(service);
+        const primaryVal = primaryId ? parentNode.properties?.[primaryId] : undefined;
+        const friendlyParent = (typeof primaryVal === 'string' && primaryVal)
+          ? primaryVal
           : (parentNode.icon?.name || service.name || 'Instance');
         parentInstanceLabel = friendlyParent.replace(/Amazon |Microsoft |Google /g, '').trim();
       }
@@ -392,8 +445,12 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
     let inheritedProps = properties || {};
     if (parentIdToUse) {
       const parentNode = state.placedNodes.find(n => n.id === parentIdToUse);
-      if (parentNode && parentNode.properties && typeof parentNode.properties['name'] === 'string') {
-        inheritedProps = { ...inheritedProps, name: parentNode.properties['name'] };
+      if (parentNode) {
+        const primaryId = resolvePrimaryNameId(service);
+        const primaryVal = primaryId ? parentNode.properties?.[primaryId] : undefined;
+        if (primaryId && typeof primaryVal === 'string') {
+          inheritedProps = { ...inheritedProps, [primaryId]: primaryVal };
+        }
       }
     }
 
@@ -421,7 +478,7 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
     };
     
     // Add pricing for the service with configured properties
-    addServiceCost(newNode.id, service.id, service.name, properties || {});
+    addServiceCost(newNode.id, (service as any).id, (service as any).name, properties || {});
     
     setState(prev => ({
       ...prev,
@@ -443,21 +500,22 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
 
       // If parent instance name changed, propagate to attached sub-services and update labels
       const targetNode = updatedNodes.find(n => n.id === nodeId);
-      if (targetNode && !targetNode.isSubService && typeof properties['name'] === 'string') {
-        const newName = String(properties['name']).trim();
+      if (targetNode && !targetNode.isSubService) {
+        const svc = resolveServiceById(targetNode.serviceId || targetNode.icon.id);
+        const primaryId = resolvePrimaryNameId(svc);
+        const changedPrimary = primaryId && typeof (properties as any)[primaryId] === 'string';
+        if (changedPrimary) {
+          const newName = String((properties as any)[primaryId!]).trim();
         for (let i = 0; i < updatedNodes.length; i++) {
           const n = updatedNodes[i];
           if (n.isSubService && n.parentNodeId === nodeId) {
             // Resolve sub-service details to rebuild display label/svg
             let baseName = n.icon.name;
             let emoji = '';
-            if (currentProvider === 'aws' && n.serviceId && n.subServiceId) {
-              const svc = getAwsServiceById(n.serviceId);
-              const sub = svc ? getAwsSubServiceById(svc.id, n.subServiceId) : undefined;
-              if (sub) {
-                baseName = sub.name;
-                emoji = (sub as any).icon || '';
-              }
+            const sub = resolveSubServiceById(n.serviceId, n.subServiceId);
+            if (sub) {
+              baseName = (sub as any).name;
+              emoji = (sub as any).icon || '';
             }
 
             // Preserve ordinal suffix if present e.g. " (Parent 2)"
@@ -468,7 +526,7 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
             // Update node properties and icon
             updatedNodes[i] = {
               ...n,
-              properties: { ...(n.properties || {}), name: newName },
+              properties: { ...(n.properties || {}), [primaryId!]: newName },
               icon: {
                 id: n.icon.id,
                 name: displayName,
@@ -483,6 +541,7 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
               },
             };
           }
+        }
         }
       }
 

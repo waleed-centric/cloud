@@ -1,4 +1,4 @@
-import React, { useState ,useEffect} from 'react';
+import React, { useState ,useEffect, useMemo } from 'react';
 import { useAwsBuilder } from '@/context/AwsBuilderContext';
 import { useCloudProvider } from '@/context/CloudProviderContext';
 import { getProviderTheme } from '@/data/theme-colors';
@@ -30,6 +30,19 @@ const PropertiesPanel: React.FC = () => {
     ...(service?.commonProperties || []),
     ...(subService?.properties || [])
   ];
+
+  // Determine primary name-like property id from service schema
+  const primaryNameId = useMemo(() => {
+    const commons = service?.commonProperties || [];
+    const exact = commons.find((p: any) => p.id === 'name');
+    if (exact) return 'name';
+    const nameLike = commons.find((p: any) => {
+      const idStr = typeof p.id === 'string' ? p.id : '';
+      const nameStr = typeof p.name === 'string' ? p.name : '';
+      return /name|identifier/i.test(idStr) || /name|identifier/i.test(nameStr);
+    });
+    return nameLike ? nameLike.id : null;
+  }, [service]);
 
   useEffect(() => {
     // Initialize property values with either existing node values (edit mode) or defaults (create mode)
@@ -87,44 +100,61 @@ const PropertiesPanel: React.FC = () => {
       const commonPropIds = (service?.commonProperties || []).map(p => p.id);
       const subPropIds = (subService?.properties || []).map(p => p.id);
 
-      if (editingNode) {
-        // Edit mode: update the selected node's properties
-        if (subService) {
-          // Editing an existing sub-service: update only its own properties (keep inherited name read-only)
-          const toSave: Record<string, any> = {};
-          subPropIds.forEach(id => {
-            toSave[id] = propertyValues[id];
-          });
-          updateNodeProperties(editingNode.id, toSave);
-        } else {
-          // Editing a parent service (e.g., EC2): update common properties; name change will propagate
-          const toSave: Record<string, any> = {};
-          commonPropIds.forEach(id => {
-            toSave[id] = propertyValues[id];
-          });
-          updateNodeProperties(editingNode.id, toSave);
-        }
+      // Parent node, if selected
+      const parentNode = editingNode && !editingNode.isSubService ? editingNode : null;
+
+      if (editingNode && !subService) {
+        // Editing a parent service (e.g., EC2): update common properties; name change will propagate
+        const toSave: Record<string, any> = {};
+        commonPropIds.forEach(id => {
+          toSave[id] = propertyValues[id];
+        });
+        updateNodeProperties(editingNode.id, toSave);
         closePropertiesPanel();
         return;
       }
 
       // Create mode: adding a new sub-service under currently selected parent
       if (service && subService) {
-        // Position sub-service relative to selected parent if available
-        let x = Math.random() * 400 + 100;
-        let y = Math.random() * 300 + 100;
+        // If editing an existing sub-service node, update it
+        if (editingNode && editingNode.isSubService) {
+          const toSave: Record<string, any> = {};
+          subPropIds.forEach(id => {
+            toSave[id] = propertyValues[id];
+          });
+          updateNodeProperties(editingNode.id, toSave);
+          closePropertiesPanel();
+          return;
+        }
 
-        if (state.selectedNodeId) {
-          const parentNode = state.placedNodes.find(n => n.id === state.selectedNodeId);
-          if (parentNode) {
-            x = parentNode.x + Math.random() * 100 - 50;
-            y = parentNode.y + 100 + Math.random() * 50;
+        // Otherwise, we are adding/updating a sub-service under the selected parent
+        const hostParent = parentNode || (state.selectedNodeId ? state.placedNodes.find(n => n.id === state.selectedNodeId && !n.isSubService) || null : null);
+
+        // Check if the same sub-service already exists under this parent
+        const existing = hostParent
+          ? state.placedNodes.find(n => n.isSubService && n.parentNodeId === hostParent.id && n.serviceId === (service as any).id && n.subServiceId === (subService as any).id)
+          : null;
+
+        if (existing) {
+          // Update existing sub-service with provided config
+          const toSave: Record<string, any> = {};
+          subPropIds.forEach(id => {
+            toSave[id] = propertyValues[id];
+          });
+          updateNodeProperties(existing.id, toSave);
+        } else {
+          // Add new sub-service under the parent with provided config
+          // Position sub-service relative to parent
+          let x = Math.random() * 400 + 100;
+          let y = Math.random() * 300 + 100;
+          if (hostParent) {
+            x = hostParent.x + Math.random() * 100 - 50;
+            y = hostParent.y + 100 + Math.random() * 50;
             x = Math.max(50, Math.min(x, 750));
             y = Math.max(50, Math.min(y, 550));
           }
+          addSubServiceNode(subService, service, x, y, propertyValues, hostParent ? hostParent.id : undefined);
         }
-
-        addSubServiceNode(subService, service, x, y, propertyValues);
       }
 
       closePropertiesPanel();
@@ -134,7 +164,8 @@ const PropertiesPanel: React.FC = () => {
   const renderPropertyInput = (property: ServiceProperty) => {
     const value = propertyValues[property.id] ?? '';
     const hasError = !!errors[property.id];
-    const isReadOnlyInstanceName = property.id === 'name' && !!subService;
+    const isPrimaryName = !!primaryNameId && property.id === primaryNameId;
+    const isReadOnlyInstanceName = isPrimaryName && !!subService;
 
     switch (property.type) {
       case 'text':
@@ -144,12 +175,12 @@ const PropertiesPanel: React.FC = () => {
             value={value}
             onChange={(e) => handlePropertyChange(property.id, e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && property.id === 'name' && !subService) {
+              if (e.key === 'Enter' && isPrimaryName && !subService) {
                 // Allow quick save on Enter when renaming parent instance
                 handleSave();
               }
             }}
-            autoFocus={property.id === 'name' && !subService}
+            autoFocus={isPrimaryName && !subService}
             readOnly={isReadOnlyInstanceName}
             disabled={isReadOnlyInstanceName}
             className={`w-full mt-1 bg-slate-800 border rounded-md px-3 py-1.5 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
