@@ -20,6 +20,9 @@ const PropertiesPanel: React.FC = () => {
 
   const service = state.selectedService;
   const subService = state.selectedSubService;
+  const editingNode = state.selectedNodeId
+    ? state.placedNodes.find(n => n.id === state.selectedNodeId)
+    : null;
   const theme = getProviderTheme(currentProvider);
 
   // Combine common properties and sub-service properties
@@ -29,10 +32,11 @@ const PropertiesPanel: React.FC = () => {
   ];
 
   useEffect(() => {
-    // Initialize property values with defaults
+    // Initialize property values with either existing node values (edit mode) or defaults (create mode)
     const initialProps: Record<string, any> = {};
     allProperties.forEach(prop => {
-      initialProps[prop.id] = prop.defaultValue ?? '';
+      const existingVal = editingNode?.properties?.[prop.id];
+      initialProps[prop.id] = existingVal !== undefined ? existingVal : (prop.defaultValue ?? '');
     });
     setPropertyValues(initialProps);
     setErrors({});
@@ -43,7 +47,7 @@ const PropertiesPanel: React.FC = () => {
     } else {
       setListeners([]);
     }
-  }, [service, subService]);
+  }, [service, subService, state.selectedNodeId]);
 
   const handlePropertyChange = (propertyId: string, value: any) => {
     setPropertyValues(prev => ({
@@ -79,29 +83,47 @@ const PropertiesPanel: React.FC = () => {
 
   const handleSave = () => {
     if (validateProperties()) {
-      // Save properties to context (for future node updates)
-      console.log('Saving properties:', propertyValues);
-      
-      // Add node directly to canvas with these properties
+      // Decide between editing existing node vs creating a new sub-service
+      const commonPropIds = (service?.commonProperties || []).map(p => p.id);
+      const subPropIds = (subService?.properties || []).map(p => p.id);
+
+      if (editingNode) {
+        // Edit mode: update the selected node's properties
+        if (subService) {
+          // Editing an existing sub-service: update only its own properties (keep inherited name read-only)
+          const toSave: Record<string, any> = {};
+          subPropIds.forEach(id => {
+            toSave[id] = propertyValues[id];
+          });
+          updateNodeProperties(editingNode.id, toSave);
+        } else {
+          // Editing a parent service (e.g., EC2): update common properties; name change will propagate
+          const toSave: Record<string, any> = {};
+          commonPropIds.forEach(id => {
+            toSave[id] = propertyValues[id];
+          });
+          updateNodeProperties(editingNode.id, toSave);
+        }
+        closePropertiesPanel();
+        return;
+      }
+
+      // Create mode: adding a new sub-service under currently selected parent
       if (service && subService) {
-        // FIXED: Position sub-service near the selected parent node instead of random position
+        // Position sub-service relative to selected parent if available
         let x = Math.random() * 400 + 100;
         let y = Math.random() * 300 + 100;
-        
-        // If there's a selected node (parent service), position sub-service near it
+
         if (state.selectedNodeId) {
           const parentNode = state.placedNodes.find(n => n.id === state.selectedNodeId);
           if (parentNode) {
-            // Position sub-service below and slightly offset from parent
-            x = parentNode.x + Math.random() * 100 - 50; // Small random offset
-            y = parentNode.y + 100 + Math.random() * 50; // Below parent with small variation
-            
-            // Ensure sub-service stays within reasonable bounds
+            x = parentNode.x + Math.random() * 100 - 50;
+            y = parentNode.y + 100 + Math.random() * 50;
             x = Math.max(50, Math.min(x, 750));
             y = Math.max(50, Math.min(y, 550));
           }
         }
-        
+
         addSubServiceNode(subService, service, x, y, propertyValues);
       }
 
@@ -112,6 +134,7 @@ const PropertiesPanel: React.FC = () => {
   const renderPropertyInput = (property: ServiceProperty) => {
     const value = propertyValues[property.id] ?? '';
     const hasError = !!errors[property.id];
+    const isReadOnlyInstanceName = property.id === 'name' && !!subService;
 
     switch (property.type) {
       case 'text':
@@ -120,6 +143,15 @@ const PropertiesPanel: React.FC = () => {
             type="text"
             value={value}
             onChange={(e) => handlePropertyChange(property.id, e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && property.id === 'name' && !subService) {
+                // Allow quick save on Enter when renaming parent instance
+                handleSave();
+              }
+            }}
+            autoFocus={property.id === 'name' && !subService}
+            readOnly={isReadOnlyInstanceName}
+            disabled={isReadOnlyInstanceName}
             className={`w-full mt-1 bg-slate-800 border rounded-md px-3 py-1.5 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               hasError ? 'border-red-500' : 'border-slate-600'
             }`}

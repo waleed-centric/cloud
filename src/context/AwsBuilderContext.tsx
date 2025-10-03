@@ -75,7 +75,7 @@ export type AwsBuilderContextValue = {
   closeServiceModal: () => void;
   openPropertiesPanel: (service: DetailedService, subService?: SubServiceType) => void;
   closePropertiesPanel: () => void;
-  addSubServiceNode: (subService: SubServiceType, service: DetailedService, x: number, y: number, properties?: Record<string, any>) => void;
+  addSubServiceNode: (subService: SubServiceType, service: DetailedService, x: number, y: number, properties?: Record<string, any>, parentNodeIdOverride?: string) => void;
   updateNodeProperties: (nodeId: string, properties: Record<string, any>) => void;
   getNodeDetails: (nodeId: string) => { service?: DetailedService; subService?: SubServiceType; properties?: Record<string, any> } | null;
   // Virtual anchor registration for aggregated boxes
@@ -104,22 +104,78 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
   const { addServiceCost, removeServiceCost, updateServiceCost, clearAllCosts } = usePricing();
 
   const addNode = (icon: AwsIcon, x: number, y: number) => {
+    // Initialize node with potential default properties for known services
+    let defaultProperties: Record<string, any> = {};
+    let serviceId: string | undefined = icon.id;
+
+    // Seed common properties defaults for AWS EC2
+    if (currentProvider === 'aws' && icon.id === 'ec2') {
+      const svc = getAwsServiceById('ec2');
+      if (svc) {
+        (svc.commonProperties || []).forEach((prop) => {
+          defaultProperties[prop.id] = prop.defaultValue ?? '';
+        });
+        serviceId = svc.id;
+      }
+    }
+
     const newNode: PlacedNode = {
       id: `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       icon,
       x,
       y,
+      serviceId,
+      properties: defaultProperties,
     };
-    
-    // Add pricing for the service
-    addServiceCost(newNode.id, icon.id, icon.name, {});
-    
+
+    // Add pricing for the service with default properties if available
+    addServiceCost(newNode.id, icon.id, icon.name, defaultProperties);
+
     setState(prev => ({
       ...prev,
       placedNodes: [...prev.placedNodes, newNode],
+      selectedNodeId: newNode.id,
     }));
+
+    // Auto-add default sub-services for EC2 (attach to this parent explicitly)
+    if (currentProvider === 'aws' && icon.id === 'ec2') {
+      autoAddDefaultEc2SubServices(newNode);
+      // Open the properties panel immediately for quick rename
+      const svc = getAwsServiceById('ec2');
+      if (svc) {
+        openPropertiesPanel(svc);
+      }
+    }
   };
 
+  // Helper: auto-add default EC2 sub-services for a newly added EC2 instance
+  const autoAddDefaultEc2SubServices = (parentNode: PlacedNode) => {
+    if (currentProvider !== 'aws') return;
+    const service = getAwsServiceById('ec2');
+    if (!service) return;
+
+    // Collect default properties for each sub-service from schema
+    const buildDefaultProps = (subId: string) => {
+      const sub = getAwsSubServiceById('ec2', subId);
+      const props: Record<string, any> = {};
+      (sub?.properties || []).forEach((p) => {
+        props[p.id] = p.defaultValue ?? '';
+      });
+      return { sub, props };
+    };
+
+    const { sub: ec2Sub, props: ec2Props } = buildDefaultProps('ec2-instance');
+    const { sub: ebsSub, props: ebsProps } = buildDefaultProps('ebs-volume');
+    const { sub: sgSub, props: sgProps } = buildDefaultProps('security-group');
+
+    // Positioning: stack below parent with small offsets
+    const baseX = parentNode.x;
+    const baseY = parentNode.y + (parentNode.icon?.height || 80) + 30;
+
+    if (ec2Sub) addSubServiceNode(ec2Sub, service, baseX, baseY, ec2Props, parentNode.id);
+    if (ebsSub) addSubServiceNode(ebsSub, service, baseX + 120, baseY, ebsProps, parentNode.id);
+    if (sgSub) addSubServiceNode(sgSub, service, baseX + 240, baseY, sgProps, parentNode.id);
+  };
   const removeNode = (nodeId: string) => {
     // Remove pricing for the service
     removeServiceCost(nodeId);
@@ -298,20 +354,48 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
     service: DetailedService, 
     x: number, 
     y: number, 
-    properties?: Record<string, any>
+    properties?: Record<string, any>,
+    parentNodeIdOverride?: string
   ) => {
     // Auto-increment naming for duplicate additions
     const baseName = subService.name;
     
     // Count existing instances of this specific sub-service type for this parent
+    const parentIdToUse = parentNodeIdOverride || state.selectedNodeId || undefined;
     const existingCount = state.placedNodes.filter(n => 
       n.isSubService && 
-      n.parentNodeId === state.selectedNodeId && 
+      n.parentNodeId === parentIdToUse && 
       n.subServiceId === subService.id
     ).length;
     
-    // Hide numbers if this is the first instance, show numbers only for multiple instances
-    const displayName = existingCount === 0 ? baseName : `${baseName} (${existingCount + 1})`;
+    // Grouped instance naming: include parent instance label if available
+    let parentInstanceLabel = '';
+    if (parentIdToUse) {
+      const parentNode = state.placedNodes.find(n => n.id === parentIdToUse);
+      if (parentNode) {
+        // Prefer a friendly instance name from common properties, fallback to icon name
+        const commonName = parentNode.properties?.['name'];
+        const friendlyParent = (typeof commonName === 'string' && commonName) 
+          ? commonName 
+          : (parentNode.icon?.name || service.name || 'Instance');
+        parentInstanceLabel = friendlyParent.replace(/Amazon |Microsoft |Google /g, '').trim();
+      }
+    }
+
+    // Hide numbers if this is the first instance; otherwise append ordinal with parent label
+    const ordinalSuffix = existingCount === 0 ? '' : ` ${existingCount + 1}`;
+    const displayName = parentInstanceLabel 
+      ? `${baseName} (${parentInstanceLabel}${ordinalSuffix})`
+      : (existingCount === 0 ? baseName : `${baseName} (${existingCount + 1})`);
+
+    // Inherit parent instance name into sub-service properties for read-only display
+    let inheritedProps = properties || {};
+    if (parentIdToUse) {
+      const parentNode = state.placedNodes.find(n => n.id === parentIdToUse);
+      if (parentNode && parentNode.properties && typeof parentNode.properties['name'] === 'string') {
+        inheritedProps = { ...inheritedProps, name: parentNode.properties['name'] };
+      }
+    }
 
     const newNode: PlacedNode = {
       id: `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -331,9 +415,9 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
       y,
       serviceId: service.id,
       subServiceId: subService.id,
-      properties: properties || {},
+      properties: inheritedProps,
       isSubService: true,
-      parentNodeId: state.selectedNodeId || undefined, // Associate with the currently selected parent instance
+      parentNodeId: parentIdToUse, // Explicit parent association
     };
     
     // Add pricing for the service with configured properties
@@ -349,14 +433,64 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
     // Update pricing when properties change
     updateServiceCost(nodeId, properties);
     
-    setState(prev => ({
-      ...prev,
-      placedNodes: prev.placedNodes.map(node =>
+    setState(prev => {
+      // Update target node properties
+      const updatedNodes = prev.placedNodes.map(node =>
         node.id === nodeId
           ? { ...node, properties: { ...node.properties, ...properties } }
           : node
-      ),
-    }));
+      );
+
+      // If parent instance name changed, propagate to attached sub-services and update labels
+      const targetNode = updatedNodes.find(n => n.id === nodeId);
+      if (targetNode && !targetNode.isSubService && typeof properties['name'] === 'string') {
+        const newName = String(properties['name']).trim();
+        for (let i = 0; i < updatedNodes.length; i++) {
+          const n = updatedNodes[i];
+          if (n.isSubService && n.parentNodeId === nodeId) {
+            // Resolve sub-service details to rebuild display label/svg
+            let baseName = n.icon.name;
+            let emoji = '';
+            if (currentProvider === 'aws' && n.serviceId && n.subServiceId) {
+              const svc = getAwsServiceById(n.serviceId);
+              const sub = svc ? getAwsSubServiceById(svc.id, n.subServiceId) : undefined;
+              if (sub) {
+                baseName = sub.name;
+                emoji = (sub as any).icon || '';
+              }
+            }
+
+            // Preserve ordinal suffix if present e.g. " (Parent 2)"
+            const match = n.icon.name.match(/\(([^)]*)\)/);
+            const ordinalPart = match && match[1] && match[1].match(/ (\d+)$/) ? ` ${match[1].match(/ (\d+)$/)![1]}` : '';
+            const displayName = `${baseName} (${newName}${ordinalPart})`;
+
+            // Update node properties and icon
+            updatedNodes[i] = {
+              ...n,
+              properties: { ...(n.properties || {}), name: newName },
+              icon: {
+                id: n.icon.id,
+                name: displayName,
+                category: n.icon.category,
+                svg: `<svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+          <rect x="5" y="5" width="40" height="40" rx="4" fill="#4F46E5" stroke="#232F3E" stroke-width="2"/>
+          <text x="25" y="20" text-anchor="middle" fill="white" font-size="16" font-family="Inter, sans-serif">${emoji}</text>
+<text x="25" y="35" text-anchor="middle" fill="white" font-size="8" font-family="Inter, sans-serif">${displayName}</text>
+        </svg>`,
+                width: n.icon.width,
+                height: n.icon.height,
+              },
+            };
+          }
+        }
+      }
+
+      return {
+        ...prev,
+        placedNodes: updatedNodes,
+      };
+    });
   };
 
   const getNodeDetails = (nodeId: string) => {

@@ -125,13 +125,18 @@ export function DraggableNode({ node, isSelected }: DraggableNodeProps) {
       addConnection(state.connectingFromId, node.id);
       setConnecting(false);
     } else {
-      // Select the node and open service detail modal on the right
+      // Select node then open configuration: sub-services go to PropertiesPanel, parent goes to modal
       setSelectedNode(node.id);
       const details = getNodeDetails(node.id);
-      if (details?.service) {
-        openServiceModal(details.service as DetailedService);
+      const service = details?.service as DetailedService | undefined;
+      const sub = details?.subService as any;
+      if (service && sub) {
+        // Editing a sub-service opens the Properties Panel
+        openPropertiesPanel(service as DetailedService, sub);
+      } else if (service) {
+        // Clicking a parent service opens Properties Panel for editing common properties
+        openPropertiesPanel(service as DetailedService);
       } else {
-        // Fallback to minimal service id; defensive guards in modal handle partials
         openServiceModal({ id: node.icon.id } as DetailedService);
       }
     }
