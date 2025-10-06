@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { CloudProviderDropdown } from './CloudProviderDropdown';
+import Image from 'next/image';
 
 interface TopNavbarProps {
   className?: string;
+  onClearAll?: () => void;
+  onImport?: () => void;
+  onSave?: () => void;
+  onExport?: () => void;
 }
 
-export const TopNavbar: React.FC<TopNavbarProps> = ({ className }) => {
+export const TopNavbar: React.FC<TopNavbarProps> = ({ className, onClearAll, onImport, onSave, onExport }) => {
   const [activeTab, setActiveTab] = useState('Canvas');
 
   const navItems = [
@@ -22,102 +26,78 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ className }) => {
     console.log(`Switched to ${tabLabel} tab`);
   };
 
+  const handleImport = () => (onImport ? onImport() : console.log('Import clicked'));
+  const handleSave = () => (onSave ? onSave() : console.log('Save clicked'));
+  const handleExport = () => (onExport ? onExport() : console.log('Export clicked'));
+  const handleClearAll = () => (onClearAll ? onClearAll() : console.log('Clear All clicked'));
+
   return (
-    <nav className={`bg-slate-800 border-b border-slate-700 shadow-lg ${className || ''}`}>
-      <div className="max-w-full px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo/Brand */}
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <CloudProviderDropdown />
+    <nav className={`bg-white border-b border-gray-200 shadow-sm ${className || ''}`}>
+      {/* Top toolbar */}
+      <div className="w-full px-3 sm:px-4">
+        <div className="flex items-center justify-between h-12">
+          {/* Brand */}
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 relative">
+              <Image src="/globe.svg" alt="ClickLogic" fill className="object-contain" />
             </div>
+            <span className="text-slate-900 font-semibold">ClickLogic</span>
           </div>
 
-          {/* <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-4">
-              {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => handleTabClick(item.label)}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center space-x-2 ${
-                    activeTab === item.label
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-                  }`}
-                >
-                  <span className="text-lg">{item.icon}</span>
-                  <span>{item.label}</span>
-                </button>
+          {/* Actions center cluster */}
+          <div className="flex items-center gap-2 sm:gap-3 text-slate-700">
+            <button onClick={handleImport} className="px-2 py-1 rounded hover:bg-gray-100">Import</button>
+            <button onClick={handleSave} className="px-2 py-1 rounded hover:bg-gray-100">Save</button>
+            <button onClick={handleExport} className="px-2 py-1 rounded hover:bg-gray-100">Export</button>
+            <span className="h-5 w-px bg-gray-200 mx-1" />
+            <button className="px-2 py-1 rounded hover:bg-gray-100" title="Undo">↶</button>
+            <button className="px-2 py-1 rounded hover:bg-gray-100" title="Redo">↷</button>
+            <span className="h-5 w-px bg-gray-200 mx-1" />
+            <button className="px-2 py-1 rounded hover:bg-gray-100" title="Zoom out">−</button>
+            <span className="text-sm">100%</span>
+            <button className="px-2 py-1 rounded hover:bg-gray-100" title="Zoom in">+</button>
+            <button className="px-2 py-1 rounded hover:bg-gray-100" title="Fullscreen">⛶</button>
+          </div>
+
+          {/* Right actions */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Team initials */}
+            <div className="hidden sm:flex items-center gap-1">
+              {['SC','AK','MG'].map((t) => (
+                <div key={t} className="relative h-7 w-7 rounded-full bg-gray-200 text-gray-700 text-xs font-semibold flex items-center justify-center">
+                  {t}
+                  <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-green-500 border border-white" />
+                </div>
               ))}
             </div>
-          </div>
-
-          <div className="md:hidden">
-            <button
-              type="button"
-              className="bg-slate-800 inline-flex items-center justify-center p-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white"
-              aria-controls="mobile-menu"
-              aria-expanded="false"
-            >
-              <span className="sr-only">Open main menu</span>
-              <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          </div>  */}
-
-          {/* User Profile/Actions */}
-          <div className="hidden md:block">
-            <div className="ml-4 flex items-center md:ml-6">
-              <button
-                type="button"
-                className="bg-slate-800 p-1 rounded-full text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white"
-              >
-                <span className="sr-only">View notifications</span>
-                <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-5 5v-5zM4 19h6v-2H4v2zM4 15h8v-2H4v2zM4 11h10V9H4v2z" />
-                </svg>
-              </button>
-
-              {/* Profile dropdown */}
-              <div className="ml-3 relative">
-                <div>
-                  <button
-                    type="button"
-                    className="max-w-xs bg-slate-800 rounded-full flex items-center text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white"
-                    id="user-menu-button"
-                    aria-expanded="false"
-                    aria-haspopup="true"
-                  >
-                    <span className="sr-only">Open user menu</span>
-                    <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
-                      <span className="text-sm font-medium text-white">U</span>
-                    </div>
-                  </button>
-                </div>
-              </div>
-            </div>
+            <button className="px-2 py-1 rounded hover:bg-gray-100" title="Settings">⚙</button>
+            <button className="px-2 py-1 rounded bg-slate-800 text-white hover:bg-slate-700">Deploy</button>
+            <button className="px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">Share</button>
+            <div className="h-8 w-8 rounded-full bg-indigo-500 text-white text-sm font-semibold flex items-center justify-center">JD</div>
           </div>
         </div>
       </div>
 
-      {/* Mobile menu, show/hide based on menu state */}
-      <div className="md:hidden" id="mobile-menu">
-        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-slate-700">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleTabClick(item.label)}
-              className={`block px-3 py-2 rounded-md text-base font-medium w-full text-left transition-colors duration-200 flex items-center space-x-2 ${
-                activeTab === item.label
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-300 hover:bg-slate-600 hover:text-white'
-              }`}
-            >
-              <span className="text-lg">{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          ))}
+      {/* Secondary tabs row */}
+      <div className="w-full border-t border-gray-200 bg-white">
+        <div className="flex items-center justify-between px-3 sm:px-4 h-10">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => handleTabClick(item.label)}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 flex items-center gap-2 ${
+                  activeTab === item.label
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <span className="text-base">{item.icon}</span>
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+          <button onClick={handleClearAll} className="text-sm font-medium text-red-600 hover:text-red-700">Clear All</button>
         </div>
       </div>
     </nav>

@@ -63,34 +63,19 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
   return (
     <div className="h-screen bg-slate-900 text-slate-200 flex flex-col">
       {/* Top Navigation Bar */}
-      <TopNavbar />
+      <TopNavbar 
+        onClearAll={clearAll}
+        onExport={() => setShowExportPanel(true)}
+      />
 
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Toggle Button - Top Left Corner */}
-        {/* {sidebarExpanded && (
-          <div className="absolute top-4 left-4 z-50">
-            <button
-              onClick={() => setSidebarExpanded(!sidebarExpanded)}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded-lg shadow-lg transition-colors border border-slate-600"
-              title={sidebarExpanded ? 'Collapse Sidebar' : 'Expand Sidebar'}
-            >
-              <svg 
-                className={`w-5 h-5 transition-transform duration-200 ${sidebarExpanded ? 'rotate-180' : ''}`} 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-          </div>
-        )} */}
+       
 
         {/* Mobile Overlay for Sidebar (only on very small screens) */}
         {isClient && sidebarExpanded && typeof window !== 'undefined' && window.innerWidth < 640 && (
           <div
-            className="sm:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+            className="sm:hidden fixed inset-0  bg-opacity-50 z-30"
             onClick={() => setSidebarExpanded(false)}
           />
         )}
@@ -127,36 +112,8 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
 
           {/* Main Canvas Area */}
           <div className={`flex-1 flex flex-col transition-all duration-300`}>
-            <div className="bg-slate-900 rounded-lg shadow-xl border border-slate-700 flex-1 overflow-hidden">
-              <div className="flex items-center justify-between p-4 border-b border-slate-700">
-                <div className="flex items-center gap-4">
-                  <div className="hidden md:flex items-baseline space-x-2">
-                    {canvasNavItems.map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => handleCanvasTabClick(item.label)}
-                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center space-x-2 ${activeCanvasTab === item.label
-                            ? 'bg-blue-600 text-white'
-                            : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-                          }`}
-                      >
-                        <span className="text-lg">{item.icon}</span>
-                        <span>{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-
-                  <button
-                    onClick={clearAll}
-                    className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                  >
-                    <span className="hidden sm:inline">Clear All</span>
-                    <span className="sm:hidden">Clear</span>
-                  </button>
-                </div>
-              </div>
+            <div className=" rounded-lg shadow-xl border  flex-1 overflow-hidden">
+             
               <CanvasArea />
             </div>
           </div>
