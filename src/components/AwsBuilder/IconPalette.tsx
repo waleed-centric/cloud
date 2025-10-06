@@ -248,8 +248,7 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
       {sidebarExpanded && (
           <div className='flex w-full'>
             {/* Provider Tabs */}
-            <div className="py-3 bg-white border-b border-gray-200">
-
+            <div className="py-3 px-1 bg-white  border-orange-200 border-r">
               <div className="flex flex-col items-center gap-1">
                 {(['aws', 'azure', 'gcp'] as const).map(p => (
                   <button
@@ -273,10 +272,9 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
             {/* Categories - Accordion Style */}
             <div className="flex-1 overflow-y-auto bg-white">
               <div className="px-4 py-3 border-b border-gray-200 bg-white">
-                <div className="flex items-center justify-between">
                   <div className="flex w-full justify-between items-center gap-3">
                     <div>
-                      <h2 className="text-sm font-semibold text-gray-900">{providers[currentProvider].name} Services</h2>
+                      <h2 className="text-sm font-light text-gray-900">{providers[currentProvider].name} Services</h2>
                       <p className="text-xs text-gray-500">Drag services to canvas</p>
                     </div>
                 
@@ -291,7 +289,6 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
                       </svg>
                     </button>
                   </div>
-                </div>
               </div>
               <div className='bg-orange-500 w-full h-[1px] rounded-2xl'></div>
               {filteredCategories.map((category) => {
@@ -309,7 +306,7 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
                     >
                       <div className="flex items-center gap-3 w-full justify-between">
 
-                        <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
+                        <h3 className="text-sm font-light text-gray-900 uppercase tracking-wide">
                           {category}
                         </h3>
                         <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>
