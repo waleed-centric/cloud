@@ -38,10 +38,9 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ className, onClearAll, onI
         <div className="flex items-center justify-between h-12">
           {/* Brand */}
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 relative">
-              <Image src="/globe.svg" alt="ClickLogic" fill className="object-contain" />
+            <div className="h-19 w-40 relative">
+              <Image src="/aws/Logo.png" alt="ClickLogic" fill className="object-contain" />
             </div>
-            <span className="text-slate-900 font-semibold">ClickLogic</span>
           </div>
 
           {/* Actions center cluster */}

@@ -130,13 +130,9 @@ export function CanvasArea() {
       <div
         ref={canvasRef}
         className="w-full h-full relative overflow-hidden transition-colors"
-        style={{
-          backgroundColor: 'white',
-          backgroundImage: "url('/aws/DesignCanvas.png')",
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          backgroundSize: 'cover'
-        }}
+          style={{
+            backgroundColor: 'white'
+          }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
