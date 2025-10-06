@@ -197,7 +197,7 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 text-gray-900 border-r border-gray-200">
+    <div className="h-screen w-[280px] flex flex-col bg-gray-50 text-gray-900 border-r border-gray-200">
       {/* Collapsed State - Show only icons */}
       {!sidebarExpanded && (
         <div className="relative h-full flex py-4 bg-white border-r border-gray-200">
@@ -246,7 +246,6 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
 
       {/* Expanded State - Show full interface */}
       {sidebarExpanded && (
-        <>
           <div className='flex w-full'>
             {/* Provider Tabs */}
             <div className="py-3 bg-white border-b border-gray-200">
@@ -277,10 +276,10 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
                 <div className="flex items-center justify-between">
                   <div className="flex w-full justify-between items-center gap-3">
                     <div>
-                      <h2 className="text-lg font-semibold text-gray-900">{providers[currentProvider].name} Services</h2>
-                      <p className="text-sm text-gray-500">Drag services to canvas</p>
+                      <h2 className="text-sm font-semibold text-gray-900">{providers[currentProvider].name} Services</h2>
+                      <p className="text-xs text-gray-500">Drag services to canvas</p>
                     </div>
-
+                
                     <button
                       onClick={() => setSidebarExpanded?.(false)}
                       className="p-1 hover:bg-gray-100 rounded-md transition-colors"
@@ -294,6 +293,7 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
                   </div>
                 </div>
               </div>
+              <div className='bg-orange-500 w-full h-[1px] rounded-2xl'></div>
               {filteredCategories.map((category) => {
                 const categoryIcons = (favoritesOnly ? getFilteredIcons(category).filter(i => favorites[i.id]) : getFilteredIcons(category));
                 const isExpanded = expandedCategories[category];
@@ -361,7 +361,6 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
               })}
             </div>
           </div>
-        </>
       )}
     </div>
   );
