@@ -6,9 +6,9 @@ export type CloudProvider = 'aws' | 'azure' | 'gcp';
 export interface CloudProviderState {
   currentProvider: CloudProvider;
   providers: {
-    aws: { name: 'AWS', icon: '🟠', fullName: 'Amazon Web Services' };
-    azure: { name: 'Azure', icon: '🔵', fullName: 'Microsoft Azure' };
-    gcp: { name: 'GCP', icon: '🟡', fullName: 'Google Cloud Platform' };
+    aws: { name: 'AWS', icon: '/aws/aws_Button.png', fullName: 'Amazon Web Services' };
+    azure: { name: 'Azure', icon: '/aws/azure_Button.png', fullName: 'Microsoft Azure' };
+    gcp: { name: 'GCP', icon: '/aws/gcp_Button.png', fullName: 'Google Cloud Platform' };
   };
 }
 
@@ -32,9 +32,9 @@ export const CloudProviderProvider: React.FC<CloudProviderProviderProps> = ({
   const [state, setState] = useState<CloudProviderState>({
     currentProvider: 'aws',
     providers: {
-      aws: { name: 'AWS', icon: '🟠', fullName: 'Amazon Web Services' },
-      azure: { name: 'Azure', icon: '🔵', fullName: 'Microsoft Azure' },
-      gcp: { name: 'GCP', icon: '🟡', fullName: 'Google Cloud Platform' }
+      aws: { name: 'AWS', icon: '/aws/aws_Button.png', fullName: 'Amazon Web Services' },
+      azure: { name: 'Azure', icon: '/aws/azure_Button.png', fullName: 'Microsoft Azure' },
+      gcp: { name: 'GCP', icon: '/aws/gcp_Button.png', fullName: 'Google Cloud Platform' }
     }
   });
 

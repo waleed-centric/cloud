@@ -54,22 +54,24 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden relative">
         {/* Toggle Button - Top Left Corner */}
-        <div className="absolute top-4 left-4 z-50">
-          <button
-            onClick={() => setSidebarExpanded(!sidebarExpanded)}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded-lg shadow-lg transition-colors border border-slate-600"
-            title={sidebarExpanded ? 'Collapse Sidebar' : 'Expand Sidebar'}
-          >
-            <svg 
-              className={`w-5 h-5 transition-transform duration-200 ${sidebarExpanded ? 'rotate-180' : ''}`} 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
+        {/* {sidebarExpanded && (
+          <div className="absolute top-4 left-4 z-50">
+            <button
+              onClick={() => setSidebarExpanded(!sidebarExpanded)}
+              className="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded-lg shadow-lg transition-colors border border-slate-600"
+              title={sidebarExpanded ? 'Collapse Sidebar' : 'Expand Sidebar'}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-        </div>
+              <svg 
+                className={`w-5 h-5 transition-transform duration-200 ${sidebarExpanded ? 'rotate-180' : ''}`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          </div>
+        )} */}
 
         {/* Mobile Overlay for Sidebar (only on very small screens) */}
         {isClient && sidebarExpanded && typeof window !== 'undefined' && window.innerWidth < 640 && (
@@ -85,7 +87,7 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
             sidebarExpanded ? 'w-64' : 'w-16'
           } transition-all duration-300 ease-in-out bg-slate-800 border-r border-slate-700 flex-shrink-0 relative z-20`}
         >
-          <IconPalette sidebarExpanded={sidebarExpanded} />
+          <IconPalette sidebarExpanded={sidebarExpanded} setSidebarExpanded={setSidebarExpanded} />
         </div>
 
         {/* Main Content Container */}
