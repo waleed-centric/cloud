@@ -131,7 +131,9 @@ export function CanvasArea() {
         ref={canvasRef}
         className="w-full h-full relative overflow-hidden transition-colors"
           style={{
-            backgroundColor: 'white'
+            backgroundColor: 'white',
+            backgroundImage: 'url(/aws/DesignCanvas.png)',
+            // backgroundSize: '60px 60px',
           }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -228,7 +230,7 @@ export function CanvasArea() {
         })()}
 
         {/* Empty State */}
-        {state.placedNodes.length === 0 && !dragOver && (
+        {/* {state.placedNodes.length === 0 && !dragOver && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center text-slate-300">
               <div className="text-4xl mb-4">🏗️</div>
@@ -238,7 +240,7 @@ export function CanvasArea() {
               </p>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Drop Indicator */}
         {dragOver && (

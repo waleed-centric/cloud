@@ -162,7 +162,7 @@ export function DraggableNode({ node, isSelected }: DraggableNodeProps) {
     >
       {/* Icon Container with improved styling */}
       <div 
-        className={`relative w-full h-full flex flex-col items-center justify-center bg-slate-900 rounded-lg shadow-xl border border-slate-700 hover:shadow-2xl hover:border-slate-600 hover:bg-slate-800 transition-all duration-300 group ${
+        className={`relative w-full h-full flex flex-col items-center justify-center bg-white rounded-lg shadow-xl border border-slate-700 hover:shadow-2xl hover:border-slate-600 hover:bg-slate-800 transition-all duration-300 group ${
           isSelected ? 'ring-2 ring-blue-400' : ''
         } ${
           state.isConnecting && state.connectingFromId === node.id ? 'ring-2 ring-green-400' : ''

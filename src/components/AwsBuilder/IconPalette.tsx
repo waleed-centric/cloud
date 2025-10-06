@@ -202,16 +202,15 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
       {!sidebarExpanded && (
         <div className="relative h-full flex py-4 bg-white border-r border-gray-200">
           {/* Provider vertical tabs (collapsed) */}
-          <div className="flex flex-col items-center gap-3 px-3">
+          <div className="flex flex-col items-center gap-3 px-2">
             {(['aws', 'azure', 'gcp'] as const).map(p => (
               <button
                 key={p}
                 onClick={() => setProvider(p)}
-                className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all duration-200 hover:scale-105 ${
-                  currentProvider === p
-                    ? 'bg-blue-50 border-blue-500 text-blue-600 shadow-md'
-                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
-                }`}
+                className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all duration-200 hover:scale-105 ${currentProvider === p
+                  ? 'bg-blue-50 border-blue-500 text-blue-600 shadow-md'
+                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
+                  }`}
                 title={providers[p].fullName}
               >
                 <span className="text-lg font-medium">
@@ -221,20 +220,20 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
             ))}
           </div>
 
-          {/* Light orange vertical strip with label and chevron */}
+
           <button
             onClick={() => setSidebarExpanded?.(true)}
             title="Expand sidebar"
             aria-label="Expand sidebar"
-            className="relative h-full bg-orange-50 border-l-2 border-r-2 border-orange-500 flex items-center justify-center group"
+            className="relative h-full bg-orange-50 border-l-2 border-r-1 border-orange-500 flex items-center justify-center group px-1"
           >
-            {/* Top chevron */}
+            
             <span className="absolute top-2 left-1/2 -translate-x-1/2 text-gray-500 group-hover:text-orange-600">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </span>
-            {/* Vertical provider label */}
+            
             <span
               className="text-xs text-gray-500 font-medium select-none"
               style={{ writingMode: 'vertical-rl' }}
@@ -248,44 +247,24 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
       {/* Expanded State - Show full interface */}
       {sidebarExpanded && (
         <>
-          {/* Header with title and back arrow */}
-          <div className="px-4 py-3 border-b border-gray-200 bg-white">
-            <div className="flex items-center justify-between">
-              <div className="flex w-full justify-between items-center gap-3">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">{providers[currentProvider].name} Services</h2>
-                  <p className="text-sm text-gray-500">Drag services to canvas</p>
-                </div>
-
-                <button
-                  onClick={() => setSidebarExpanded?.(false)}
-                  className="p-1 hover:bg-gray-100 rounded-md transition-colors"
-                  title="Collapse sidebar"
-                  aria-label="Collapse sidebar"
-                >
-                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-
           <div className='flex w-full'>
             {/* Provider Tabs */}
             <div className="py-3 bg-white border-b border-gray-200">
+
               <div className="flex flex-col items-center gap-1">
                 {(['aws', 'azure', 'gcp'] as const).map(p => (
                   <button
                     key={p}
                     onClick={() => setProvider(p)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentProvider === p
+                    className={`flex items-center  p-1 rounded-lg text-sm font-medium transition-colors 
+                      ${currentProvider === p
                       ? 'bg-blue-50 text-blue-700 border border-blue-200'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }`}
+                      }
+                      `}
                     title={providers[p].fullName}
                   >
-                    <span className="text-base"><Image src={providers[p].icon} width={24} height={24} alt={providers[p].name} /></span>
+                    <Image src={providers[p].icon} width={54} height={24} alt={providers[p].name} />
                     <span className="sr-only">{providers[p].name}</span>
                   </button>
                 ))}
@@ -294,6 +273,27 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
 
             {/* Categories - Accordion Style */}
             <div className="flex-1 overflow-y-auto bg-white">
+              <div className="px-4 py-3 border-b border-gray-200 bg-white">
+                <div className="flex items-center justify-between">
+                  <div className="flex w-full justify-between items-center gap-3">
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900">{providers[currentProvider].name} Services</h2>
+                      <p className="text-sm text-gray-500">Drag services to canvas</p>
+                    </div>
+
+                    <button
+                      onClick={() => setSidebarExpanded?.(false)}
+                      className="p-1 hover:bg-gray-100 rounded-md transition-colors"
+                      title="Collapse sidebar"
+                      aria-label="Collapse sidebar"
+                    >
+                      <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
               {filteredCategories.map((category) => {
                 const categoryIcons = (favoritesOnly ? getFilteredIcons(category).filter(i => favorites[i.id]) : getFilteredIcons(category));
                 const isExpanded = expandedCategories[category];

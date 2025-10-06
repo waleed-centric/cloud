@@ -61,7 +61,7 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
   }, [clearCanvasRef, clearAll]);
 
   return (
-    <div className="h-screen bg-slate-900 text-slate-200 flex flex-col">
+    <div className="h-screen bg-white text-slate-200 flex flex-col">
       {/* Top Navigation Bar */}
       <TopNavbar 
         onClearAll={clearAll}
@@ -83,7 +83,7 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
         {/* Left Sidebar - Icon Palette */}
         <div
           className={`${sidebarExpanded ? 'w-64' : 'w-16'
-            } transition-all duration-300 ease-in-out bg-slate-800 border-r border-slate-700 flex-shrink-0 relative z-20`}
+            } transition-all duration-300 ease-in-out bg-slate-800 border-r  flex-shrink-0 relative z-20`}
         >
           <IconPalette sidebarExpanded={sidebarExpanded} setSidebarExpanded={setSidebarExpanded} />
         </div>

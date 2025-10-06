@@ -342,7 +342,7 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
             return (
               <div
                 key={id}
-                className="rounded-lg border bg-slate-900/40 hover:bg-slate-800/60 transition-all duration-200 cursor-pointer group"
+                className="rounded-lg border bg-white/40 hover:bg-slate-800/60 transition-all duration-200 cursor-pointer group"
                 style={{ borderColor: theme.border }}
                 onClick={(e) => {
                   e.stopPropagation();
