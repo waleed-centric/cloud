@@ -197,45 +197,51 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 text-gray-900 border-r border-gray-200">
+    <div className="h-[1100px] mt-19 flex flex-col bg-gray-50 text-gray-900 border-r border-gray-200">
       {/* Collapsed State - Show only icons */}
       {!sidebarExpanded && (
-        <div className="relative h-full flex flex-col items-center py-4 space-y-3 overflow-y-auto bg-white border-r border-gray-200">
+        <div className="relative h-full flex py-4 bg-white border-r border-gray-200">
           {/* Provider vertical tabs (collapsed) */}
-          
-          <div className="flex flex-col items-center gap-3 mb-4">
+          <div className="flex flex-col items-center gap-3 px-3">
             {(['aws', 'azure', 'gcp'] as const).map(p => (
               <button
                 key={p}
                 onClick={() => setProvider(p)}
-                className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all duration-200 hover:scale-105 ${currentProvider === p
+                className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all duration-200 hover:scale-105 ${
+                  currentProvider === p
                     ? 'bg-blue-50 border-blue-500 text-blue-600 shadow-md'
                     : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
-                  }`}
+                }`}
                 title={providers[p].fullName}
               >
-
-                <span onClick={() => console.log(p)} className="text-lg font-medium"><Image src={providers[p].icon} width={90} height={45} alt={providers[p].name} /></span>
-                <span className="sr-only">{providers[p].name}</span>
+                <span className="text-lg font-medium">
+                  <Image src={providers[p].icon} width={40} height={40} alt={providers[p].name} />
+                </span>
               </button>
             ))}
           </div>
 
-
-          {/* Vertical provider label */}
-          <div
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium select-none"
-            style={{ writingMode: 'vertical-rl' }}
-          >
-            {providers[currentProvider].name}
-          </div>
-
-          {/* Accent bar on the inner edge */}
+          {/* Light orange vertical strip with label and chevron */}
           <button
-            className="absolute right-0 top-0 bottom-0 w-1 bg-orange-500/80 hover:bg-orange-500 transition-colors cursor-pointer"
             onClick={() => setSidebarExpanded?.(true)}
             title="Expand sidebar"
-          />
+            aria-label="Expand sidebar"
+            className="relative h-full bg-orange-50 border-l-2 border-r-2 border-orange-500 flex items-center justify-center group"
+          >
+            {/* Top chevron */}
+            <span className="absolute top-2 left-1/2 -translate-x-1/2 text-gray-500 group-hover:text-orange-600">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </span>
+            {/* Vertical provider label */}
+            <span
+              className="text-xs text-gray-500 font-medium select-none"
+              style={{ writingMode: 'vertical-rl' }}
+            >
+              {providers[currentProvider].name}
+            </span>
+          </button>
         </div>
       )}
 
@@ -274,8 +280,8 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
                     key={p}
                     onClick={() => setProvider(p)}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentProvider === p
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                       }`}
                     title={providers[p].fullName}
                   >
@@ -302,7 +308,7 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
                       className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors group"
                     >
                       <div className="flex items-center gap-3 w-full justify-between">
-                       
+
                         <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
                           {category}
                         </h3>
@@ -335,8 +341,8 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
                               {/* Favorite toggle */}
                               <button
                                 className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs transition-all ${favorites[icon.id]
-                                    ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
-                                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600'
+                                  ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
+                                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600'
                                   }`}
                                 onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleFavorite(icon.id); }}
                                 title={favorites[icon.id] ? 'Remove from favorites' : 'Add to favorites'}

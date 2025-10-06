@@ -20,20 +20,34 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
   const [showExportPanel, setShowExportPanel] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [isClient, setIsClient] = useState(false);
+  const [activeCanvasTab, setActiveCanvasTab] = useState('Canvas');
+
+  const canvasNavItems = [
+    { id: 'canvas', label: 'Canvas', icon: '🎨' },
+    { id: 'cloud-connection', label: 'Cloud Connection', icon: '☁️' },
+    { id: 'defaults', label: 'Defaults', icon: '⚙️' },
+    { id: 'devops', label: 'DevOps', icon: '🚀' },
+    { id: 'admin-access', label: 'Admin Access Control', icon: '🔐' }
+  ];
+
+  const handleCanvasTabClick = (tabLabel: string) => {
+    setActiveCanvasTab(tabLabel);
+    console.log(`Switched to ${tabLabel} tab (Canvas header)`);
+  };
 
   // Auto-collapse sidebar on mobile devices
   React.useEffect(() => {
     setIsClient(true);
-    
+
     // Assign clearAll function to ref for external access
     if (clearCanvasRef) {
       clearCanvasRef.current = clearAll;
     }
-    
+
     if (typeof window !== 'undefined' && window.innerWidth < 640) {
       setSidebarExpanded(false);
     }
-    
+
     const handleResize = () => {
       if (typeof window !== 'undefined' && window.innerWidth < 640) {
         setSidebarExpanded(false);
@@ -50,7 +64,7 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
     <div className="h-screen bg-slate-900 text-slate-200 flex flex-col">
       {/* Top Navigation Bar */}
       <TopNavbar />
-      
+
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden relative">
         {/* Toggle Button - Top Left Corner */}
@@ -82,10 +96,9 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
         )}
 
         {/* Left Sidebar - Icon Palette */}
-        <div 
-          className={`${
-            sidebarExpanded ? 'w-64' : 'w-16'
-          } transition-all duration-300 ease-in-out bg-slate-800 border-r border-slate-700 flex-shrink-0 relative z-20`}
+        <div
+          className={`${sidebarExpanded ? 'w-64' : 'w-16'
+            } transition-all duration-300 ease-in-out bg-slate-800 border-r border-slate-700 flex-shrink-0 relative z-20`}
         >
           <IconPalette sidebarExpanded={sidebarExpanded} setSidebarExpanded={setSidebarExpanded} />
         </div>
@@ -101,7 +114,7 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
               <span>📤</span>
               <span className="hidden sm:inline">Export</span>
             </button>
-            
+
             {/* Export Panel Dropdown */}
             {showExportPanel && (
               <div className="absolute top-12 right-0 z-50">
@@ -117,19 +130,32 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
             <div className="bg-slate-900 rounded-lg shadow-xl border border-slate-700 flex-1 overflow-hidden">
               <div className="flex items-center justify-between p-4 border-b border-slate-700">
                 <div className="flex items-center gap-4">
-                  <h2 className="text-lg font-semibold text-slate-200">Canvas</h2>
-                  
-                  <div className="text-sm text-slate-400 hidden sm:block">
-                    {state.placedNodes.length} nodes, {state.connections.length} connections
+                  <div className="hidden md:flex items-baseline space-x-2">
+                    {canvasNavItems.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => handleCanvasTabClick(item.label)}
+                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center space-x-2 ${activeCanvasTab === item.label
+                            ? 'bg-blue-600 text-white'
+                            : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                          }`}
+                      >
+                        <span className="text-lg">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
-                <button
-                  onClick={clearAll}
-                  className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                >
-                  <span className="hidden sm:inline">Clear All</span>
-                  <span className="sm:hidden">Clear</span>
-                </button>
+                <div className="flex items-center gap-3">
+
+                  <button
+                    onClick={clearAll}
+                    className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                  >
+                    <span className="hidden sm:inline">Clear All</span>
+                    <span className="sm:hidden">Clear</span>
+                  </button>
+                </div>
               </div>
               <CanvasArea />
             </div>

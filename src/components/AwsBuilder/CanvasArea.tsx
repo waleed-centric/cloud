@@ -129,25 +129,13 @@ export function CanvasArea() {
     <div className="relative h-full">
       <div
         ref={canvasRef}
-        className={`w-full h-full relative overflow-hidden transition-colors ${
-          dragOver 
-            ? 'border-2 border-dashed border-blue-400' 
-            : ''
-        }`}
+        className="w-full h-full relative overflow-hidden transition-colors"
         style={{
-          background: dragOver 
-            ? 'rgba(59, 130, 246, 0.1)' 
-            : 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-          backgroundImage: dragOver 
-            ? `
-              linear-gradient(to right, rgba(59, 130, 246, 0.3) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(59, 130, 246, 0.3) 1px, transparent 1px)
-            `
-            : `
-              linear-gradient(to right, rgba(71, 85, 105, 0.15) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(71, 85, 105, 0.15) 1px, transparent 1px)
-            `,
-          backgroundSize: '20px 20px'
+          backgroundColor: 'white',
+          backgroundImage: "url('/aws/DesignCanvas.png')",
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: 'cover'
         }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}

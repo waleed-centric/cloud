@@ -33,8 +33,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ className }) => {
             </div>
           </div>
 
-          {/* Navigation Items */}
-          <div className="hidden md:block">
+          {/* <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-4">
               {navItems.map((item) => (
                 <button
@@ -53,7 +52,6 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ className }) => {
             </div>
           </div>
 
-          {/* Mobile menu button */}
           <div className="md:hidden">
             <button
               type="button"
@@ -66,7 +64,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ className }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-          </div>
+          </div>  */}
 
           {/* User Profile/Actions */}
           <div className="hidden md:block">
