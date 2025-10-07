@@ -23,8 +23,9 @@ export function ExportPanel() {
     // Add nodes
     placedNodes.forEach((node, index) => {
       const cellId = `node-${index + 2}`;
+      const svgData = node.icon.svg || '';
       xml += `
-        <mxCell id="${cellId}" value="${node.icon.name}" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;imageAspect=0;aspect=fixed;image=data:image/svg+xml,${encodeURIComponent(node.icon.svg)}" vertex="1" parent="1">
+        <mxCell id="${cellId}" value="${node.icon.name}" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;imageAspect=0;aspect=fixed;image=data:image/svg+xml,${encodeURIComponent(svgData)}" vertex="1" parent="1">
           <mxGeometry x="${node.x}" y="${node.y}" width="${node.icon.width}" height="${node.icon.height}" as="geometry" />
         </mxCell>`;
     });

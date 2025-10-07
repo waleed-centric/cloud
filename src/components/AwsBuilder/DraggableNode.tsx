@@ -162,7 +162,7 @@ export function DraggableNode({ node, isSelected }: DraggableNodeProps) {
     >
       {/* Icon Container with improved styling */}
       <div 
-        className={`relative w-full h-full flex flex-col items-center justify-center bg-white rounded-lg shadow-xl border border-slate-700 hover:shadow-2xl hover:border-slate-600 hover:bg-slate-800 transition-all duration-300 group ${
+        className={`relative w-full h-full flex flex-col items-center justify-center bg-white rounded-lg shadow-xl border border-slate-700 hover:shadow-2xl hover:border-slate-300 hover:bg-slate-100 transition-all duration-300 group ${
           isSelected ? 'ring-2 ring-blue-400' : ''
         } ${
           state.isConnecting && state.connectingFromId === node.id ? 'ring-2 ring-green-400' : ''
@@ -204,7 +204,7 @@ export function DraggableNode({ node, isSelected }: DraggableNodeProps) {
         </button>
         
         {/* Service Name */}
-        <div className="text-xs text-slate-200 font-medium text-center px-1 leading-tight group-hover:text-white transition-colors duration-200">
+        <div className="text-xs text-slate-700 font-medium text-center px-1 leading-tight group-hover:text-slate-900 transition-colors duration-200">
           {node.icon.name}
         </div>
         

@@ -152,7 +152,7 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
         style={{
           width: 'auto',
           height: 'auto',
-          backgroundColor: theme.surface,
+          backgroundColor: '#f8fafc',
           borderColor: theme.border,
           boxShadow: '0 8px 24px rgba(0,0,0,0.25)'
         }}
@@ -293,30 +293,30 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
           </>
         )}
         {/* Header (merged icon + title) */}
-        <div className="px-4 py-3 border-b border-slate-700/50">
+        <div className="px-4 py-3 border-b border-slate-300/70">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div
-                className="w-6 h-6 shrink-0 rounded-md ring-1 ring-slate-600/40 bg-slate-800/60 [&>svg]:w-full [&>svg]:h-full"
+                className="w-6 h-6 shrink-0 rounded-md ring-1 ring-slate-300/60 bg-slate-50 [&>svg]:w-full [&>svg]:h-full"
                 dangerouslySetInnerHTML={{ __html: service?.icon || '' }}
               />
               <div className="min-w-0">
-                <div className="text-sm font-semibold truncate" style={{ color: theme.text }}>
+                <div className="text-sm font-semibold truncate text-slate-800">
                   {title || 'Resources'}
                 </div>
-                <div className="text-xs opacity-75 truncate" style={{ color: theme.textSecondary }}>
+                <div className="text-xs opacity-75 truncate text-slate-600">
                   {category || 'Service'} • {nodeIds.length} instance{nodeIds.length !== 1 ? 's' : ''}
                 </div>
               </div>
               </div>
               <div className="flex items-center gap-2">
-              <div className="text-xs px-2 py-1 rounded-full bg-slate-800/60 border border-slate-600/30 shrink-0" style={{ color: theme.accent }}>
+              <div className="text-xs px-2 py-1 rounded-full bg-blue-100 border border-blue-300 shrink-0 text-blue-700 font-medium">
                 {nodeIds.length}
               </div>
               {hovered && (
                 <>
                   <button
-                    className="h-7 w-7 rounded-full flex items-center justify-center bg-slate-900/70 border border-slate-600/50 text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors shadow-md"
+                    className="h-7 w-7 rounded-full flex items-center justify-center bg-slate-200 border border-slate-300 text-slate-700 hover:text-slate-900 hover:bg-slate-300 transition-colors shadow-sm"
                     title={collapsed ? 'Expand' : 'Collapse'}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -326,7 +326,7 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
                     {collapsed ? '+' : '−'}
                   </button>
                   <button
-                    className="h-7 w-7 rounded-full flex items-center justify-center bg-red-900/70 border border-red-600/50 text-red-300 hover:text-white hover:bg-red-800/80 transition-colors shadow-md"
+                    className="h-7 w-7 rounded-full flex items-center justify-center bg-red-100 border border-red-300 text-red-700 hover:text-red-900 hover:bg-red-200 transition-colors shadow-sm"
                     title="Delete Group"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -344,21 +344,21 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
         {/* Totals / Gating */}
         {!collapsed && (
         <>
-        <div className="px-4 py-3 bg-slate-800/30">
-          <div className="text-sm" style={{ color: theme.text }}>
+        <div className="px-4 py-3 bg-slate-50/80">
+          <div className="text-sm text-slate-800">
             {allConfigured ? (
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-xs opacity-75" style={{ color: theme.textSecondary }}>Total Monthly</div>
-                  <div className="text-lg font-bold" style={{ color: theme.accent }}>${totalMonthly.toFixed(2)}</div>
+                  <div className="text-xs opacity-75 text-slate-600">Total Monthly</div>
+                  <div className="text-lg font-bold text-blue-600">${totalMonthly.toFixed(2)}</div>
                 </div>
                 <div className="w-2 h-2 rounded-full bg-green-400"></div>
               </div>
             ) : (
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-medium" style={{ color: theme.textSecondary }}>Configuration Required</div>
-                  <div className="text-xs opacity-75" style={{ color: theme.textSecondary }}>
+                  <div className="text-xs font-medium text-slate-700">Configuration Required</div>
+                  <div className="text-xs opacity-75 text-slate-600">
                     {nodeIds.length - configuredCount} resource{nodeIds.length - configuredCount !== 1 ? 's' : ''} pending
                   </div>
                 </div>
@@ -382,8 +382,7 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
             return (
               <div
                 key={id}
-                className="rounded-lg border bg-white/40 hover:bg-slate-800/60 transition-all duration-200 cursor-pointer group"
-                style={{ borderColor: theme.border }}
+                className="rounded-lg border bg-white hover:bg-slate-100 transition-all duration-200 cursor-pointer group border-slate-300"
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedNode(id);
@@ -395,10 +394,10 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
                 <div className="flex items-center gap-3 p-3">
                   <div className="w-6 h-6 [&>svg]:w-full [&>svg]:h-full opacity-90 group-hover:opacity-100 transition-opacity" dangerouslySetInnerHTML={{ __html: (node.icon as any)?.svg || '' }} />
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-medium truncate" style={{ color: theme.text }}>
+                    <div className="text-xs font-medium truncate text-slate-800">
                       {node.icon.name}
                     </div>
-                    <div className="text-[10px] opacity-75 truncate" style={{ color: theme.textSecondary }}>
+                    <div className="text-[10px] opacity-75 truncate text-slate-600">
                       {subtitleValue ? String(subtitleValue) : (sub?.name || node.icon.category || '')}
                     </div>
                   </div>
