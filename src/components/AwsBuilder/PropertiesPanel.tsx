@@ -277,7 +277,7 @@ const PropertiesPanel: React.FC = () => {
       className="fixed top-0 right-0 h-full w-96 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-l"
       style={{
         backgroundColor: '#f8fafc',
-        borderColor: theme.border
+        borderColor: "#E5E7EB"
       }}
     >
       <div className="h-full flex flex-col overflow-hidden">
@@ -286,7 +286,7 @@ const PropertiesPanel: React.FC = () => {
           className="p-4 border-b"
           style={{
             backgroundColor: '#ffffff',
-            borderColor: theme.border
+            borderColor: "#E5E7EB"
           }}
         >
           <div className="flex items-center justify-between mb-2">
@@ -330,17 +330,17 @@ const PropertiesPanel: React.FC = () => {
 
         {/* Content */}
         <div 
-          className="flex-1 p-6 overflow-y-auto"
+          className="flex-1 p-6 overflow-y-auto w-full"
           style={{
             backgroundColor: '#f8fafc'
           }}
         >
           {/* Segmented Tabs (now below header border) */}
-          <div className="inline-flex items-center p-1 gap-1 rounded-full bg-slate-100 mb-3">
+          <div className="inline-flex items-center justify-center p-1 w-full gap-1 rounded-full bg-slate-100 mb-3">
             <button
               type="button"
               onClick={() => setActiveTab('properties')}
-              className={`flex items-center gap-2 text-sm px-4 py-1.5 rounded-full transition-colors ${
+              className={`flex items-center flex-1 gap-2 text-sm px-4 py-1.5 rounded-full transition-colors ${
                 activeTab === 'properties'
                   ? 'bg-white shadow-sm text-slate-900'
                   : 'text-slate-700 hover:text-slate-900'
@@ -352,7 +352,7 @@ const PropertiesPanel: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('ai')}
-              className={`flex items-center gap-2 text-sm px-4 py-1.5 rounded-full transition-colors ${
+              className={`flex items-center justify-center flex-1 gap-2 text-sm px-4 py-1.5 rounded-full transition-colors ${
                 activeTab === 'ai'
                   ? 'bg-white shadow-sm text-slate-900'
                   : 'text-slate-700 hover:text-slate-900'

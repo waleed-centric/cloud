@@ -372,9 +372,9 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
                               key={icon.id}
                               draggable
                               onDragStart={(e) => handleDragStart(e, icon)}
-                              className="relative bg-white hover:bg-gray-50 border border-gray-200 rounded-xl  cursor-grab active:cursor-grabbing transition-all duration-200 group hover:shadow-md hover:border-gray-300"
+                              className="relative bg-white  border border-gray-200 rounded-xl  cursor-grab active:cursor-grabbing transition-all duration-200 group hover:shadow-sm "
                             >
-                              <div className="flex flex-col items-center text-center">
+                              <div className="flex flex-col items-center text-center py-3">
                                 <div className="  group-hover:scale-105 transition-transform flex items-center justify-center">
                                   {(() => {
                                     const awsSvg = currentProvider === 'aws' ? AWS_SERVICE_SVG[icon.id] : undefined;
@@ -383,7 +383,7 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
                                       <img
                                         src={src}
                                         alt={icon.name}
-                                        className="w-8 h-16 object-contain"
+                                        className="w-8 h-10 object-contain"
                                       />
                                     );
                                   })()}

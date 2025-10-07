@@ -49,7 +49,7 @@ body {
 
 /* WebKit (Chrome, Edge, Safari) */
 *::-webkit-scrollbar {
-  width: 8px;
+  width: 3px;
   height: 8px;
 }
 *::-webkit-scrollbar-track {
@@ -59,7 +59,7 @@ body {
 *::-webkit-scrollbar-thumb {
   background-color: #94a3b8; /* slate-400 */
   border-radius: 9999px;
-  border: 2px solid #f1f5f9; /* gives rounded pill look */
+  border: 1px solid #f1f5f9; /* gives rounded pill look */
 }
 *::-webkit-scrollbar-thumb:hover {
   background-color: #64748b; /* slate-500 */

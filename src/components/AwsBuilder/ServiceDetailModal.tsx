@@ -37,7 +37,7 @@ const ServiceDetailModal: React.FC = () => {
       className="fixed top-0 right-0 h-full w-96 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out"
       style={{
         backgroundColor: '#f8fafc',
-        borderLeft: `1px solid ${theme.border}`
+        borderLeft: `1px solid #E5E7EB`
       }}
     >
       <div className="h-full flex flex-col overflow-hidden">
@@ -46,7 +46,7 @@ const ServiceDetailModal: React.FC = () => {
           className="p-4 border-b"
           style={{
             backgroundColor: '#ffffff',
-            borderColor: theme.border
+            borderColor: "#E5E7EB"
           }}
         >
           <div className="flex items-center justify-between mb-2">
@@ -58,7 +58,7 @@ const ServiceDetailModal: React.FC = () => {
                   minHeight: '32px',
                   maxWidth: '32px',
                   maxHeight: '32px',
-                  borderColor: theme.border
+                  borderColor: "#E5E7EB"
                 }}
                 dangerouslySetInnerHTML={{ __html: service.icon || '' }}
               />
@@ -68,7 +68,7 @@ const ServiceDetailModal: React.FC = () => {
                   className="inline-block text-xs px-2 py-0.5 rounded-full border"
                   style={{
                     backgroundColor: '#f1f5f9',
-                    borderColor: theme.border,
+                    borderColor: "#E5E7EB",
                     color: '#0f172a'
                   }}
                 >
@@ -111,7 +111,7 @@ const ServiceDetailModal: React.FC = () => {
                     key={prop.id}
                     className="p-4 rounded-xl border bg-white"
                     style={{
-                      borderColor: theme.border
+                      borderColor: "#E5E7EB"
                     }}
                   >
                     <div className="flex items-center justify-between mb-1">
@@ -149,7 +149,7 @@ const ServiceDetailModal: React.FC = () => {
                     key={subService.id}
                     className="border rounded-xl p-4 bg-white hover:bg-slate-50 transition-all cursor-pointer group"
                     style={{
-                      borderColor: theme.border,
+                      borderColor: "#E5E7EB",
                       color: '#0f172a'
                     }}
                     onMouseEnter={(e) => {
@@ -158,7 +158,7 @@ const ServiceDetailModal: React.FC = () => {
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = '#ffffff';
-                      e.currentTarget.style.borderColor = theme.border;
+                      e.currentTarget.style.borderColor = "#E5E7EB";
                     }}
                   >
                   <div className="flex items-start space-x-2 mb-2">
@@ -217,7 +217,7 @@ const ServiceDetailModal: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <div className="bg-white px-6 py-4 border-t" style={{ borderColor: theme.border }}>
+        <div className="bg-white px-6 py-4 border-t" style={{ borderColor: "#E5E7EB" }}>
           <div className="flex justify-between items-center">
             <div className="text-sm text-slate-600">
               Total Sub-Services: {subServices.length} | 

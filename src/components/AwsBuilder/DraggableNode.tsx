@@ -172,7 +172,7 @@ export function DraggableNode({ node, isSelected }: DraggableNodeProps) {
           minHeight: '80px',
           maxWidth: '80px', 
           maxHeight: '80px',
-          boxShadow: '0 4px 20px rgba(2, 2, 2, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2)'
+          // boxShadow: '0 4px 20px rgba(2, 2, 2, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2)'
         }}
       >
         {/* Icon Display: prefer image, fallback to inline SVG */}

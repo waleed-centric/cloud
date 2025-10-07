@@ -148,13 +148,13 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
     >
       <div
         ref={containerRef}
-        className="rounded-lg shadow-lg border border-dashed relative"
+        className="rounded-lg shadow-xl border border-dashed relative"
         style={{
           width: 'auto',
           height: 'auto',
           backgroundColor: '#f8fafc',
           borderColor: theme.border,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.25)'
+          // boxShadow: '0 8px 24px rgba(0,0,0,0.25)'
         }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
