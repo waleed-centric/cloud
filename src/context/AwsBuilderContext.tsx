@@ -13,7 +13,9 @@ export type AwsIcon = {
   id: string;
   name: string;
   category: string;
-  svg: string;
+  // Support either inline SVG or static image path
+  svg?: string;
+  image?: string;
   width: number;
   height: number;
 };
@@ -316,7 +318,20 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
   const exportToDrawIo = () => {
     // Generate Draw.io compatible XML
     const nodes = state.placedNodes.map((node, index) => {
-      return `<mxCell id="${node.id}" value="${node.icon.name}" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;imageAspect=0;aspect=fixed;image=data:image/svg+xml,${encodeURIComponent(node.icon.svg)}" vertex="1" parent="1">
+      // Prefer inline SVG when available; otherwise fall back to image path
+      let imageStyle = '';
+      if (node.icon.svg) {
+        imageStyle = `image=data:image/svg+xml,${encodeURIComponent(node.icon.svg)}`;
+      } else if (node.icon.image) {
+        // Draw.io prefers absolute URLs; use origin if available, else keep relative
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+        const url = node.icon.image.startsWith('http')
+          ? node.icon.image
+          : `${origin}${node.icon.image}`;
+        imageStyle = `image=${url}`;
+      }
+
+      return `<mxCell id="${node.id}" value="${node.icon.name}" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;imageAspect=0;aspect=fixed;${imageStyle}" vertex="1" parent="1">
         <mxGeometry x="${node.x}" y="${node.y}" width="${node.icon.width}" height="${node.icon.height}" as="geometry" />
       </mxCell>`;
     }).join('\n');

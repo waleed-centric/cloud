@@ -175,11 +175,20 @@ export function DraggableNode({ node, isSelected }: DraggableNodeProps) {
           boxShadow: '0 4px 20px rgba(2, 2, 2, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2)'
         }}
       >
-        {/* Icon SVG */}
-        <div 
-          className="w-8 h-8 mb-1 [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-white group-hover:scale-110 transition-transform duration-200"
-          dangerouslySetInnerHTML={{ __html: node.icon.svg }}
-        />
+        {/* Icon Display: prefer image, fallback to inline SVG */}
+        {node.icon.image ? (
+          <img
+            src={node.icon.image}
+            alt={node.icon.name}
+            className="w-8 h-8 mb-1 object-contain group-hover:scale-110 transition-transform duration-200"
+            draggable={false}
+          />
+        ) : (
+          <div 
+            className="w-8 h-8 mb-1 [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-white group-hover:scale-110 transition-transform duration-200"
+            dangerouslySetInnerHTML={{ __html: node.icon.svg || '' }}
+          />
+        )}
         
         {/* Service Name */}
         <div className="text-xs text-slate-200 font-medium text-center px-1 leading-tight group-hover:text-white transition-colors duration-200">

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AWS_ICONS_BY_CATEGORY, AWS_CATEGORIES } from '@/data/aws-icons';
+import { AWS_ICONS_BY_CATEGORY, AWS_CATEGORIES } from '@/data/aws-icons-helper';
 import { AZURE_ICONS_BY_CATEGORY, AZURE_CATEGORIES } from '@/data/azure-icons';
 import { GCP_ICONS_BY_CATEGORY, GCP_CATEGORIES } from '@/data/gcp-icons';
 import { useCloudProvider } from '@/context/CloudProviderContext';
@@ -327,10 +327,15 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
                               className="relative bg-white hover:bg-gray-50 border border-gray-200 rounded-xl p-4 cursor-grab active:cursor-grabbing transition-all duration-200 group hover:shadow-md hover:border-gray-300"
                             >
                               <div className="flex flex-col items-center text-center">
-                                <div
-                                  dangerouslySetInnerHTML={{ __html: icon.svg }}
-                                  className="w-10 h-10 mb-3 group-hover:scale-105 transition-transform [&>svg]:w-full [&>svg]:h-full"
-                                />
+                                <div className="w-10 h-10 mb-3 group-hover:scale-105 transition-transform flex items-center justify-center">
+                                  <Image
+                                    src={(icon as any).image || (icon as any).icon || ''}
+                                    alt={icon.name}
+                                    width={40}
+                                    height={40}
+                                    className="object-contain"
+                                  />
+                                </div>
                                 <span className="text-xs text-gray-700 font-medium leading-tight">
                                   {displayAlias[icon.id] || icon.name}
                                 </span>
