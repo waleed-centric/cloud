@@ -37,7 +37,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ className, onClearAll, onI
       <div className="w-full px-3 sm:px-4">
         <div className="flex items-center  h-12">
           {/* Brand */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mr-5">
             <div className="h-[50px] w-[150px] relative">
               <Image src="/aws/Logo.png" alt="ClickLogic" fill className="object-contain" />
             </div>
@@ -45,7 +45,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ className, onClearAll, onI
 
           {/* Actions center cluster */}
           <div className="flex items-center gap-2 sm:gap-3 text-slate-700 mr-auto">
-            <button onClick={handleImport} className="px-2 py-1 rounded hover:bg-gray-100 flex items-center">
+            <button onClick={handleImport} className=" px-2 py-1 rounded hover:bg-gray-100 flex items-center">
               <Image src="/images/Import.png" alt="Import" className="w-4 h-4 mr-1" width={15} height={15} />
               Import
             </button>
@@ -78,11 +78,17 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ className, onClearAll, onI
                 </div>
               ))}
             </div>
-            <button className="py-1 rounded hover:bg-gray-100" title="Settings">
+            <button className="py-1 rounded " title="Settings">
               <Image src={'/images/Group.png'} width={40} height={40} alt='group'/>
             </button>
-            <button className="px-2 py-1 rounded bg-slate-800 text-white hover:bg-slate-700">Deploy</button>
-            <button className="px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">Share</button>
+            <button className="px-2 py-1 rounded  text-black flex items-center ">
+              <Image src="/images/Deploy.png" alt="Deploy" className="w-4 h-4 mr-1" width={15} height={15} />
+              Deploy
+              </button>
+            <button className="px-2 py-1 rounded-md bg-blue-600 text-white flex items-center hover:bg-blue-700">
+              <Image src="/images/Share.png" alt="Share" className="w-4 h-4 mr-1" width={15} height={15} />
+              Share
+            </button>
             <div className="h-8 w-8 rounded-full bg-indigo-500 text-white text-sm font-semibold flex items-center justify-center">JD</div>
           </div>
         </div>
@@ -91,18 +97,18 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ className, onClearAll, onI
       {/* Secondary tabs row */}
       <div className="w-full border-t border-gray-200 bg-white">
         <div className="flex items-center justify-between px-3 sm:px-4 h-10">
+          <div className='text-black font-semibold'>John Project Infrastructure Design</div>
           <div className="flex items-center gap-2 sm:gap-3">
             {navItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => handleTabClick(item.label)}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 flex items-center gap-2 ${
+                className={`px-3 py-1.5  text-sm font-medium transition-colors duration-200 flex items-center gap-2 ${
                   activeTab === item.label
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                    ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-500'
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                <span className="text-base">{item.icon}</span>
                 <span>{item.label}</span>
               </button>
             ))}
