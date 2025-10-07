@@ -3,7 +3,7 @@ import { AWS_ICONS_BY_CATEGORY, AWS_CATEGORIES } from '@/data/aws-icons-helper';
 import { AZURE_ICONS_BY_CATEGORY, AZURE_CATEGORIES } from '@/data/azure-icons';
 import { GCP_ICONS_BY_CATEGORY, GCP_CATEGORIES } from '@/data/gcp-icons';
 import { useCloudProvider } from '@/context/CloudProviderContext';
-import Image from 'next/image';
+// Removed Next.js Image for provider and service tiles in favor of SVGs
 
 // Summary: Icon Palette component - left sidebar with cloud provider service icons
 // - Displays icons grouped by categories (Compute, Storage, Database, etc.)
@@ -22,6 +22,48 @@ const PROVIDER_SVG = {
   azure: '/aws/azure.svg',
   gcp: '/aws/gcp.svg',
 } as const;
+
+// AWS Service SVG mapping (from public/images/AWS Services Icon)
+const AWS_SERVICE_SVG: Record<string, string> = {
+  // Compute
+  'ec2': '/images/AWS Services Icon/EC2 Icon.svg',
+  'lambda': '/images/AWS Services Icon/Lambda Icon.svg',
+  'batch': '/images/AWS Services Icon/Batch Icon.svg',
+  'fargate': '/images/AWS Services Icon/Fargate Icon.svg',
+  'ecs': '/images/AWS Services Icon/ECS Icon.svg',
+  'eks': '/images/AWS Services Icon/EKS Icon.svg',
+  // Storage
+  's3': '/images/AWS Services Icon/S3 Icon.svg',
+  'efs': '/images/AWS Services Icon/EFS Icon.svg',
+  'ebs': '/images/AWS Services Icon/EBS Icon.svg',
+  'fsx': '/images/AWS Services Icon/FSx Icon.svg',
+  'glacier': '/images/AWS Services Icon/Glacier Icon.svg',
+  // Database
+  'rds': '/images/AWS Services Icon/RDS Icon.svg',
+  'dynamodb': '/images/AWS Services Icon/DynamoDB Icon.svg',
+  'aurora': '/images/AWS Services Icon/Aurora Icon.svg',
+  'documentdb': '/images/AWS Services Icon/DocumentDB Icon.svg',
+  'elasticsearch': '/images/AWS Services Icon/Elasticsearch Icon.svg',
+  'redshift': '/images/AWS Services Icon/Redshift Icon.svg',
+  // Networking & Delivery
+  'vpc': '/images/AWS Services Icon/VPC Icon.svg',
+  'cloudfront': '/images/AWS Services Icon/CloudFront Icon.svg',
+  'elb': '/images/AWS Services Icon/Load Balancer Icon.svg',
+  'api-gateway': '/images/AWS Services Icon/API Gateway Icon.svg',
+  'direct-connect': '/images/AWS Services Icon/Direct Connect Icon.svg',
+  'route-53': '/images/AWS Services Icon/Route 53 Icon.svg',
+  // Security & IAM
+  'iam': '/images/AWS Services Icon/IAM Icon.svg',
+  'kms': '/images/AWS Services Icon/KMS Icon.svg',
+  'secrets-manager': '/images/AWS Services Icon/Secrets Manager Icon.svg',
+  'waf': '/images/AWS Services Icon/WAF Icon.svg',
+  // Monitoring & Logging
+  'cloudtrail': '/images/AWS Services Icon/CloudTrail Icon.svg',
+  'cloudwatch': '/images/AWS Services Icon/CloudWatch Icon.svg',
+  'x-ray': '/images/AWS Services Icon/X-Ray Icon.svg',
+  // Identity
+  'cognito': '/images/AWS Services Icon/Cognito Icon.svg',
+};
 
 const DISPLAY_ALIAS: Record<string, Record<string, string>> = {
   aws: {
@@ -280,8 +322,8 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
             <div className="flex-1 overflow-y-auto bg-white">
               <div className="px-4 py-3 border-b border-gray-200 bg-white">
                   <div className="flex w-full justify-between items-center gap-3">
-                    <div>
-                      <h2 className="text-sm font-light text-gray-900">{providers[currentProvider].name} Services</h2>
+                    <div className='p-1'>
+                      <h2 className="text-sm font-normal text-[#101828]">{providers[currentProvider].name} Services</h2>
                       <p className="text-xs text-gray-500">Drag services to canvas</p>
                     </div>
                     <button
@@ -305,14 +347,14 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
 
                 return (
                   <div key={category} className="border-b border-gray-100 last:border-b-0">
-                    {/* Category Header - Clickable */}
+                    {/* Category Header - Clickable */} 
                     <button
                       onClick={() => toggleCategory(category)}
                       className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors group"
                     >
                       <div className="flex items-center gap-3 w-full justify-between">
 
-                        <h3 className="text-sm font-light text-gray-900 uppercase tracking-wide">
+                        <h3 className="text-xs font-normal text-gray-900 capitalize tracking-wide">
                           {category}
                         </h3>
                         <div className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>
@@ -330,35 +372,27 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
                               key={icon.id}
                               draggable
                               onDragStart={(e) => handleDragStart(e, icon)}
-                              className="relative bg-white hover:bg-gray-50 border border-gray-200 rounded-xl p-4 cursor-grab active:cursor-grabbing transition-all duration-200 group hover:shadow-md hover:border-gray-300"
+                              className="relative bg-white hover:bg-gray-50 border border-gray-200 rounded-xl  cursor-grab active:cursor-grabbing transition-all duration-200 group hover:shadow-md hover:border-gray-300"
                             >
                               <div className="flex flex-col items-center text-center">
-                                <div className=" mb-3 group-hover:scale-105 transition-transform flex items-center justify-center">
-                                  <Image
-                                    src={(icon as any).image || (icon as any).icon || ''}
-                                    alt={icon.name}
-                                    width={100}
-                                    height={100}
-                                    className="object-contain"
-                                  />
+                                <div className="  group-hover:scale-105 transition-transform flex items-center justify-center">
+                                  {(() => {
+                                    const awsSvg = currentProvider === 'aws' ? AWS_SERVICE_SVG[icon.id] : undefined;
+                                    const src = awsSvg || (icon as any).image || (icon as any).icon || '';
+                                    return (
+                                      <img
+                                        src={src}
+                                        alt={icon.name}
+                                        className="w-8 h-16 object-contain"
+                                      />
+                                    );
+                                  })()}
                                 </div>
                                 <span className="text-xs text-gray-700 font-medium leading-tight">
                                   {displayAlias[icon.id] || icon.name}
                                 </span>
                               </div>
-                              {/* Favorite toggle */}
-                              <button
-                                className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs transition-all ${favorites[icon.id]
-                                  ? 'bg-yellow-100 text-yellow-600 hover:bg-yellow-200'
-                                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600'
-                                  }`}
-                                onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleFavorite(icon.id); }}
-                                title={favorites[icon.id] ? 'Remove from favorites' : 'Add to favorites'}
-                              >
-                                <svg className="w-3 h-3" fill={favorites[icon.id] ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                                </svg>
-                              </button>
+                              
                             </div>
                           ))}
                         </div>

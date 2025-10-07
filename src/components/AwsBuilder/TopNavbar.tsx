@@ -97,16 +97,16 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ className, onClearAll, onI
       {/* Secondary tabs row */}
       <div className="w-full border-t border-gray-200 bg-white">
         <div className="flex items-center justify-between px-3 sm:px-4 h-10">
-          <div className='text-black font-semibold'>John Project Infrastructure Design</div>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className='text-black font-semibold pl-[50px]'>John Project Infrastructure Design</div>
+          <div className="flex items-center gap-2 sm:gap-3 -ml-[50px]">
             {navItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => handleTabClick(item.label)}
                 className={`px-3 py-1.5  text-sm font-medium transition-colors duration-200 flex items-center gap-2 ${
                   activeTab === item.label
-                    ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-500'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-[#EFF6FF] text-[#155DFC] border-b-2 border-[#155DFC]'
+                    : 'text-[#4A5565] hover:bg-gray-100'
                 }`}
               >
                 <span>{item.label}</span>
