@@ -13,6 +13,7 @@ const PropertiesPanel: React.FC = () => {
   const [propertyValues, setPropertyValues] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [listeners, setListeners] = useState<{ protocol: string; port: number; target: string }[]>([]);
+  const [activeTab, setActiveTab] = useState<'properties' | 'ai'>('properties');
 
   if (!state.showPropertiesPanel || !state.selectedService) {
     return null;
@@ -309,16 +310,33 @@ const PropertiesPanel: React.FC = () => {
                   <p className="text-slate-600 text-sm truncate">
                     {currentProvider.toUpperCase()}::{(service?.id || 'service').toUpperCase()}
                   </p>
-                  <span 
-                    className="inline-block text-xs px-2 py-0.5 rounded-full mt-1 border"
-                    style={{
-                      backgroundColor: '#f1f5f9',
-                      borderColor: theme.border,
-                      color: '#0f172a'
-                    }}
-                  >
-                    Properties
-                  </span>
+                  {/* Segmented Tabs */}
+                  <div className="inline-flex items-center mt-2 p-1 gap-1 rounded-full bg-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('properties')}
+                      className={`flex items-center gap-2 text-sm px-4 py-1.5 rounded-full transition-colors ${
+                        activeTab === 'properties'
+                          ? 'bg-white shadow-sm text-slate-900'
+                          : 'text-slate-700 hover:text-slate-900'
+                      }`}
+                    >
+                      <span className="text-base leading-none">🔧</span>
+                      Properties
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('ai')}
+                      className={`flex items-center gap-2 text-sm px-4 py-1.5 rounded-full transition-colors ${
+                        activeTab === 'ai'
+                          ? 'bg-white shadow-sm text-slate-900'
+                          : 'text-slate-700 hover:text-slate-900'
+                      }`}
+                    >
+                      <span className="text-base leading-none">🤖</span>
+                      AI
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -343,122 +361,191 @@ const PropertiesPanel: React.FC = () => {
             backgroundColor: '#f8fafc'
           }}
         >
-          {allProperties.length === 0 ? (
-            <div 
-              className="text-center py-8"
-              style={{ color: theme.textSecondary }}
-            >
-              <p>Select a service to configure its properties</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Common Properties */}
-              {service?.commonProperties && service.commonProperties.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-800 mb-3">Basic Information</h3>
-                  <div className="space-y-3">
-                    {service.commonProperties.map((property) => (
-                      <div key={property.id} className="p-4 rounded-xl border bg-white" style={{
-                        borderColor: theme.border
-                      }}>
-                        <div className="flex items-center justify-between mb-1">
-                          <label 
-                            className="text-xs font-medium text-slate-700"
-                          >
-                            {property.name}
-                          </label>
-                          {property.required && (
-                            <span 
-                              className="text-xs px-2 py-0.5 rounded border bg-slate-100 text-slate-700"
+          {activeTab === 'properties' ? (
+            allProperties.length === 0 ? (
+              <div 
+                className="text-center py-8"
+                style={{ color: theme.textSecondary }}
+              >
+                <p>Select a service to configure its properties</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Common Properties */}
+                {service?.commonProperties && service.commonProperties.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-800 mb-3">Basic Information</h3>
+                    <div className="space-y-3">
+                      {service.commonProperties.map((property) => (
+                        <div key={property.id} className="p-4 rounded-xl border bg-white" style={{
+                          borderColor: theme.border
+                        }}>
+                          <div className="flex items-center justify-between mb-1">
+                            <label 
+                              className="text-xs font-medium text-slate-700"
                             >
-                              Required
-                            </span>
+                              {property.name}
+                            </label>
+                            {property.required && (
+                              <span 
+                                className="text-xs px-2 py-0.5 rounded border bg-slate-100 text-slate-700"
+                              >
+                                Required
+                              </span>
+                            )}
+                          </div>
+                          {property.description && (
+                            <p className="text-xs mb-2 text-slate-600">
+                              {property.description}
+                            </p>
+                          )}
+                          {renderPropertyInput(property)}
+                          {errors[property.id] && (
+                            <p className="text-red-500 text-xs mt-1">{errors[property.id]}</p>
                           )}
                         </div>
-                        {property.description && (
-                          <p className="text-xs mb-2 text-slate-600">
-                            {property.description}
-                          </p>
-                        )}
-                        {renderPropertyInput(property)}
-                        {errors[property.id] && (
-                          <p className="text-red-500 text-xs mt-1">{errors[property.id]}</p>
-                        )}
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Sub-Service Properties */}
-              {subService?.properties && subService.properties.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-800 mb-3">Configuration</h3>
-                  <div className="space-y-3">
-                    {subService.properties.map((property) => (
-                      <div key={property.id} className="p-4 rounded-xl border bg-white" style={{
-                        borderColor: theme.border
-                      }}>
-                        <div className="flex items-center justify-between mb-1">
-                          <label 
-                            className="text-xs font-medium text-slate-700"
-                          >
-                            {property.name}
-                          </label>
-                          {property.required && (
-                            <span 
-                              className="text-xs px-2 py-0.5 rounded border bg-slate-100 text-slate-700"
+                {/* Sub-Service Properties */}
+                {subService?.properties && subService.properties.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-800 mb-3">Configuration</h3>
+                    <div className="space-y-3">
+                      {subService.properties.map((property) => (
+                        <div key={property.id} className="p-4 rounded-xl border bg-white" style={{
+                          borderColor: theme.border
+                        }}>
+                          <div className="flex items-center justify-between mb-1">
+                            <label 
+                              className="text-xs font-medium text-slate-700"
                             >
-                              Required
-                            </span>
+                              {property.name}
+                            </label>
+                            {property.required && (
+                              <span 
+                                className="text-xs px-2 py-0.5 rounded border bg-slate-100 text-slate-700"
+                              >
+                                Required
+                              </span>
+                            )}
+                          </div>
+                          {property.description && (
+                            <p className="text-xs mb-2 text-slate-600">{property.description}</p>
+                          )}
+                          {renderPropertyInput(property)}
+                          {errors[property.id] && (
+                            <p className="text-red-500 text-xs mt-1">{errors[property.id]}</p>
                           )}
                         </div>
-                        {property.description && (
-                          <p className="text-xs mb-2 text-slate-600">{property.description}</p>
-                        )}
-                        {renderPropertyInput(property)}
-                        {errors[property.id] && (
-                          <p className="text-red-500 text-xs mt-1">{errors[property.id]}</p>
-                        )}
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-              {/* Cost Estimation */}
-              <div>
-                <h3 className="text-sm font-semibold text-slate-800 mb-3">Cost Estimation</h3>
-                <div className="p-4 rounded-xl border bg-green-50" style={{ borderColor: '#86efac' }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-md bg-green-100 text-green-700 flex items-center justify-center font-semibold">$</div>
-                    <div>
-                      <div className="text-slate-800 font-semibold">$ {editingNode?.properties?.estimatedMonthly ?? '—'}/mo</div>
-                      <div className="text-xs text-slate-600">Click to view detailed cost breakdown for all services</div>
+                )}
+                {/* Cost Estimation */}
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-800 mb-3">Cost Estimation</h3>
+                  <div className="p-4 rounded-xl border bg-green-50" style={{ borderColor: '#86efac' }}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded-md bg-green-100 text-green-700 flex items-center justify-center font-semibold">$</div>
+                      <div>
+                        <div className="text-slate-800 font-semibold">$ {editingNode?.properties?.estimatedMonthly ?? '—'}/mo</div>
+                        <div className="text-xs text-slate-600">Click to view detailed cost breakdown for all services</div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              {/* Listeners section for Load Balancer-style UI */}
-              {listeners.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold text-slate-800 mb-2">Listeners</h3>
-                  <div className="space-y-2">
-                    {listeners.map((l, idx) => (
-                      <div key={idx} className="rounded-lg border bg-slate-100 text-slate-800 p-3" style={{ borderColor: theme.border }}>
-                        <div className="font-medium text-sm">{l.protocol}: {l.port}</div>
-                        <div className="text-xs text-slate-600">Forward to: {l.target}</div>
-                      </div>
-                    ))}
+                {/* Listeners section for Load Balancer-style UI */}
+                {listeners.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-semibold text-slate-800 mb-2">Listeners</h3>
+                    <div className="space-y-2">
+                      {listeners.map((l, idx) => (
+                        <div key={idx} className="rounded-lg border bg-slate-100 text-slate-800 p-3" style={{ borderColor: theme.border }}>
+                          <div className="font-medium text-sm">{l.protocol}: {l.port}</div>
+                          <div className="text-xs text-slate-600">Forward to: {l.target}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setListeners(prev => [...prev, { protocol: 'HTTPS', port: 443, target: 'tg-web-servers' }])}
+                      className="mt-2 text-blue-700 text-xs hover:text-blue-600"
+                    >
+                      Add listener
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setListeners(prev => [...prev, { protocol: 'HTTPS', port: 443, target: 'tg-web-servers' }])}
-                    className="mt-2 text-blue-700 text-xs hover:text-blue-600"
-                  >
-                    Add listener
+                )}
+              </div>
+            )
+          ) : (
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-lg">🤖</div>
+                <div>
+                  <h3 className="text-base font-semibold text-slate-800">AI Infrastructure Validator</h3>
+                  <p className="text-sm text-slate-600">Gain insights on your multi-cloud setup.</p>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="text-sm font-medium text-slate-800 mb-3">Quick Actions</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: 'Validate my infrastructure', icon: '✅', color: 'bg-green-50 border-green-200' },
+                    { label: 'Suggest cost optimizations', icon: '💰', color: 'bg-yellow-50 border-yellow-200' },
+                    { label: 'Review security practices', icon: '🔒', color: 'bg-red-50 border-red-200' },
+                    { label: 'Optimize for performance', icon: '⚡', color: 'bg-blue-50 border-blue-200' },
+                  ].map((item, idx) => (
+                    <button key={idx} type="button" className={`p-3 rounded-lg border text-left hover:shadow-sm transition-all ${item.color}`}>
+                      <div className="flex items-start gap-2">
+                        <span className="text-lg">{item.icon}</span>
+                        <span className="text-xs text-slate-800 font-medium leading-tight">{item.label}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Chat Area */}
+              <div className="space-y-3">
+                <div className="p-4 rounded-lg border bg-white" style={{ borderColor: theme.border }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded bg-blue-100 text-blue-600 flex items-center justify-center text-sm">🤖</div>
+                      <span className="text-xs text-slate-600">06:42 PM</span>
+                    </div>
+                    <span className="text-xs px-2 py-1 rounded-md bg-blue-100 text-blue-700 font-medium">Validation</span>
+                  </div>
+                  <div className="text-sm text-slate-800">
+                    <p className="mb-2">👋 Hi! I'm your validation assistant. I can help you:</p>
+                    <ul className="list-disc pl-5 space-y-1 text-slate-700">
+                      <li>Validate architecture</li>
+                      <li>Suggest cost optimizations</li>
+                      <li>Review security practices</li>
+                      <li>Recommend performance improvements</li>
+                    </ul>
+                    <p className="mt-3 font-medium">How can I assist you today?</p>
+                  </div>
+                </div>
+                
+                <div className="relative">
+                  <input
+                    type="text"
+                    className="w-full bg-white border rounded-lg px-4 py-3 pr-12 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    style={{ borderColor: theme.border }}
+                    placeholder="Inquire about infrastructure validation, security, costs, or optimizations."
+                    readOnly
+                  />
+                  <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-md bg-slate-800 text-white flex items-center justify-center hover:bg-slate-700 transition-colors">
+                    <span className="text-sm">➤</span>
                   </button>
                 </div>
-              )}
+                
+                <p className="text-xs text-slate-500 text-center">Press Enter to send, Shift+Enter for new line</p>
+              </div>
             </div>
           )}
         </div>

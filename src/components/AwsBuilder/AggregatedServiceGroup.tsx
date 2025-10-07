@@ -139,7 +139,7 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
     return () => {
       unregisterVirtualAnchorsByPrefix(prefix);
     };
-  }, [serviceId, pos.x, pos.y, nodeIds, registerVirtualAnchors, unregisterVirtualAnchorsByPrefix]);
+  }, [serviceId, pos.x, pos.y, nodeIds.length, nodeIds[0]]);
 
   return (
     <div
