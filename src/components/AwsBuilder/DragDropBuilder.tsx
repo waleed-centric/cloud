@@ -82,7 +82,7 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
 
         {/* Left Sidebar - Icon Palette */}
         <div
-          className={`${sidebarExpanded ? 'w-64' : 'w-16'
+          className={`${sidebarExpanded ? 'w-96' : 'w-20'
             } transition-all duration-300 ease-in-out bg-slate-800 border-r  flex-shrink-0 relative z-20`}
         >
           <IconPalette sidebarExpanded={sidebarExpanded} setSidebarExpanded={setSidebarExpanded} />

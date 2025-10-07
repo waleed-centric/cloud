@@ -197,7 +197,7 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
   };
 
   return (
-    <div className={`h-screen flex flex-col bg-gray-50 text-gray-900 border-r border-gray-200 ${sidebarExpanded ? 'w-[280px]' : 'w-[80px]'}`}>
+    <div className={`h-screen flex flex-col bg-gray-50 text-gray-900 border-r border-gray-200 w-full`}>
       {/* Collapsed State - Show only icons */}
       {!sidebarExpanded && (
         <div className="relative h-full flex  bg-white border-r border-gray-200">
