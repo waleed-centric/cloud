@@ -35,7 +35,7 @@ export const PricingDisplay: React.FC<{ className?: string }> = ({ className }) 
     diagnostics.push({ type: 'warning', message: 'Total monthly cost is high (> $1000). Review sizes/regions to optimize cost.' });
   }
 
-  const containerClass = `bg-white rounded-lg shadow-xl border border-slate-700 p-4 text-slate-200 flex flex-col ${className || ''}`;
+  const containerClass = `bg-white hidden rounded-lg shadow-xl border border-slate-700 p-4 text-slate-200 flex flex-col ${className || ''}`;
 
   if (!hasServices) {
     return (

@@ -36,112 +36,100 @@ const ServiceDetailModal: React.FC = () => {
     <div 
       className="fixed top-0 right-0 h-full w-96 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out"
       style={{
-        backgroundColor: theme.background,
+        backgroundColor: '#f8fafc',
         borderLeft: `1px solid ${theme.border}`
       }}
     >
       <div className="h-full flex flex-col overflow-hidden">
         {/* Header */}
         <div 
-          className="text-white p-4"
+          className="p-4 border-b"
           style={{
-            background: `linear-gradient(to right, ${theme.gradient.from}, ${theme.gradient.to})`
+            backgroundColor: '#ffffff',
+            borderColor: theme.border
           }}
         >
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
               <div 
-                className="w-8 h-8 flex items-center justify-center bg-white bg-opacity-20 rounded"
+                className="w-8 h-8 flex items-center justify-center rounded-md bg-slate-100 border"
                 style={{
                   minWidth: '32px',
                   minHeight: '32px',
                   maxWidth: '32px',
-                  maxHeight: '32px'
+                  maxHeight: '32px',
+                  borderColor: theme.border
                 }}
                 dangerouslySetInnerHTML={{ __html: service.icon || '' }}
               />
               <div className="min-w-0 flex-1">
-                <h2 className="text-lg font-bold truncate">{service.name || 'Service'}</h2>
+                <h2 className="text-lg font-bold truncate text-slate-800">{service.name || 'Service'}</h2>
                 <span 
-                  className="inline-block text-xs px-2 py-0.5 rounded-full"
+                  className="inline-block text-xs px-2 py-0.5 rounded-full border"
                   style={{
-                    backgroundColor: theme.accent,
-                    color: 'white'
+                    backgroundColor: '#f1f5f9',
+                    borderColor: theme.border,
+                    color: '#0f172a'
                   }}
                 >
                   {service.category || 'Unknown'}
                 </span>
-                <div className="text-xs mt-1" style={{ color: 'white' }}>
+                <div className="text-xs mt-1 text-slate-600">
                   {getPricingSummaryForService(service.id)}
                 </div>
               </div>
             </div>
             <button
               onClick={closeServiceModal}
-              className="text-white hover:text-opacity-80 text-2xl"
+              className="text-slate-700 hover:text-slate-900 text-2xl"
             >
               ×
             </button>
           </div>
-          <p className="text-white text-opacity-90 text-sm">{service.description || ''}</p>
+          <p className="text-slate-600 text-sm">{service.description || ''}</p>
         </div>
 
         {/* Content */}
         <div 
           className="flex-1 p-4 overflow-y-auto"
           style={{
-            backgroundColor: theme.background
+            backgroundColor: '#f8fafc'
           }}
         >
           {/* Common Properties Section */}
           {commonProperties.length > 0 && (
             <div className="mb-6">
               <h3 
-                className="text-md font-semibold mb-3 flex items-center"
-                style={{ color: theme.text }}
+                className="text-sm font-semibold mb-3 flex items-center text-slate-800"
               >
-                <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                <span className="w-2 h-2 bg-slate-400 rounded-full mr-2"></span>
                 Common Properties
               </h3>
               <div className="space-y-3">
                 {commonProperties.map((prop) => (
                   <div 
                     key={prop.id}
-                    className="p-3 rounded-lg border"
+                    className="p-4 rounded-xl border bg-white"
                     style={{
-                      backgroundColor: theme.surface,
-                      borderColor: theme.border,
-                      color: theme.text
+                      borderColor: theme.border
                     }}
                   >
                     <div className="flex items-center justify-between mb-1">
                         <label 
-                          className="font-medium text-sm"
-                          style={{ color: theme.text }}
+                          className="font-medium text-xs text-slate-700"
                         >
                           {prop.name}
                         </label>
                         {prop.required && (
                           <span 
-                            className="text-xs px-2 py-0.5 rounded-full"
-                            style={{
-                              backgroundColor: theme.accent,
-                              color: 'white'
-                            }}
+                            className="text-xs px-2 py-0.5 rounded border bg-slate-100 text-slate-700"
                           >
                             Required
                           </span>
                         )}
                       </div>
-                      <p 
-                        className="text-xs mb-2"
-                        style={{ color: theme.textSecondary }}
-                      >
-                        {prop.description}
-                      </p>
-                      <div className="text-xs" style={{ color: theme.textSecondary }}>
-                        Type: {prop.type} | Default: {String(prop.defaultValue || 'None')}
-                      </div>
+                      <p className="text-xs mb-2 text-slate-600">{prop.description}</p>
+                      <div className="text-xs text-slate-500">Type: {prop.type} | Default: {String(prop.defaultValue || 'None')}</div>
                   </div>
                 ))}
               </div>
@@ -151,8 +139,7 @@ const ServiceDetailModal: React.FC = () => {
           {/* Sub-Services Section */}
           <div>
             <h3 
-              className="text-lg font-semibold mb-3"
-              style={{ color: theme.text }}
+              className="text-sm font-semibold mb-3 text-slate-800"
             >
               Available Sub-Services ({subServices.length})
             </h3>
@@ -160,40 +147,31 @@ const ServiceDetailModal: React.FC = () => {
               {subServices.map((subService) => (
                 <div
                     key={subService.id}
-                    className="border rounded-lg p-3 hover:shadow-sm transition-all cursor-pointer group"
+                    className="border rounded-xl p-4 bg-white hover:bg-slate-50 transition-all cursor-pointer group"
                     style={{
-                      backgroundColor: theme.surface,
                       borderColor: theme.border,
-                      color: theme.text
+                      color: '#0f172a'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = theme.hover;
+                      e.currentTarget.style.backgroundColor = '#f1f5f9';
                       e.currentTarget.style.borderColor = theme.primary;
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = theme.surface;
+                      e.currentTarget.style.backgroundColor = '#ffffff';
                       e.currentTarget.style.borderColor = theme.border;
                     }}
                   >
                   <div className="flex items-start space-x-2 mb-2">
                     <span className="text-lg">{subService.icon}</span>
                     <div className="flex-1 min-w-0">
-                      <h4 
-                        className="font-medium text-sm truncate"
-                        style={{ color: theme.text }}
-                      >
+                      <h4 className="font-medium text-sm truncate text-slate-800">
                         {subService.name}
                       </h4>
-                      <p 
-                        className="text-xs mt-1"
-                        style={{ color: theme.textSecondary }}
-                      >
-                        {subService.description}
-                      </p>
+                      <p className="text-xs mt-1 text-slate-600">{subService.description}</p>
                     </div>
                   </div>
                   
-                  <div className="text-xs text-gray-500 mb-2">
+                  <div className="text-xs text-slate-500 mb-2">
                     {(subService.properties || []).length} properties
                   </div>
 
@@ -216,17 +194,17 @@ const ServiceDetailModal: React.FC = () => {
                   </div>
 
                   {/* Properties Preview */}
-                  <div className="mt-2 pt-2 border-t border-gray-100">
-                    <div className="text-xs text-gray-600 mb-1">Key Properties:</div>
+                  <div className="mt-2 pt-2 border-t border-slate-100">
+                    <div className="text-xs text-slate-600 mb-1">Key Properties:</div>
                     <div className="space-y-0.5">
                       {(subService.properties || []).slice(0, 2).map((prop) => (
                         <div key={prop.id} className="flex justify-between text-xs">
-                          <span className="text-gray-600 truncate">{prop.name}</span>
-                          <span className="text-gray-500 ml-1">{prop.type}</span>
+                          <span className="text-slate-700 truncate">{prop.name}</span>
+                          <span className="text-slate-500 ml-1">{prop.type}</span>
                         </div>
                       ))}
                       {(subService.properties || []).length > 2 && (
-                        <div className="text-xs text-gray-500 italic">
+                        <div className="text-xs text-slate-500 italic">
                           +{(subService.properties || []).length - 2} more...
                         </div>
                       )}
@@ -239,15 +217,15 @@ const ServiceDetailModal: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 border-t">
+        <div className="bg-white px-6 py-4 border-t" style={{ borderColor: theme.border }}>
           <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-slate-600">
               Total Sub-Services: {subServices.length} | 
               Common Properties: {commonProperties.length}
             </div>
             <button
               onClick={closeServiceModal}
-              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors"
+              className="bg-slate-200 text-slate-800 px-4 py-2 rounded hover:bg-slate-300 transition-colors"
             >
               Close
             </button>

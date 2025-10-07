@@ -94,7 +94,7 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
           <div className="absolute top-4 right-4 z-50">
             <button
               onClick={() => setShowExportPanel(!showExportPanel)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-2 sm:px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 text-sm font-medium transition-colors"
+              className="bg-blue-600 hidden hover:bg-blue-700 text-white px-2 sm:px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 text-sm font-medium transition-colors"
             >
               <span>📤</span>
               <span className="hidden sm:inline">Export</span>
@@ -119,7 +119,7 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
           </div>
 
           {/* Right Sidebar - Pricing Display */}
-          <div className="w-full sm:w-80 flex-shrink-0 order-first sm:order-last h-full">
+          <div className="w-full sm:w-1 flex-shrink-0 order-first sm:order-last h-full">
             <PricingDisplay className="h-full max-h-screen overflow-hidden" />
           </div>
         </div>
