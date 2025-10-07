@@ -310,33 +310,7 @@ const PropertiesPanel: React.FC = () => {
                   <p className="text-slate-600 text-sm truncate">
                     {currentProvider.toUpperCase()}::{(service?.id || 'service').toUpperCase()}
                   </p>
-                  {/* Segmented Tabs */}
-                  <div className="inline-flex items-center mt-2 p-1 gap-1 rounded-full bg-slate-100 w-full">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('properties')}
-                      className={`flex items-center gap-2 text-sm px-4 py-1.5 rounded-full transition-colors ${
-                        activeTab === 'properties'
-                          ? 'bg-white shadow-sm text-slate-900'
-                          : 'text-slate-700 hover:text-slate-900'
-                      }`}
-                    >
-                      <span className="text-base leading-none">🔧</span>
-                      Properties
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('ai')}
-                      className={`flex items-center gap-2 text-sm px-4 py-1.5 w-full rounded-full transition-colors ${
-                        activeTab === 'ai'
-                          ? 'bg-white shadow-sm text-slate-900'
-                          : 'text-slate-700 hover:text-slate-900'
-                      }`}
-                    >
-                      <span className="text-base leading-none">🤖</span>
-                      AI
-                    </button>
-                  </div>
+                  {/* Tabs removed from header; added below in content */}
                 </div>
               </div>
             </div>
@@ -361,6 +335,33 @@ const PropertiesPanel: React.FC = () => {
             backgroundColor: '#f8fafc'
           }}
         >
+          {/* Segmented Tabs (now below header border) */}
+          <div className="inline-flex items-center p-1 gap-1 rounded-full bg-slate-100 mb-3">
+            <button
+              type="button"
+              onClick={() => setActiveTab('properties')}
+              className={`flex items-center gap-2 text-sm px-4 py-1.5 rounded-full transition-colors ${
+                activeTab === 'properties'
+                  ? 'bg-white shadow-sm text-slate-900'
+                  : 'text-slate-700 hover:text-slate-900'
+              }`}
+            >
+              <span className="text-base leading-none">🔧</span>
+              Properties
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('ai')}
+              className={`flex items-center gap-2 text-sm px-4 py-1.5 rounded-full transition-colors ${
+                activeTab === 'ai'
+                  ? 'bg-white shadow-sm text-slate-900'
+                  : 'text-slate-700 hover:text-slate-900'
+              }`}
+            >
+              <span className="text-base leading-none">🤖</span>
+              AI
+            </button>
+          </div>
           {activeTab === 'properties' ? (
             allProperties.length === 0 ? (
               <div 

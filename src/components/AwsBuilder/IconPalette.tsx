@@ -200,7 +200,7 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
     <div className={`h-screen flex flex-col bg-gray-50 text-gray-900 border-r border-gray-200 ${sidebarExpanded ? 'w-[280px]' : 'w-[80px]'}`}>
       {/* Collapsed State - Show only icons */}
       {!sidebarExpanded && (
-        <div className="relative h-full flex py-4 bg-white border-r border-gray-200">
+        <div className="relative h-full flex  bg-white border-r border-gray-200">
           {/* Provider vertical tabs (collapsed) */}
           <div className="flex flex-col items-center gap-3 px-2">
             {(['aws', 'azure', 'gcp'] as const).map(p => (
@@ -246,7 +246,7 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
 
       {/* Expanded State - Show full interface */}
       {sidebarExpanded && (
-          <div className='flex w-full'>
+          <div className='flex w-full h-screen overflow-y-auto'>
             {/* Provider Tabs */}
             <div className="py-3 px-1 bg-white  border-orange-200 border-r">
               <div className="flex flex-col items-center gap-1">
@@ -277,7 +277,6 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
                       <h2 className="text-sm font-light text-gray-900">{providers[currentProvider].name} Services</h2>
                       <p className="text-xs text-gray-500">Drag services to canvas</p>
                     </div>
-                
                     <button
                       onClick={() => setSidebarExpanded?.(false)}
                       className="p-1 hover:bg-gray-100 rounded-md transition-colors"

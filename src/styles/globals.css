@@ -37,3 +37,28 @@ body {
     stroke-dashoffset: -12;
   }
 }
+
+/* Global thin, rounded scrollbars */
+/* Firefox */
+* {
+  scrollbar-width: thin; /* makes scrollbar thinner */
+  scrollbar-color: #94a3b8 #f1f5f9; /* thumb color, track color */
+}
+
+/* WebKit (Chrome, Edge, Safari) */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: #f1f5f9; /* slate-100 */
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: #94a3b8; /* slate-400 */
+  border-radius: 9999px;
+  border: 2px solid #f1f5f9; /* gives rounded pill look */
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #64748b; /* slate-500 */
+}
