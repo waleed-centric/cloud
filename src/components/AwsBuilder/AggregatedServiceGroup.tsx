@@ -300,7 +300,7 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
                 className="w-6 h-6 shrink-0 rounded-md ring-1 ring-slate-300/60 bg-slate-50 [&>svg]:w-full [&>svg]:h-full"
                 dangerouslySetInnerHTML={{ __html: service?.icon || '' }}
               />
-              <div className="min-w-0">
+              <div className="w-full">
                 <div className="text-sm font-semibold truncate text-slate-800">
                   {title || 'Resources'}
                 </div>
