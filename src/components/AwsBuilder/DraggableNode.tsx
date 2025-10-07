@@ -189,6 +189,19 @@ export function DraggableNode({ node, isSelected }: DraggableNodeProps) {
             dangerouslySetInnerHTML={{ __html: node.icon.svg || '' }}
           />
         )}
+
+        {/* Close / Remove Button - elegant and visible on hover */}
+        <button
+          type="button"
+          aria-label="Remove"
+          title="Remove"
+          className="absolute -top-2 -right-2 w-6 h-6 rounded-full text-white shadow-lg bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 border border-white/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-105"
+          onClick={(e) => { e.stopPropagation(); removeNode(node.id); }}
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{ zIndex: 70 }}
+        >
+          <span className="leading-none">×</span>
+        </button>
         
         {/* Service Name */}
         <div className="text-xs text-slate-200 font-medium text-center px-1 leading-tight group-hover:text-white transition-colors duration-200">

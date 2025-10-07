@@ -9,7 +9,7 @@ import { ServiceProperty, SubService, DetailedAwsService } from '../../data/aws-
 
 const PropertiesPanel: React.FC = () => {
   const { currentProvider } = useCloudProvider();
-  const { state, closePropertiesPanel, updateNodeProperties, openServiceModal, addSubServiceNode } = useAwsBuilder();
+  const { state, closePropertiesPanel, updateNodeProperties, openServiceModal, closeServiceModal, addSubServiceNode } = useAwsBuilder();
   const [propertyValues, setPropertyValues] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [listeners, setListeners] = useState<{ protocol: string; port: number; target: string }[]>([]);
@@ -111,6 +111,8 @@ const PropertiesPanel: React.FC = () => {
         });
         updateNodeProperties(editingNode.id, toSave);
         closePropertiesPanel();
+        // Auto-close service modal after saving parent service properties
+        closeServiceModal();
         return;
       }
 
@@ -124,6 +126,8 @@ const PropertiesPanel: React.FC = () => {
           });
           updateNodeProperties(editingNode.id, toSave);
           closePropertiesPanel();
+          // Auto-close service modal after any save operation
+          closeServiceModal();
           return;
         }
 
@@ -158,6 +162,8 @@ const PropertiesPanel: React.FC = () => {
       }
 
       closePropertiesPanel();
+      // Auto-close service modal after any save operation
+      closeServiceModal();
     }
   };
 

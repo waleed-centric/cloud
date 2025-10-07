@@ -45,11 +45,12 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
   const { currentProvider } = useCloudProvider();
   const theme = getProviderTheme(currentProvider);
   const { serviceCosts } = usePricing();
-  const { state, registerVirtualAnchors, unregisterVirtualAnchorsByPrefix, setConnecting, addConnection, openServiceModal, setSelectedNode, openPropertiesPanel } = useAwsBuilder();
+  const { state, registerVirtualAnchors, unregisterVirtualAnchorsByPrefix, setConnecting, addConnection, openServiceModal, setSelectedNode, openPropertiesPanel, removeNode } = useAwsBuilder();
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [pos, setPos] = useState<{ x: number; y: number }>({ x, y });
   const [hovered, setHovered] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   // Provider-aware service resolution for required props
   const resolveService = () => {
@@ -101,6 +102,17 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
   }
 
   const allConfigured = configuredCount === nodeIds.length && nodeIds.length > 0;
+
+  // Handle deleting all nodes in this group
+  const handleDeleteGroup = () => {
+    // Confirm before deleting all nodes in this group
+    if (window.confirm(`Are you sure you want to delete all ${nodeIds.length} resources in this group?`)) {
+      // Remove all nodes in this group
+      nodeIds.forEach(nodeId => {
+        removeNode(nodeId);
+      });
+    }
+  };
 
   // Register virtual anchors (corner dots) so arrows can originate from the aggregated box
   useEffect(() => {
@@ -296,14 +308,42 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
                   {category || 'Service'} • {nodeIds.length} instance{nodeIds.length !== 1 ? 's' : ''}
                 </div>
               </div>
-            </div>
-            <div className="text-xs px-2 py-1 rounded-full bg-slate-800/60 border border-slate-600/30 shrink-0" style={{ color: theme.accent }}>
-              {nodeIds.length}
+              </div>
+              <div className="flex items-center gap-2">
+              <div className="text-xs px-2 py-1 rounded-full bg-slate-800/60 border border-slate-600/30 shrink-0" style={{ color: theme.accent }}>
+                {nodeIds.length}
+              </div>
+              {hovered && (
+                <>
+                  <button
+                    className="h-7 w-7 rounded-full flex items-center justify-center bg-slate-900/70 border border-slate-600/50 text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors shadow-md"
+                    title={collapsed ? 'Expand' : 'Collapse'}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCollapsed(!collapsed);
+                    }}
+                  >
+                    {collapsed ? '+' : '−'}
+                  </button>
+                  <button
+                    className="h-7 w-7 rounded-full flex items-center justify-center bg-red-900/70 border border-red-600/50 text-red-300 hover:text-white hover:bg-red-800/80 transition-colors shadow-md"
+                    title="Delete Group"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteGroup();
+                    }}
+                  >
+                    ×
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
 
         {/* Totals / Gating */}
+        {!collapsed && (
+        <>
         <div className="px-4 py-3 bg-slate-800/30">
           <div className="text-sm" style={{ color: theme.text }}>
             {allConfigured ? (
@@ -353,7 +393,7 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
                 }}
               >
                 <div className="flex items-center gap-3 p-3">
-                  <div className="w-6 h-6 [&>svg]:w-full [&>svg]:h-full opacity-90 group-hover:opacity-100 transition-opacity" dangerouslySetInnerHTML={{ __html: node.icon.svg }} />
+                  <div className="w-6 h-6 [&>svg]:w-full [&>svg]:h-full opacity-90 group-hover:opacity-100 transition-opacity" dangerouslySetInnerHTML={{ __html: (node.icon as any)?.svg || '' }} />
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-medium truncate" style={{ color: theme.text }}>
                       {node.icon.name}
@@ -368,6 +408,8 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
           })}
           </div>
         </div>
+        </>
+        )}
       </div>
       {/* Dragging handled on container; overlay removed to allow dot clicks */}
     </div>
