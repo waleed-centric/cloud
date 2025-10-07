@@ -16,6 +16,13 @@ interface IconPaletteProps {
   setSidebarExpanded?: (expanded: boolean) => void;
 }
 
+// SVG paths for cloud provider logos (from public/images/Svg)
+const PROVIDER_SVG = {
+  aws: '/aws/aws.svg',
+  azure: '/aws/azure.svg',
+  gcp: '/aws/gcp.svg',
+} as const;
+
 const DISPLAY_ALIAS: Record<string, Record<string, string>> = {
   aws: {
     'ec2': 'EC2 Instance',
@@ -214,7 +221,7 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
                 title={providers[p].fullName}
               >
                 <span className="text-lg font-medium">
-                  <Image src={providers[p].icon} width={40} height={40} alt={providers[p].name} />
+                  <img src={PROVIDER_SVG[p]} alt={providers[p].name} className="w-10 h-10" />
                 </span>
               </button>
             ))}
@@ -254,15 +261,15 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
                   <button
                     key={p}
                     onClick={() => setProvider(p)}
-                    className={`flex items-center  p-1 rounded-lg text-sm font-medium transition-colors 
-                      ${currentProvider === p
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }
-                      `}
+                    className={`flex items-center  px-1 rounded-lg text-sm font-medium transition-colors 
+                     m-1
+                    `}
                     title={providers[p].fullName}
                   >
-                    <Image src={providers[p].icon} width={54} height={24} alt={providers[p].name} />
+                    <img src={PROVIDER_SVG[p]} alt={providers[p].name} className={`rounded-lg ${currentProvider === p
+                      ? 'shadow-xl '
+                      : ''
+                      }`} />
                     <span className="sr-only">{providers[p].name}</span>
                   </button>
                 ))}
@@ -326,12 +333,12 @@ export function IconPalette({ sidebarExpanded = true, setSidebarExpanded }: Icon
                               className="relative bg-white hover:bg-gray-50 border border-gray-200 rounded-xl p-4 cursor-grab active:cursor-grabbing transition-all duration-200 group hover:shadow-md hover:border-gray-300"
                             >
                               <div className="flex flex-col items-center text-center">
-                                <div className="w-10 h-10 mb-3 group-hover:scale-105 transition-transform flex items-center justify-center">
+                                <div className=" mb-3 group-hover:scale-105 transition-transform flex items-center justify-center">
                                   <Image
                                     src={(icon as any).image || (icon as any).icon || ''}
                                     alt={icon.name}
-                                    width={40}
-                                    height={40}
+                                    width={100}
+                                    height={100}
                                     className="object-contain"
                                   />
                                 </div>

@@ -35,19 +35,28 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ className, onClearAll, onI
     <nav className={`bg-white border-b border-gray-200 shadow-sm ${className || ''}`}>
       {/* Top toolbar */}
       <div className="w-full px-3 sm:px-4">
-        <div className="flex items-center justify-between h-12">
+        <div className="flex items-center  h-12">
           {/* Brand */}
           <div className="flex items-center gap-2">
-            <div className="h-19 w-40 relative">
+            <div className="h-[50px] w-[150px] relative">
               <Image src="/aws/Logo.png" alt="ClickLogic" fill className="object-contain" />
             </div>
           </div>
 
           {/* Actions center cluster */}
-          <div className="flex items-center gap-2 sm:gap-3 text-slate-700">
-            <button onClick={handleImport} className="px-2 py-1 rounded hover:bg-gray-100">Import</button>
-            <button onClick={handleSave} className="px-2 py-1 rounded hover:bg-gray-100">Save</button>
-            <button onClick={handleExport} className="px-2 py-1 rounded hover:bg-gray-100">Export</button>
+          <div className="flex items-center gap-2 sm:gap-3 text-slate-700 mr-auto">
+            <button onClick={handleImport} className="px-2 py-1 rounded hover:bg-gray-100 flex items-center">
+              <Image src="/images/Import.png" alt="Import" className="w-4 h-4 mr-1" width={15} height={15} />
+              Import
+            </button>
+            <button onClick={handleSave} className="px-2 py-1 rounded hover:bg-gray-100 flex items-center">
+              <Image src="/images/Save.png" alt="Save" className="w-4 h-4 mr-1" width={15} height={15} />
+              Save
+            </button>
+            <button onClick={handleExport} className="px-2 py-1 rounded hover:bg-gray-100 flex items-center">
+              <Image src="/images/Export.png" alt="Export" className="w-4 h-4 mr-1" width={15} height={15} />
+              Export
+            </button>
             <span className="h-5 w-px bg-gray-200 mx-1" />
             <button className="px-2 py-1 rounded hover:bg-gray-100" title="Undo">↶</button>
             <button className="px-2 py-1 rounded hover:bg-gray-100" title="Redo">↷</button>
@@ -69,7 +78,9 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ className, onClearAll, onI
                 </div>
               ))}
             </div>
-            <button className="px-2 py-1 rounded hover:bg-gray-100" title="Settings">⚙</button>
+            <button className="py-1 rounded hover:bg-gray-100" title="Settings">
+              <Image src={'/images/Group.png'} width={40} height={40} alt='group'/>
+            </button>
             <button className="px-2 py-1 rounded bg-slate-800 text-white hover:bg-slate-700">Deploy</button>
             <button className="px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">Share</button>
             <div className="h-8 w-8 rounded-full bg-indigo-500 text-white text-sm font-semibold flex items-center justify-center">JD</div>
