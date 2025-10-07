@@ -34,7 +34,7 @@ const ServiceDetailModal: React.FC = () => {
 
   return (
     <div 
-      className="fixed top-0 right-0 h-full w-96 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out"
+      className="fixed top-0 right-0 h-full mt-[93px] w-96 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out"
       style={{
         backgroundColor: '#f8fafc',
         borderLeft: `1px solid #E5E7EB`

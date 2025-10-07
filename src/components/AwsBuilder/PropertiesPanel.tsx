@@ -274,7 +274,7 @@ const PropertiesPanel: React.FC = () => {
 
   return (
     <div 
-      className="fixed top-0 right-0 h-full w-96 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-l"
+      className="fixed top-0 right-0 h-full mt-[93px] w-96 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-l"
       style={{
         backgroundColor: '#f8fafc',
         borderColor: "#E5E7EB"
@@ -378,9 +378,7 @@ const PropertiesPanel: React.FC = () => {
                     <h3 className="text-sm font-semibold text-slate-800 mb-3">Basic Information</h3>
                     <div className="space-y-3">
                       {service.commonProperties.map((property) => (
-                        <div key={property.id} className="p-4 rounded-xl border bg-white" style={{
-                          borderColor: theme.border
-                        }}>
+                        <div key={property.id} className="p-4 rounded-xl border bg-white" >
                           <div className="flex items-center justify-between mb-1">
                             <label 
                               className="text-xs font-medium text-slate-700"
@@ -416,9 +414,7 @@ const PropertiesPanel: React.FC = () => {
                     <h3 className="text-sm font-semibold text-slate-800 mb-3">Configuration</h3>
                     <div className="space-y-3">
                       {subService.properties.map((property) => (
-                        <div key={property.id} className="p-4 rounded-xl border bg-white" style={{
-                          borderColor: theme.border
-                        }}>
+                        <div key={property.id} className="p-4 rounded-xl border bg-white" >
                           <div className="flex items-center justify-between mb-1">
                             <label 
                               className="text-xs font-medium text-slate-700"
@@ -512,7 +508,7 @@ const PropertiesPanel: React.FC = () => {
               
               {/* Chat Area */}
               <div className="space-y-3">
-                <div className="p-4 rounded-lg border bg-white" style={{ borderColor: theme.border }}>
+                <div className="p-4 rounded-lg border bg-white" >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded bg-blue-100 text-blue-600 flex items-center justify-center text-sm">🤖</div>
