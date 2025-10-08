@@ -384,8 +384,8 @@ const PropertiesPanel: React.FC = () => {
                 type="button"
                 onClick={() => setActiveTab('properties')}
                 className={`flex items-center flex-1 gap-2 text-sm px-4 py-1.5 rounded-full transition-colors ${activeTab === 'properties'
-                    ? 'bg-white shadow-sm text-slate-900'
-                    : 'text-slate-700 hover:text-slate-900'
+                  ? 'bg-white shadow-sm text-slate-900'
+                  : 'text-slate-700 hover:text-slate-900'
                   }`}
               >
                 <span className="text-base leading-none">🔧</span>
@@ -395,8 +395,8 @@ const PropertiesPanel: React.FC = () => {
                 type="button"
                 onClick={() => setActiveTab('ai')}
                 className={`flex items-center justify-center flex-1 gap-2 text-sm px-4 py-1.5 rounded-full transition-colors ${activeTab === 'ai'
-                    ? 'bg-white shadow-sm text-slate-900'
-                    : 'text-slate-700 hover:text-slate-900'
+                  ? 'bg-white shadow-sm text-slate-900'
+                  : 'text-slate-700 hover:text-slate-900'
                   }`}
               >
                 <span className="text-base leading-none">🤖</span>
@@ -406,8 +406,8 @@ const PropertiesPanel: React.FC = () => {
                 type="button"
                 onClick={() => setActiveTab('subservices')}
                 className={`flex items-center justify-center flex-1 gap-2 text-sm px-4 py-1.5 rounded-full transition-colors ${activeTab === 'subservices'
-                    ? 'bg-white shadow-sm text-slate-900'
-                    : 'text-slate-700 hover:text-slate-900'
+                  ? 'bg-white shadow-sm text-slate-900'
+                  : 'text-slate-700 hover:text-slate-900'
                   }`}
               >
                 <span className="text-base leading-none">🧩</span>
@@ -543,10 +543,10 @@ const PropertiesPanel: React.FC = () => {
                   <h4 className="text-sm font-medium text-slate-800 mb-3">Quick Actions</h4>
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { label: 'Validate my infrastructure', icon: '✅', color: 'bg-green-50 border-green-200' },
-                      { label: 'Suggest cost optimizations', icon: '💰', color: 'bg-yellow-50 border-yellow-200' },
-                      { label: 'Review security practices', icon: '🔒', color: 'bg-red-50 border-red-200' },
-                      { label: 'Optimize for performance', icon: '⚡', color: 'bg-blue-50 border-blue-200' },
+                      { label: 'Validate Infrastructure', icon: '✅', color: 'bg-green-50 border-green-200' },
+                      { label: 'Suggest Optimization', icon: '💰', color: 'bg-yellow-50 border-yellow-200' },
+                      { label: 'Security /Compliance Review', icon: '🔒', color: 'bg-red-50 border-red-200' },
+                      { label: 'Optimized Performance', icon: '⚡', color: 'bg-blue-50 border-blue-200' },
                     ].map((item, idx) => (
                       <button key={idx} type="button" className={`p-3 rounded-lg border text-left hover:shadow-sm transition-all ${item.color}`}>
                         <div className="flex items-start gap-2">

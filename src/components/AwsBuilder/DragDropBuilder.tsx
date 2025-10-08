@@ -27,7 +27,8 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
     { id: 'cloud-connection', label: 'Cloud Connection', icon: '☁️' },
     { id: 'defaults', label: 'Defaults', icon: '⚙️' },
     { id: 'devops', label: 'DevOps', icon: '🚀' },
-    { id: 'admin-access', label: 'Admin Access Control', icon: '🔐' }
+    { id: 'admin-access', label: 'IAM', icon: '🔐' },
+    { id: 'fin-ops', label: 'Fin Ops', icon: '💰' },
   ];
 
   const handleCanvasTabClick = (tabLabel: string) => {

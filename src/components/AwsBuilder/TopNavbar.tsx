@@ -17,7 +17,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ className, onClearAll, onI
     { id: 'cloud-connection', label: 'Cloud Connection', icon: '☁️' },
     { id: 'defaults', label: 'Defaults', icon: '⚙️' },
     { id: 'devops', label: 'DevOps', icon: '🚀' },
-    { id: 'admin-access', label: 'Admin Access Control', icon: '🔐' }
+    { id: 'admin-access', label: 'IAM', icon: '🔐' },
+    { id: 'fin-ops', label: 'Fin Ops', icon: '💰' },
   ];
 
   const handleTabClick = (tabLabel: string) => {
@@ -71,7 +72,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ className, onClearAll, onI
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Team initials */}
             <div className="hidden sm:flex items-center gap-1">
-              {['SC','AK','MG'].map((t) => (
+              {['SC', 'AK', 'MG'].map((t) => (
                 <div key={t} className="relative h-7 w-7 rounded-full bg-gray-200 text-gray-700 text-xs font-semibold flex items-center justify-center">
                   {t}
                   <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-green-500 border border-white" />
@@ -79,12 +80,12 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ className, onClearAll, onI
               ))}
             </div>
             <button className="py-1 rounded " title="Settings">
-              <Image src={'/images/Group.png'} width={40} height={40} alt='group'/>
+              <Image src={'/images/Group.png'} width={40} height={40} alt='group' />
             </button>
             <button className="px-2 py-1 rounded  text-black flex items-center ">
               <Image src="/images/Deploy.png" alt="Deploy" className="w-4 h-4 mr-1" width={15} height={15} />
               Deploy
-              </button>
+            </button>
             <button className="px-2 py-1 rounded-md bg-blue-600 text-white flex items-center hover:bg-blue-700">
               <Image src="/images/Share.png" alt="Share" className="w-4 h-4 mr-1" width={15} height={15} />
               Share
@@ -103,11 +104,10 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ className, onClearAll, onI
               <button
                 key={item.id}
                 onClick={() => handleTabClick(item.label)}
-                className={`px-3 py-1.5  text-sm font-medium transition-colors duration-200 flex items-center gap-2 ${
-                  activeTab === item.label
+                className={`px-3 py-1.5  text-sm font-medium transition-colors duration-200 flex items-center gap-2 ${activeTab === item.label
                     ? 'bg-[#EFF6FF] text-[#155DFC] border-b-2 border-[#155DFC]'
                     : 'text-[#4A5565] hover:bg-gray-100'
-                }`}
+                  }`}
               >
                 <span>{item.label}</span>
               </button>
