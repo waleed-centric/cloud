@@ -1,4 +1,4 @@
-import React, { useState ,useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAwsBuilder } from '@/context/AwsBuilderContext';
 import { useCloudProvider } from '@/context/CloudProviderContext';
 import { getProviderTheme } from '@/data/theme-colors';
@@ -9,22 +9,31 @@ import { ServiceProperty, SubService, DetailedAwsService } from '../../data/aws-
 
 const PropertiesPanel: React.FC = () => {
   const { currentProvider } = useCloudProvider();
-  const { state, closePropertiesPanel, updateNodeProperties, openServiceModal, closeServiceModal, addSubServiceNode } = useAwsBuilder();
+  const { state, closePropertiesPanel, updateNodeProperties, openServiceModal, closeServiceModal, addSubServiceNode, openPropertiesPanel } = useAwsBuilder();
   const [propertyValues, setPropertyValues] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [listeners, setListeners] = useState<{ protocol: string; port: number; target: string }[]>([]);
-  const [activeTab, setActiveTab] = useState<'properties' | 'ai'>('properties');
+  const [activeTab, setActiveTab] = useState<'properties' | 'ai' | 'subservices'>('properties');
+  const [panelExpanded, setPanelExpanded] = useState<boolean>(true);
 
-  if (!state.showPropertiesPanel || !state.selectedService) {
-    return null;
-  }
-
+  // console.log(propertyValues, "propertyValues")
   const service = state.selectedService;
   const subService = state.selectedSubService;
   const editingNode = state.selectedNodeId
     ? state.placedNodes.find(n => n.id === state.selectedNodeId)
     : null;
   const theme = getProviderTheme(currentProvider);
+  const subServicesList = useMemo(() => {
+    const svc = service as any;
+    return Array.isArray(svc?.subServices) ? svc.subServices : [];
+  }, [service]);
+
+  // Ensure panel expands on selection so collapsed icon bar doesn't show
+  useEffect(() => {
+    if (service || subService) {
+      setPanelExpanded(true);
+    }
+  }, [service, subService]);
 
   // Combine common properties and sub-service properties
   const allProperties = [
@@ -68,7 +77,7 @@ const PropertiesPanel: React.FC = () => {
       ...prev,
       [propertyId]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[propertyId]) {
       setErrors(prev => ({
@@ -80,17 +89,17 @@ const PropertiesPanel: React.FC = () => {
 
   const validateProperties = (): boolean => {
     const newErrors: Record<string, string> = {};
-    
+
     allProperties.forEach(prop => {
       if (prop.required && (!propertyValues[prop.id] || propertyValues[prop.id] === '')) {
         newErrors[prop.id] = `${prop.name} is required`;
       }
-      
+
       if (prop.type === 'number' && propertyValues[prop.id] && isNaN(Number(propertyValues[prop.id]))) {
         newErrors[prop.id] = `${prop.name} must be a valid number`;
       }
     });
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -190,9 +199,8 @@ const PropertiesPanel: React.FC = () => {
             autoFocus={isPrimaryName && !subService}
             readOnly={isReadOnlyInstanceName}
             disabled={isReadOnlyInstanceName}
-            className={`w-full mt-1 bg-slate-100 border rounded-lg px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              hasError ? 'border-red-500' : 'border-slate-300'
-            }`}
+            className={`w-full mt-1 bg-slate-100 border rounded-lg px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${hasError ? 'border-red-500' : 'border-slate-300'
+              }`}
             placeholder={`Enter ${property.name.toLowerCase()}`}
           />
         );
@@ -203,9 +211,8 @@ const PropertiesPanel: React.FC = () => {
             type="number"
             value={value}
             onChange={(e) => handlePropertyChange(property.id, e.target.value)}
-            className={`w-full mt-1 bg-slate-100 border rounded-lg px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              hasError ? 'border-red-500' : 'border-slate-300'
-            }`}
+            className={`w-full mt-1 bg-slate-100 border rounded-lg px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${hasError ? 'border-red-500' : 'border-slate-300'
+              }`}
             placeholder={`Enter ${property.name.toLowerCase()}`}
           />
         );
@@ -215,9 +222,8 @@ const PropertiesPanel: React.FC = () => {
           <select
             value={value}
             onChange={(e) => handlePropertyChange(property.id, e.target.value)}
-            className={`w-full mt-1 bg-white border rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              hasError ? 'border-red-500' : 'border-slate-300'
-            }`}
+            className={`w-full mt-1 bg-white border rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 ${hasError ? 'border-red-500' : 'border-slate-300'
+              }`}
           >
             <option className="bg-white" value="">Select {property.name}</option>
             {property.options?.map((option) => (
@@ -249,9 +255,8 @@ const PropertiesPanel: React.FC = () => {
             value={value}
             onChange={(e) => handlePropertyChange(property.id, e.target.value)}
             rows={3}
-            className={`w-full mt-1 bg-slate-100 border rounded-lg px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical ${
-              hasError ? 'border-red-500' : 'border-slate-300'
-            }`}
+            className={`w-full mt-1 bg-slate-100 border rounded-lg px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical ${hasError ? 'border-red-500' : 'border-slate-300'
+              }`}
             placeholder={`Enter ${property.name.toLowerCase()}`}
           />
         );
@@ -262,313 +267,420 @@ const PropertiesPanel: React.FC = () => {
             type="text"
             value={value}
             onChange={(e) => handlePropertyChange(property.id, e.target.value)}
-            className={`w-full mt-1 bg-slate-100 border rounded-lg px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              hasError ? 'border-red-500' : 'border-slate-300'
-            }`}
+            className={`w-full mt-1 bg-slate-100 border rounded-lg px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${hasError ? 'border-red-500' : 'border-slate-300'
+              }`}
           />
         );
     }
   };
 
-  if (!state.showPropertiesPanel) return null;
+  // Panel is now persistent; always render with default content when no selection
 
   return (
-    <div 
-      className="fixed top-0 right-0 h-full mt-[93px] w-96 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out border-l"
+    <div
+      className={`fixed top-0 right-0 h-[calc(100vh-104px)] mt-[104px] ${panelExpanded ? 'w-96' : 'w-14'} shadow-2xl z-[100] transition-all duration-300 ease-in-out border-l`}
       style={{
         backgroundColor: '#f8fafc',
         borderColor: "#E5E7EB"
       }}
     >
       <div className="h-full flex flex-col overflow-hidden">
+        {!panelExpanded && (
+          <div className="flex-1 flex flex-col items-center gap-3 pt-6 pb-4 bg-white pointer-events-auto">
+            <button
+              onClick={() => { setActiveTab('properties'); setPanelExpanded(true); }}
+              className="w-8 h-8 rounded-xl border border-gray-300 bg-white text-gray-700 flex items-center justify-center hover:bg-gray-50"
+              title="Properties"
+              aria-label="Open Properties"
+            >
+              🔧
+            </button>
+            <button
+              onClick={() => { setActiveTab('ai'); setPanelExpanded(true); }}
+              className="w-8 h-8 rounded-xl border border-gray-300 bg-white text-gray-700 flex items-center justify-center hover:bg-gray-50"
+              title="AI"
+              aria-label="Open AI"
+            >
+              🤖
+            </button>
+            <button
+              onClick={() => { setActiveTab('subservices'); setPanelExpanded(true); }}
+              className="w-8 h-8 rounded-xl border border-gray-300 bg-white text-gray-700 flex items-center justify-center hover:bg-gray-50"
+              title="Sub-Services"
+              aria-label="Open Sub-Services"
+            >
+              🧩
+            </button>
+          </div>
+        )}
         {/* Header */}
-        <div 
-          className="p-4 border-b"
-          style={{
-            backgroundColor: '#ffffff',
-            borderColor: "#E5E7EB"
-          }}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => {
-                    // Back to service list - close properties panel and open service modal
-                    closePropertiesPanel();
-                    if (service) {
-                      openServiceModal(service);
-                    }
-                  }}
-                  className="text-slate-700 hover:text-slate-900 text-lg font-bold w-6 h-6 flex items-center justify-center flex-shrink-0"
-                  title="Back to service list"
-                >
-                  ←
-                </button>
-                <div className="w-full">
-                  <h2 className="text-lg font-bold truncate text-slate-800">{subService ? subService.name : service?.name || 'Service'}</h2>
-                  <p className="text-slate-600 text-sm truncate">
-                    {currentProvider.toUpperCase()}::{(service?.id || 'service').toUpperCase()}
-                  </p>
-                  {/* Tabs removed from header; added below in content */}
+        {panelExpanded && (
+          <div
+            className="p-4 border-b"
+            style={{
+              backgroundColor: '#ffffff',
+              borderColor: "#E5E7EB"
+            }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => {
+                      // Back to service list - close properties panel and open service modal
+                      closePropertiesPanel();
+                      if (service) {
+                        openServiceModal(service);
+                      }
+                    }}
+                    className="text-slate-700 hover:text-slate-900 text-lg font-bold w-6 h-6 flex items-center justify-center flex-shrink-0"
+                    title="Back to service list"
+                  >
+                    ←
+                  </button>
+                  <div className="w-full">
+                    <h2 className="text-lg font-bold truncate text-slate-800">{subService ? subService.name : service?.name || 'Service'}</h2>
+                    <p className="text-slate-600 text-sm truncate">
+                      {currentProvider.toUpperCase()}::{(service?.id || 'service').toUpperCase()}
+                    </p>
+                    {/* Tabs removed from header; added below in content */}
+                  </div>
                 </div>
               </div>
+              <button
+                onClick={() => setPanelExpanded(false)}
+                className="text-slate-700 hover:text-slate-900 text-lg font-bold w-6 h-6 flex items-center justify-center flex-shrink-0"
+                title="Collapse"
+                aria-label="Collapse panel"
+              >
+                ›
+              </button>
+              <button
+                onClick={closePropertiesPanel}
+                className="text-slate-700 hover:text-slate-900 text-xl font-bold w-6 h-6 flex items-center justify-center flex-shrink-0 ml-2"
+              >
+                ×
+              </button>
             </div>
-            <button
-              onClick={closePropertiesPanel}
-              className="text-slate-700 hover:text-slate-900 text-xl font-bold w-6 h-6 flex items-center justify-center flex-shrink-0 ml-2"
-            >
-              ×
-            </button>
+            <div className="mt-1">
+              <span className="inline-block text-xs px-2 py-0.5 rounded-md border bg-slate-100 text-slate-700">
+                {editingNode?.properties?.status ?? 'Running'}
+              </span>
+            </div>
           </div>
-          <div className="mt-1">
-            <span className="inline-block text-xs px-2 py-0.5 rounded-md border bg-slate-100 text-slate-700">
-              {editingNode?.properties?.status ?? 'Running'}
-            </span>
-          </div>
-        </div>
+        )}
 
         {/* Content */}
-        <div 
-          className="flex-1 p-6 overflow-y-auto w-full"
-          style={{
-            backgroundColor: '#f8fafc'
-          }}
-        >
-          {/* Segmented Tabs (now below header border) */}
-          <div className="inline-flex items-center justify-center p-1 w-full gap-1 rounded-full bg-slate-100 mb-3">
-            <button
-              type="button"
-              onClick={() => setActiveTab('properties')}
-              className={`flex items-center flex-1 gap-2 text-sm px-4 py-1.5 rounded-full transition-colors ${
-                activeTab === 'properties'
-                  ? 'bg-white shadow-sm text-slate-900'
-                  : 'text-slate-700 hover:text-slate-900'
-              }`}
-            >
-              <span className="text-base leading-none">🔧</span>
-              Properties
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('ai')}
-              className={`flex items-center justify-center flex-1 gap-2 text-sm px-4 py-1.5 rounded-full transition-colors ${
-                activeTab === 'ai'
-                  ? 'bg-white shadow-sm text-slate-900'
-                  : 'text-slate-700 hover:text-slate-900'
-              }`}
-            >
-              <span className="text-base leading-none">🤖</span>
-              AI
-            </button>
-          </div>
-          {activeTab === 'properties' ? (
-            allProperties.length === 0 ? (
-              <div 
-                className="text-center py-8"
-                style={{ color: theme.textSecondary }}
+        {panelExpanded && (
+          <div
+            className="flex-1 p-6 overflow-y-auto w-full"
+            style={{
+              backgroundColor: '#f8fafc'
+            }}
+          >
+            {/* Segmented Tabs (now below header border) */}
+            <div className="inline-flex items-center justify-center p-1 w-full gap-1 rounded-full bg-slate-100 mb-3">
+              <button
+                type="button"
+                onClick={() => setActiveTab('properties')}
+                className={`flex items-center flex-1 gap-2 text-sm px-4 py-1.5 rounded-full transition-colors ${activeTab === 'properties'
+                    ? 'bg-white shadow-sm text-slate-900'
+                    : 'text-slate-700 hover:text-slate-900'
+                  }`}
               >
-                <p>Select a service to configure its properties</p>
+                <span className="text-base leading-none">🔧</span>
+                Properties
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('ai')}
+                className={`flex items-center justify-center flex-1 gap-2 text-sm px-4 py-1.5 rounded-full transition-colors ${activeTab === 'ai'
+                    ? 'bg-white shadow-sm text-slate-900'
+                    : 'text-slate-700 hover:text-slate-900'
+                  }`}
+              >
+                <span className="text-base leading-none">🤖</span>
+                AI
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('subservices')}
+                className={`flex items-center justify-center flex-1 gap-2 text-sm px-4 py-1.5 rounded-full transition-colors ${activeTab === 'subservices'
+                    ? 'bg-white shadow-sm text-slate-900'
+                    : 'text-slate-700 hover:text-slate-900'
+                  }`}
+              >
+                <span className="text-base leading-none">🧩</span>
+                Sub-Services
+              </button>
+            </div>
+            {activeTab === 'properties' ? (
+              allProperties.length === 0 ? (
+                <div
+                  className="text-center py-8"
+                  style={{ color: theme.textSecondary }}
+                >
+                  <p>Select a service to configure its properties</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Common Properties */}
+                  {service?.commonProperties && service.commonProperties.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800 mb-3">Basic Information</h3>
+                      <div className="space-y-3">
+                        {service.commonProperties.map((property) => (
+                          <div key={property.id} className="p-4 rounded-xl border bg-white" >
+                            <div className="flex items-center justify-between mb-1">
+                              <label
+                                className="text-xs font-medium text-slate-700"
+                              >
+                                {property.name}
+                              </label>
+                              {property.required && (
+                                <span
+                                  className="text-xs px-2 py-0.5 rounded border bg-slate-100 text-slate-700"
+                                >
+                                  Required
+                                </span>
+                              )}
+                            </div>
+                            {property.description && (
+                              <p className="text-xs mb-2 text-slate-600">
+                                {property.description}
+                              </p>
+                            )}
+                            {renderPropertyInput(property)}
+                            {errors[property.id] && (
+                              <p className="text-red-500 text-xs mt-1">{errors[property.id]}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sub-Service Properties */}
+                  {subService?.properties && subService.properties.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800 mb-3">Configuration</h3>
+                      <div className="space-y-3">
+                        {subService.properties.map((property) => (
+                          <div key={property.id} className="p-4 rounded-xl border bg-white" >
+                            <div className="flex items-center justify-between mb-1">
+                              <label
+                                className="text-xs font-medium text-slate-700"
+                              >
+                                {property.name}
+                              </label>
+                              {property.required && (
+                                <span
+                                  className="text-xs px-2 py-0.5 rounded border bg-slate-100 text-slate-700"
+                                >
+                                  Required
+                                </span>
+                              )}
+                            </div>
+                            {property.description && (
+                              <p className="text-xs mb-2 text-slate-600">{property.description}</p>
+                            )}
+                            {renderPropertyInput(property)}
+                            {errors[property.id] && (
+                              <p className="text-red-500 text-xs mt-1">{errors[property.id]}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Cost Estimation */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-800 mb-3">Cost Estimation</h3>
+                    <div className="p-4 rounded-xl border bg-green-50" style={{ borderColor: '#86efac' }}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 rounded-md bg-green-100 text-green-700 flex items-center justify-center font-semibold">$</div>
+                        <div>
+                          <div className="text-slate-800 font-semibold">$ {editingNode?.properties?.estimatedMonthly ?? '—'}/mo</div>
+                          <div className="text-xs text-slate-600">Click to view detailed cost breakdown for all services</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Listeners section for Load Balancer-style UI */}
+                  {listeners.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-semibold text-slate-800 mb-2">Listeners</h3>
+                      <div className="space-y-2">
+                        {listeners.map((l, idx) => (
+                          <div key={idx} className="rounded-lg border bg-slate-100 text-slate-800 p-3" style={{ borderColor: theme.border }}>
+                            <div className="font-medium text-sm">{l.protocol}: {l.port}</div>
+                            <div className="text-xs text-slate-600">Forward to: {l.target}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setListeners(prev => [...prev, { protocol: 'HTTPS', port: 443, target: 'tg-web-servers' }])}
+                        className="mt-2 text-blue-700 text-xs hover:text-blue-600"
+                      >
+                        Add listener
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            ) : activeTab === 'ai' ? (
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-lg">🤖</div>
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-800">AI Infrastructure Validator</h3>
+                    <p className="text-sm text-slate-600">Gain insights on your multi-cloud setup.</p>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-medium text-slate-800 mb-3">Quick Actions</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: 'Validate my infrastructure', icon: '✅', color: 'bg-green-50 border-green-200' },
+                      { label: 'Suggest cost optimizations', icon: '💰', color: 'bg-yellow-50 border-yellow-200' },
+                      { label: 'Review security practices', icon: '🔒', color: 'bg-red-50 border-red-200' },
+                      { label: 'Optimize for performance', icon: '⚡', color: 'bg-blue-50 border-blue-200' },
+                    ].map((item, idx) => (
+                      <button key={idx} type="button" className={`p-3 rounded-lg border text-left hover:shadow-sm transition-all ${item.color}`}>
+                        <div className="flex items-start gap-2">
+                          <span className="text-lg">{item.icon}</span>
+                          <span className="text-xs text-slate-800 font-medium leading-tight">{item.label}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Chat Area */}
+                <div className="space-y-3">
+                  <div className="p-4 rounded-lg border bg-white" >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded bg-blue-100 text-blue-600 flex items-center justify-center text-sm">🤖</div>
+                        <span className="text-xs text-slate-600">06:42 PM</span>
+                      </div>
+                      <span className="text-xs px-2 py-1 rounded-md bg-blue-100 text-blue-700 font-medium">Validation</span>
+                    </div>
+                    <div className="text-sm text-slate-800">
+                      <p className="mb-2">👋 Hi! I'm your validation assistant. I can help you:</p>
+                      <ul className="list-disc pl-5 space-y-1 text-slate-700">
+                        <li>Validate architecture</li>
+                        <li>Suggest cost optimizations</li>
+                        <li>Review security practices</li>
+                        <li>Recommend performance improvements</li>
+                      </ul>
+                      <p className="mt-3 font-medium">How can I assist you today?</p>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className="w-full bg-white border rounded-lg px-4 py-3 pr-12 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      style={{ borderColor: theme.border }}
+                      placeholder="Inquire about infrastructure validation, security, costs, or optimizations."
+                      readOnly
+                    />
+                    <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-md bg-slate-800 text-white flex items-center justify-center hover:bg-slate-700 transition-colors">
+                      <span className="text-sm">➤</span>
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-slate-500 text-center">Press Enter to send, Shift+Enter for new line</p>
+                </div>
               </div>
             ) : (
               <div className="space-y-6">
-                {/* Common Properties */}
-                {service?.commonProperties && service.commonProperties.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center text-lg">🧩</div>
                   <div>
-                    <h3 className="text-sm font-semibold text-slate-800 mb-3">Basic Information</h3>
-                    <div className="space-y-3">
-                      {service.commonProperties.map((property) => (
-                        <div key={property.id} className="p-4 rounded-xl border bg-white" >
-                          <div className="flex items-center justify-between mb-1">
-                            <label 
-                              className="text-xs font-medium text-slate-700"
-                            >
-                              {property.name}
-                            </label>
-                            {property.required && (
-                              <span 
-                                className="text-xs px-2 py-0.5 rounded border bg-slate-100 text-slate-700"
-                              >
-                                Required
-                              </span>
+                    <h3 className="text-base font-semibold text-slate-800">Sub-Services</h3>
+                    <p className="text-sm text-slate-600">Browse and configure sub-services for the selected service.</p>
+                  </div>
+                </div>
+                {(!service || subServicesList.length === 0) ? (
+                  <div className="text-center py-8" style={{ color: theme.textSecondary }}>
+                    <p>Select a service to view available sub-services</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    {subServicesList.map((sub: any, idx: number) => (
+                      <div key={idx} className="p-3 rounded-lg border bg-white hover:shadow-sm transition-all">
+                        <div className="flex items-start gap-2">
+                          <span className="text-lg">{sub.icon || '🧩'}</span>
+                          <div className="min-w-0">
+                            <div className="text-xs font-medium text-slate-800 truncate">{sub.name}</div>
+                            {sub.description && (
+                              <div className="text-[11px] text-slate-600 truncate">{sub.description}</div>
                             )}
                           </div>
-                          {property.description && (
-                            <p className="text-xs mb-2 text-slate-600">
-                              {property.description}
-                            </p>
-                          )}
-                          {renderPropertyInput(property)}
-                          {errors[property.id] && (
-                            <p className="text-red-500 text-xs mt-1">{errors[property.id]}</p>
-                          )}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Sub-Service Properties */}
-                {subService?.properties && subService.properties.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-800 mb-3">Configuration</h3>
-                    <div className="space-y-3">
-                      {subService.properties.map((property) => (
-                        <div key={property.id} className="p-4 rounded-xl border bg-white" >
-                          <div className="flex items-center justify-between mb-1">
-                            <label 
-                              className="text-xs font-medium text-slate-700"
-                            >
-                              {property.name}
-                            </label>
-                            {property.required && (
-                              <span 
-                                className="text-xs px-2 py-0.5 rounded border bg-slate-100 text-slate-700"
-                              >
-                                Required
-                              </span>
-                            )}
-                          </div>
-                          {property.description && (
-                            <p className="text-xs mb-2 text-slate-600">{property.description}</p>
-                          )}
-                          {renderPropertyInput(property)}
-                          {errors[property.id] && (
-                            <p className="text-red-500 text-xs mt-1">{errors[property.id]}</p>
-                          )}
+                        <div className="mt-2 flex justify-between items-center">
+                          <button
+                            type="button"
+                            className="text-xs px-2 py-1 rounded-md bg-slate-800 text-white hover:bg-slate-700"
+                            onClick={() => {
+                              if (service) {
+                                openPropertiesPanel(service as any, sub as any);
+                                setActiveTab('properties');
+                              }
+                            }}
+                          >
+                            Configure
+                          </button>
+                          <button
+                            type="button"
+                            className="text-xs px-2 py-1 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50"
+                            onClick={() => {
+                              if (service) {
+                                openPropertiesPanel(service as any, sub as any);
+                                setActiveTab('properties');
+                              }
+                            }}
+                          >
+                            Details
+                          </button>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {/* Cost Estimation */}
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-800 mb-3">Cost Estimation</h3>
-                  <div className="p-4 rounded-xl border bg-green-50" style={{ borderColor: '#86efac' }}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-md bg-green-100 text-green-700 flex items-center justify-center font-semibold">$</div>
-                      <div>
-                        <div className="text-slate-800 font-semibold">$ {editingNode?.properties?.estimatedMonthly ?? '—'}/mo</div>
-                        <div className="text-xs text-slate-600">Click to view detailed cost breakdown for all services</div>
                       </div>
-                    </div>
-                  </div>
-                </div>
-                {/* Listeners section for Load Balancer-style UI */}
-                {listeners.length > 0 && (
-                  <div>
-                    <h3 className="text-xs font-semibold text-slate-800 mb-2">Listeners</h3>
-                    <div className="space-y-2">
-                      {listeners.map((l, idx) => (
-                        <div key={idx} className="rounded-lg border bg-slate-100 text-slate-800 p-3" style={{ borderColor: theme.border }}>
-                          <div className="font-medium text-sm">{l.protocol}: {l.port}</div>
-                          <div className="text-xs text-slate-600">Forward to: {l.target}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setListeners(prev => [...prev, { protocol: 'HTTPS', port: 443, target: 'tg-web-servers' }])}
-                      className="mt-2 text-blue-700 text-xs hover:text-blue-600"
-                    >
-                      Add listener
-                    </button>
+                    ))}
                   </div>
                 )}
               </div>
-            )
-          ) : (
-            <div className="space-y-6">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-lg">🤖</div>
-                <div>
-                  <h3 className="text-base font-semibold text-slate-800">AI Infrastructure Validator</h3>
-                  <p className="text-sm text-slate-600">Gain insights on your multi-cloud setup.</p>
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="text-sm font-medium text-slate-800 mb-3">Quick Actions</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { label: 'Validate my infrastructure', icon: '✅', color: 'bg-green-50 border-green-200' },
-                    { label: 'Suggest cost optimizations', icon: '💰', color: 'bg-yellow-50 border-yellow-200' },
-                    { label: 'Review security practices', icon: '🔒', color: 'bg-red-50 border-red-200' },
-                    { label: 'Optimize for performance', icon: '⚡', color: 'bg-blue-50 border-blue-200' },
-                  ].map((item, idx) => (
-                    <button key={idx} type="button" className={`p-3 rounded-lg border text-left hover:shadow-sm transition-all ${item.color}`}>
-                      <div className="flex items-start gap-2">
-                        <span className="text-lg">{item.icon}</span>
-                        <span className="text-xs text-slate-800 font-medium leading-tight">{item.label}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Chat Area */}
-              <div className="space-y-3">
-                <div className="p-4 rounded-lg border bg-white" >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded bg-blue-100 text-blue-600 flex items-center justify-center text-sm">🤖</div>
-                      <span className="text-xs text-slate-600">06:42 PM</span>
-                    </div>
-                    <span className="text-xs px-2 py-1 rounded-md bg-blue-100 text-blue-700 font-medium">Validation</span>
-                  </div>
-                  <div className="text-sm text-slate-800">
-                    <p className="mb-2">👋 Hi! I'm your validation assistant. I can help you:</p>
-                    <ul className="list-disc pl-5 space-y-1 text-slate-700">
-                      <li>Validate architecture</li>
-                      <li>Suggest cost optimizations</li>
-                      <li>Review security practices</li>
-                      <li>Recommend performance improvements</li>
-                    </ul>
-                    <p className="mt-3 font-medium">How can I assist you today?</p>
-                  </div>
-                </div>
-                
-                <div className="relative">
-                  <input
-                    type="text"
-                    className="w-full bg-white border rounded-lg px-4 py-3 pr-12 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    style={{ borderColor: theme.border }}
-                    placeholder="Inquire about infrastructure validation, security, costs, or optimizations."
-                    readOnly
-                  />
-                  <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-md bg-slate-800 text-white flex items-center justify-center hover:bg-slate-700 transition-colors">
-                    <span className="text-sm">➤</span>
-                  </button>
-                </div>
-                
-                <p className="text-xs text-slate-500 text-center">Press Enter to send, Shift+Enter for new line</p>
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* Footer */}
-        <div className="px-4 py-3 border-t" style={{ backgroundColor: '#ffffff', borderColor: theme.border }}>
-          <div className="flex justify-between items-center text-sm">
-            <div className="text-slate-600">
-              {allProperties.length} properties
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={closePropertiesPanel}
-                className="bg-slate-200 text-slate-800 px-3 py-1.5 rounded text-xs hover:bg-slate-300 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                className="bg-slate-900 text-white px-3 py-1.5 rounded text-xs hover:bg-slate-800 transition-colors"
-              >
-                Apply Changes
-              </button>
+        {panelExpanded && (
+          <div className="px-4 py-3 border-t" style={{ backgroundColor: '#ffffff', borderColor: theme.border }}>
+            <div className="flex justify-between items-center text-sm">
+              <div className="text-slate-600">
+                {allProperties.length} properties
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={closePropertiesPanel}
+                  className="bg-slate-200 text-slate-800 px-3 py-1.5 rounded text-xs hover:bg-slate-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="bg-slate-900 text-white px-3 py-1.5 rounded text-xs hover:bg-slate-800 transition-colors"
+                >
+                  Apply Changes
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

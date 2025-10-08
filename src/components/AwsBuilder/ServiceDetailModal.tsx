@@ -34,7 +34,7 @@ const ServiceDetailModal: React.FC = () => {
 
   return (
     <div 
-      className="fixed top-0 right-0 h-full mt-[93px] w-96 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out"
+      className="fixed hidden top-0 right-0 h-[calc(100vh-93px)] mt-[93px]  w-96 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out"
       style={{
         backgroundColor: '#f8fafc',
         borderLeft: `1px solid #E5E7EB`
@@ -154,11 +154,9 @@ const ServiceDetailModal: React.FC = () => {
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = '#f1f5f9';
-                      e.currentTarget.style.borderColor = theme.primary;
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = '#ffffff';
-                      e.currentTarget.style.borderColor = "#E5E7EB";
                     }}
                   >
                   <div className="flex items-start space-x-2 mb-2">
@@ -178,7 +176,7 @@ const ServiceDetailModal: React.FC = () => {
                   <div className="space-y-1">
                     <button
                       onClick={() => handleSubServiceSelect(subService)}
-                      className="w-full text-white px-3 py-1.5 rounded text-xs font-medium transition-colors"
+                      className="w-full text-black px-3 py-1.5 rounded text-xs font-medium transition-colors"
                       style={{
                         backgroundColor: theme.primary
                       }}

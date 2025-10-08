@@ -130,10 +130,8 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
         <ServiceDetailModal />
       )}
 
-      {/* Properties Panel */}
-      {state.showPropertiesPanel && state.selectedService && (
-        <PropertiesPanel />
-      )}
+      {/* Properties/AI Tabs - persistent right sidebar */}
+      <PropertiesPanel />
     </div>
   );
 }

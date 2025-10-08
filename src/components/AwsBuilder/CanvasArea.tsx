@@ -141,9 +141,7 @@ export function CanvasArea() {
         onClick={handleCanvasClick}
         onMouseMove={handleMouseMove}
       >
-
-        {/* Connection Layer (SVG overlay) */}
-        <ConnectionLayer
+      <ConnectionLayer
           nodes={state.placedNodes}
           connections={state.connections}
           isConnecting={state.isConnecting}
@@ -152,8 +150,7 @@ export function CanvasArea() {
           onRemoveConnection={removeConnection}
         />
 
-        {/* Placed Nodes (with improved aggregation logic) */}
-        {(() => {
+          {(() => {
           // Updated aggregation: group sub-services under their specific parent node
           const subServiceNodes = state.placedNodes.filter((n) => n.isSubService);
           
@@ -229,20 +226,7 @@ export function CanvasArea() {
           return rendered;
         })()}
 
-        {/* Empty State */}
-        {/* {state.placedNodes.length === 0 && !dragOver && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center text-slate-300">
-              <div className="text-4xl mb-4">🏗️</div>
-              <h3 className="text-lg font-medium mb-2">Start Building</h3>
-              <p className="text-sm">
-                Drag AWS service icons from the palette to create your architecture
-              </p>
-            </div>
-          </div>
-        )} */}
 
-        {/* Drop Indicator */}
         {dragOver && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="bg-blue-100 border-2 border-dashed border-blue-400 rounded-lg p-8">
@@ -254,14 +238,6 @@ export function CanvasArea() {
           </div>
         )}
       </div>
-      
-      {/* AI Suggestion Tooltip */}
-      {/* <AISuggestionTooltip
-        x={suggestionPosition.x}
-        y={suggestionPosition.y}
-        visible={showAISuggestion}
-        onClose={() => setShowAISuggestion(false)}
-      /> */}
     </div>
   );
 }

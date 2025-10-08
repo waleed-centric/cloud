@@ -1,7 +1,5 @@
-import React, { useRef } from 'react';
-import { AwsBuilderProvider } from '@/context/AwsBuilderContext';
-import { CloudProviderProvider } from '@/context/CloudProviderContext';
-import { DragDropBuilder } from '@/components/AwsBuilder/DragDropBuilder';
+import React from 'react';
+import WorkspaceTabs from '@/components/AwsBuilder/WorkspaceTabs';
 
 
 // Summary: AWS DnD Builder page - main interface for drag and drop AWS architecture
@@ -9,20 +7,9 @@ import { DragDropBuilder } from '@/components/AwsBuilder/DragDropBuilder';
 // - Now includes CloudProviderProvider for multi-cloud support
 
 export default function AwsBuilderPage() {
-  const clearCanvasRef = useRef<(() => void) | null>(null);
-
-  const handleProviderChange = () => {
-    // Clear canvas when provider changes
-    if (clearCanvasRef.current) {
-      clearCanvasRef.current();
-    }
-  };
-
   return (
-    <CloudProviderProvider onProviderChange={handleProviderChange}>
-      <AwsBuilderProvider>     
-            <DragDropBuilder clearCanvasRef={clearCanvasRef} />
-      </AwsBuilderProvider>
-    </CloudProviderProvider>
+    <div className="h-screen w-full">
+      <WorkspaceTabs />
+    </div>
   );
 }

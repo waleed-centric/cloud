@@ -20,8 +20,8 @@ export interface ProviderTheme {
 
 export const PROVIDER_THEMES: Record<string, ProviderTheme> = {
   aws: {
-    primary: '#FF9900',           // AWS Orange
-    primaryDark: '#FF7700',       // Darker orange
+    primary: '#E5E7EB',           // AWS Orange
+    primaryDark: '#E5E7EB',       // Darker orange
     secondary: '#232F3E',         // AWS Dark Blue
     accent: '#60A5FA',           // Blue accent (matching cost estimation)
     background: '#0F172A',        // Dark slate background (slate-900)
@@ -29,7 +29,7 @@ export const PROVIDER_THEMES: Record<string, ProviderTheme> = {
     text: '#E2E8F0',             // Primary text (slate-200)
     textSecondary: '#94A3B8',     // Secondary text (slate-400)
     border: '#334155',           // Border color (slate-700)
-    hover: '#FF7700',            // Hover state
+    hover: '#94A3B8',            // Hover state
     gradient: {
       from: '#FF9900',           // AWS Orange
       to: '#FF7700'              // Darker orange
