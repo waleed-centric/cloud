@@ -1060,12 +1060,11 @@ const PropertiesPanel: React.FC = () => {
                         </div>
                       ) : (
                         <>
-
                           <div className="mt-4">
-                            <h4 className="text-sm font-semibold text-slate-800 mb-2">Canvas Nodes JSON</h4>
-                            <pre className="text-xs text-black p-3 rounded-lg bg-slate-50 border overflow-x-auto">
-                              {JSON.stringify(
-                                state.placedNodes
+                            <h4 className="text-sm font-semibold text-slate-800 mb-3">🎯 Canvas Services Structure</h4>
+                            <div className="space-y-4">
+                              {(() => {
+                                const groupedData = state.placedNodes
                                   .filter((group: any) => group.parentNodeId !== "root" && group.parentNodeId !== null && group.parentNodeId !== undefined)
                                   .map((group: any) => ({
                                     id: group.id,
@@ -1080,31 +1079,96 @@ const PropertiesPanel: React.FC = () => {
                                     const existingParent = acc.find((item: any) => item.parentNodeId === parentId && item.children);
 
                                     if (existingParent) {
-                                      // Add to existing parent's children
                                       existingParent.children.push(current);
                                     } else {
-                                      // Check if this is the first child of this parent
                                       const parentGroup = acc.find((item: any) => item.parentNodeId === parentId);
-
                                       if (parentGroup && !parentGroup.children) {
-                                        // Convert existing item to parent with children
                                         const firstChild = acc.splice(acc.indexOf(parentGroup), 1)[0];
                                         acc.push({
                                           parentNodeId: parentId,
                                           children: [firstChild, current],
                                         });
                                       } else {
-                                        // First item of this parent
                                         acc.push(current);
                                       }
                                     }
-
                                     return acc;
-                                  }, []),
-                                null,
-                                2
-                              )}
-                            </pre>
+                                  }, []);
+
+                                return groupedData.map((group: any, idx: number) => (
+                                  <div key={idx} className="border rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <span className="text-lg">🏗️</span>
+                                      <span className="font-semibold text-blue-800">Parent Group</span>
+                                      <code className="text-xs bg-blue-100 px-2 py-1 rounded text-blue-700">
+                                        {group.parentNodeId}
+                                      </code>
+                                    </div>
+                                    
+                                    {group.children ? (
+                                      <div className="space-y-2">
+                                        <div className="text-sm text-blue-600 font-medium mb-2">
+                                          📦 {group.children.length} Services:
+                                        </div>
+                                        {group.children.map((child: any, childIdx: number) => (
+                                          <div key={childIdx} className="ml-4 p-3 bg-white rounded-md border-l-4 border-green-400">
+                                            <div className="flex items-center gap-2 mb-2">
+                                              <span className="text-base">⚙️</span>
+                                              <span className="font-medium text-green-800">{child.name}</span>
+                                              <span className="text-xs bg-green-100 px-2 py-1 rounded text-green-700">
+                                                {child.subServiceId || child.serviceId}
+                                              </span>
+                                            </div>
+                                            
+                                            {Object.keys(child.properties).length > 0 && (
+                                              <div className="ml-6 mt-2">
+                                                <div className="text-xs text-gray-600 mb-1">🔧 Properties:</div>
+                                                <div className="grid grid-cols-1 gap-1">
+                                                  {Object.entries(child.properties).map(([key, value]: [string, any]) => (
+                                                    <div key={key} className="flex items-center gap-2 text-xs">
+                                                      <span className="text-gray-500 font-mono">{key}:</span>
+                                                      <span className="text-gray-800 bg-gray-100 px-1 rounded">
+                                                        {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                                      </span>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <div className="ml-4 p-3 bg-white rounded-md border-l-4 border-orange-400">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <span className="text-base">⚙️</span>
+                                          <span className="font-medium text-orange-800">{group.name}</span>
+                                          <span className="text-xs bg-orange-100 px-2 py-1 rounded text-orange-700">
+                                            {group.subServiceId || group.serviceId}
+                                          </span>
+                                        </div>
+                                        
+                                        {Object.keys(group.properties).length > 0 && (
+                                          <div className="ml-6 mt-2">
+                                            <div className="text-xs text-gray-600 mb-1">🔧 Properties:</div>
+                                            <div className="grid grid-cols-1 gap-1">
+                                              {Object.entries(group.properties).map(([key, value]: [string, any]) => (
+                                                <div key={key} className="flex items-center gap-2 text-xs">
+                                                  <span className="text-gray-500 font-mono">{key}:</span>
+                                                  <span className="text-gray-800 bg-gray-100 px-1 rounded">
+                                                    {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                                  </span>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                ));
+                              })()}
+                            </div>
                           </div>
                         </>
                       )}
