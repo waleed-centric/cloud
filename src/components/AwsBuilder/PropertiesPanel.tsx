@@ -28,6 +28,289 @@ const PropertiesPanel: React.FC = () => {
     return Array.isArray(svc?.subServices) ? svc.subServices : [];
   }, [service]);
 
+  // JSON script preview (mirror export mappings)
+  const sanitize = (name: string) =>
+    name.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_{2,}/g, '_').replace(/^_+|_+$/g, '');
+
+  const resolveSubnetIdForInstance = (ec2NodeId: string): string => {
+    for (const conn of state.connections) {
+      let otherNodeId: string | null = null;
+      if (conn.fromNodeId === ec2NodeId) otherNodeId = conn.toNodeId;
+      else if (conn.toNodeId === ec2NodeId) otherNodeId = conn.fromNodeId;
+      if (!otherNodeId) continue;
+
+      const other = state.placedNodes.find((n) => n.id === otherNodeId);
+      if (!other) continue;
+
+      const isSubnet = other.subServiceId === 'vpc-subnet' || other.icon.id === 'vpc-subnet';
+      if (isSubnet) {
+        const props: any = (other as any)?.properties || {};
+        return props.subnetId || props.subnetName || props.subnetCidr || '';
+      }
+    }
+    return '';
+  };
+
+  const scriptObject = useMemo(() => {
+    if (!editingNode) return null;
+
+    // EC2 Instance
+    const isEc2Instance = editingNode.subServiceId === 'ec2-instance' || (editingNode as any).icon?.id === 'ec2-instance';
+    if (isEc2Instance) {
+      const ami = (editingNode as any)?.properties?.ami || '';
+      const instanceType = (editingNode as any)?.properties?.instanceType || '';
+      const keyName = (editingNode as any)?.properties?.keyPair || '';
+
+      let parentName: string | undefined = undefined;
+      if ((editingNode as any)?.parentNodeId) {
+        const parent = state.placedNodes.find((n) => n.id === (editingNode as any).parentNodeId);
+        const maybeName = (parent as any)?.properties?.name;
+        if (typeof maybeName === 'string' && maybeName.trim()) {
+          parentName = maybeName.trim();
+        }
+      }
+
+      const nameTag = parentName || (editingNode as any)?.icon?.name || 'web_server';
+      const resourceName = sanitize(nameTag);
+
+      return {
+        type: 'aws_instance',
+        name: resourceName,
+        properties: {
+          ami,
+          instance_type: instanceType,
+          subnet_id: resolveSubnetIdForInstance((editingNode as any).id),
+          key_name: keyName,
+          tags: { Name: nameTag, Environment: 'Production' },
+        },
+      };
+    }
+
+    // S3 Bucket
+    const isS3Bucket = editingNode.subServiceId === 's3-bucket' || (editingNode as any)?.icon?.id === 's3-bucket';
+    if (isS3Bucket) {
+      let bucketName: string = '';
+      const parentId = (editingNode as any)?.parentNodeId;
+      if (parentId) {
+        const parent = state.placedNodes.find((n) => n.id === parentId);
+        const maybeBucket = (parent as any)?.properties?.bucketName;
+        if (typeof maybeBucket === 'string' && maybeBucket.trim()) bucketName = maybeBucket.trim();
+      }
+      if (!bucketName) {
+        const own = (editingNode as any)?.properties?.bucketName;
+        if (typeof own === 'string' && own.trim()) bucketName = own.trim();
+      }
+      if (!bucketName) bucketName = 'my-s3-bucket';
+
+      const storageClass = (editingNode as any)?.properties?.storageClass || 'STANDARD';
+      const versioning = Boolean((editingNode as any)?.properties?.versioning);
+      const blockPublicAccess = (editingNode as any)?.properties?.publicAccess;
+      const blockPublic = typeof blockPublicAccess === 'boolean' ? blockPublicAccess : true;
+
+      let lifecycle: { transition_days?: number; expiration_days?: number } | undefined;
+      if (parentId) {
+        const lifecycleNode = state.placedNodes.find(
+          (n) => (n.subServiceId === 's3-lifecycle' || n.icon.id === 's3-lifecycle') && n.parentNodeId === parentId
+        );
+        if (lifecycleNode) {
+          const t = (lifecycleNode as any)?.properties?.transitionDays;
+          const e = (lifecycleNode as any)?.properties?.expirationDays;
+          const transition_days = typeof t === 'number' ? t : undefined;
+          const expiration_days = typeof e === 'number' ? e : undefined;
+          if (transition_days !== undefined || expiration_days !== undefined) {
+            lifecycle = { transition_days, expiration_days };
+          }
+        }
+      }
+
+      const resourceName = sanitize(bucketName);
+      return {
+        type: 'aws_s3_bucket',
+        name: resourceName,
+        properties: {
+          bucket: bucketName,
+          acl: blockPublic ? 'private' : 'public-read',
+          storage_class: storageClass,
+          versioning: { enabled: versioning },
+          block_public_access: blockPublic,
+          tags: { Name: bucketName, Environment: 'Production' },
+          ...(lifecycle ? { lifecycle } : {}),
+        },
+      };
+    }
+
+    // Lambda Function
+    const isLambda = editingNode.subServiceId === 'lambda-function' || (editingNode as any)?.icon?.id === 'lambda-function';
+    if (isLambda) {
+      let functionName: string = '';
+      let runtime: string = '';
+      const parentId = (editingNode as any)?.parentNodeId;
+      if (parentId) {
+        const parent = state.placedNodes.find((n) => n.id === parentId);
+        const maybeFn = (parent as any)?.properties?.functionName;
+        const maybeRt = (parent as any)?.properties?.runtime;
+        if (typeof maybeFn === 'string' && maybeFn.trim()) functionName = maybeFn.trim();
+        if (typeof maybeRt === 'string' && maybeRt.trim()) runtime = maybeRt.trim();
+      }
+      if (!functionName) functionName = (editingNode as any)?.icon?.name || 'MyLambdaFunction';
+      if (!runtime) runtime = 'nodejs18.x';
+
+      const handler = (editingNode as any)?.properties?.handler || 'index.handler';
+      const roleProp = (editingNode as any)?.properties?.role || (parentId
+        ? (state.placedNodes.find((n) => n.id === parentId) as any)?.properties?.role
+        : undefined);
+      const role = typeof roleProp === 'string' && roleProp.trim() ? roleProp.trim() : 'arn:aws:iam::123456789012:role/lambda-execution-role';
+
+      const nameTag = functionName;
+      const resourceName = sanitize(nameTag);
+      const sourceCodePath = `./lambda_code/${resourceName}/`;
+      return {
+        type: 'aws_lambda_function',
+        name: resourceName,
+        properties: {
+          function_name: functionName,
+          role,
+          handler,
+          runtime,
+          source_code_path: sourceCodePath,
+          tags: { Name: nameTag },
+        },
+      };
+    }
+
+    // RDS Instance
+    const isRds = editingNode.subServiceId === 'rds-instance' || (editingNode as any)?.icon?.id === 'rds-instance';
+    if (isRds) {
+      let identifier: string = '';
+      const parentId = (editingNode as any)?.parentNodeId;
+      if (parentId) {
+        const parent = state.placedNodes.find((n) => n.id === parentId);
+        const maybeId = (parent as any)?.properties?.dbInstanceIdentifier;
+        if (typeof maybeId === 'string' && maybeId.trim()) identifier = maybeId.trim();
+      }
+      if (!identifier) identifier = (editingNode as any)?.icon?.name || 'my-database';
+
+      const engine = (editingNode as any)?.properties?.engine || 'mysql';
+      const instanceClass = (editingNode as any)?.properties?.instanceClass || 'db.t3.micro';
+      const alloc = (editingNode as any)?.properties?.allocatedStorage;
+      const allocated_storage = typeof alloc === 'number' ? alloc : 20;
+      const engineVersion = (editingNode as any)?.properties?.engineVersion;
+      const publiclyAccessibleProp = (editingNode as any)?.properties?.publiclyAccessible;
+      const dbSubnetGroupNameProp = (editingNode as any)?.properties?.dbSubnetGroupName;
+
+      const resourceName = sanitize(identifier);
+      return {
+        type: 'aws_db_instance',
+        name: resourceName,
+        properties: {
+          identifier,
+          engine,
+          engine_version: typeof engineVersion === 'string' && engineVersion.trim() ? engineVersion.trim() : null,
+          instance_class: instanceClass,
+          allocated_storage,
+          db_name: 'mydatabase',
+          username: 'dbadmin',
+          password: 'SECRET_PASSWORD_PLACEHOLDER',
+          publicly_accessible: typeof publiclyAccessibleProp === 'boolean' ? publiclyAccessibleProp : null,
+          db_subnet_group_name: typeof dbSubnetGroupNameProp === 'string' && dbSubnetGroupNameProp.trim() ? dbSubnetGroupNameProp.trim() : null,
+          skip_final_snapshot: true,
+          tags: { Name: identifier },
+        },
+      };
+    }
+
+    // VPC
+    const isVpc = (((editingNode as any)?.serviceId === 'vpc' && !(editingNode as any)?.subServiceId) || (editingNode as any)?.icon?.id === 'vpc');
+    if (isVpc) {
+      const vpcName = (editingNode as any)?.properties?.vpcName || (editingNode as any)?.icon?.name || 'MyVPC';
+      const cidrBlock = (editingNode as any)?.properties?.cidrBlock || '10.0.0.0/16';
+      const resourceName = sanitize(vpcName);
+      return {
+        type: 'aws_vpc',
+        name: resourceName,
+        properties: {
+          cidr_block: cidrBlock,
+          enable_dns_hostnames: true,
+          tags: { Name: vpcName },
+        },
+      };
+    }
+
+    // CloudFront Distribution
+    const isCloudFront = editingNode.subServiceId === 'cf-distribution' || (editingNode as any)?.icon?.id === 'cf-distribution';
+    if (isCloudFront) {
+      let distributionName: string = '';
+      const parentId = (editingNode as any)?.parentNodeId;
+      if (parentId) {
+        const parent = state.placedNodes.find((n) => n.id === parentId);
+        const maybeName = (parent as any)?.properties?.distributionName;
+        if (typeof maybeName === 'string' && maybeName.trim()) distributionName = maybeName.trim();
+      }
+      if (!distributionName) distributionName = (editingNode as any)?.icon?.name || 'my_cdn_distribution';
+
+      let originDomain = (editingNode as any)?.properties?.originDomain;
+      if (typeof originDomain !== 'string' || !originDomain.trim()) originDomain = 'my_app_storage_bucket.s3.amazonaws.com';
+
+      const resolveBucketNameFromDomain = (domain: string): string => {
+        const match = domain.match(/^([a-z0-9\-_.]+)\.s3\.amazonaws\.com$/i);
+        return match ? match[1] : domain.replace(/[^a-z0-9\-]/gi, '-');
+      };
+
+      const findConnectedS3BucketName = (cfNodeId: string): string | null => {
+        for (const conn of state.connections) {
+          let otherNodeId: string | null = null;
+          if (conn.fromNodeId === cfNodeId) otherNodeId = conn.toNodeId;
+          else if (conn.toNodeId === cfNodeId) otherNodeId = conn.fromNodeId;
+          if (!otherNodeId) continue;
+          const other = state.placedNodes.find((n) => n.id === otherNodeId);
+          if (!other) continue;
+          const isS3 = other.subServiceId === 's3-bucket' || other.icon.id === 's3-bucket';
+          if (isS3) {
+            let bName = '';
+            const s3ParentId = (other as any)?.parentNodeId;
+            if (s3ParentId) {
+              const s3Parent = state.placedNodes.find((n) => n.id === s3ParentId);
+              const maybeBucket = (s3Parent as any)?.properties?.bucketName;
+              if (typeof maybeBucket === 'string' && maybeBucket.trim()) bName = maybeBucket.trim();
+            }
+            if (!bName) {
+              const own = (other as any)?.properties?.bucketName;
+              if (typeof own === 'string' && own.trim()) bName = own.trim();
+            }
+            if (!bName) bName = other.icon.name || 'my_app_storage_bucket';
+            return bName;
+          }
+        }
+        return null;
+      };
+
+      const connectedBucketName = findConnectedS3BucketName((editingNode as any).id);
+      const bucketNameForIds = connectedBucketName || resolveBucketNameFromDomain(originDomain);
+      const originId = `S3-${bucketNameForIds.replace(/_/g, '-')}`;
+
+      const resourceName = sanitize(distributionName);
+      return {
+        type: 'aws_cloudfront_distribution',
+        name: resourceName,
+        properties: {
+          origin: { domain_name: originDomain, origin_id: originId },
+          enabled: true,
+          is_ipv6_enabled: true,
+          default_cache_behavior: {
+            target_origin_id: originId,
+            viewer_protocol_policy: 'redirect-to-https',
+            allowed_methods: ['GET', 'HEAD', 'OPTIONS'],
+            cached_methods: ['GET', 'HEAD'],
+          },
+          restrictions: { geo_restriction: { restriction_type: 'none' } },
+          viewer_certificate: { cloudfront_default_certificate: true },
+        },
+      };
+    }
+
+    return null;
+  }, [editingNode, state.connections, state.placedNodes]);
+
   // Ensure panel expands on selection so collapsed icon bar doesn't show
   useEffect(() => {
     if (service || subService) {
@@ -506,6 +789,18 @@ const PropertiesPanel: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                  {/* Script for selected element */}
+                  <div>
+                    <h3 className="text-xs font-semibold text-slate-800 mb-2">Script</h3>
+                    <div className="p-4 rounded-xl border bg-white" style={{ borderColor: theme.border }}>
+                      <pre className="text-xs text-slate-600 whitespace-pre-wrap break-all">
+                        {scriptObject
+                          ? JSON.stringify(scriptObject, null, 2)
+                          : (editingNode?.properties?.script || '—')}
+                      </pre>
+                    </div>
+                  </div>
+                  
                   {/* Listeners section for Load Balancer-style UI */}
                   {listeners.length > 0 && (
                     <div>
