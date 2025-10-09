@@ -20,6 +20,9 @@ export function ExportPanel() {
         const ami = (node as any)?.properties?.ami || '';
         const instanceType = (node as any)?.properties?.instanceType || '';
         const keyName = (node as any)?.properties?.keyPair || '';
+        const securityGroups: string[] = Array.isArray((node as any)?.properties?.securityGroups)
+          ? (node as any).properties.securityGroups
+          : [];
 
         // Attempt to resolve connected VPC Subnet and map to subnet_id
         const resolveSubnetIdForInstance = (ec2NodeId: string): string => {
@@ -62,6 +65,7 @@ export function ExportPanel() {
             instance_type: instanceType,
             subnet_id: resolveSubnetIdForInstance(node.id),
             key_name: keyName,
+            security_groups: securityGroups,
             tags: {
               Name: nameTag,
               Environment: 'Production',

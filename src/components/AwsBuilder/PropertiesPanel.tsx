@@ -9,12 +9,13 @@ import { ServiceProperty, SubService, DetailedAwsService } from '../../data/aws-
 
 const PropertiesPanel: React.FC = () => {
   const { currentProvider } = useCloudProvider();
-  const { state, closePropertiesPanel, updateNodeProperties, openServiceModal, closeServiceModal, addSubServiceNode, openPropertiesPanel } = useAwsBuilder();
+  const { state, closePropertiesPanel, updateNodeProperties, openServiceModal, closeServiceModal, addSubServiceNode, openPropertiesPanel, listSecurityGroupsForParent, updateEc2SecurityGroups } = useAwsBuilder();
   const [propertyValues, setPropertyValues] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [listeners, setListeners] = useState<{ protocol: string; port: number; target: string }[]>([]);
   const [activeTab, setActiveTab] = useState<'properties' | 'ai' | 'subservices'>('properties');
   const [panelExpanded, setPanelExpanded] = useState<boolean>(true);
+  const [selectedSecurityGroups, setSelectedSecurityGroups] = useState<string[]>([]);
 
   // console.log(propertyValues, "propertyValues")
   const service = state.selectedService;
@@ -27,6 +28,23 @@ const PropertiesPanel: React.FC = () => {
     const svc = service as any;
     return Array.isArray(svc?.subServices) ? svc.subServices : [];
   }, [service]);
+
+  // Initialize SG selection from current EC2 node properties
+  useEffect(() => {
+    if (!editingNode) {
+      setSelectedSecurityGroups([]);
+      return;
+    }
+    const isEc2Instance = editingNode.subServiceId === 'ec2-instance' || (editingNode as any)?.icon?.id === 'ec2-instance';
+    if (isEc2Instance) {
+      const sgNames: string[] = Array.isArray((editingNode as any)?.properties?.securityGroups)
+        ? (editingNode as any).properties.securityGroups
+        : [];
+      setSelectedSecurityGroups(sgNames);
+    } else {
+      setSelectedSecurityGroups([]);
+    }
+  }, [editingNode?.id]);
 
   // JSON script preview (mirror export mappings)
   const sanitize = (name: string) =>
@@ -52,7 +70,295 @@ const PropertiesPanel: React.FC = () => {
   };
 
   const scriptObject = useMemo(() => {
-    if (!editingNode) return null;
+    // If no specific node is selected, show all canvas objects (like export format)
+    if (!editingNode) {
+      if (state.placedNodes.length === 0) {
+        return { message: "Canvas is empty. Add some AWS services to see their configuration." };
+      }
+
+      // Build complete canvas state using same logic as ExportPanel
+      const allResources: any[] = [];
+
+      // EC2 Instances
+      const ec2Resources = state.placedNodes
+        .filter((node) => node.subServiceId === 'ec2-instance' || node.icon.id === 'ec2-instance')
+        .map((node) => {
+          const ami = (node as any)?.properties?.ami || '';
+          const instanceType = (node as any)?.properties?.instanceType || '';
+          const keyName = (node as any)?.properties?.keyPair || '';
+          const securityGroups: string[] = Array.isArray((node as any)?.properties?.securityGroups)
+            ? (node as any).properties.securityGroups
+            : [];
+
+          let parentName: string | undefined = undefined;
+          if ((node as any)?.parentNodeId) {
+            const parent = state.placedNodes.find((n) => n.id === (node as any).parentNodeId);
+            const maybeName = (parent as any)?.properties?.name;
+            if (typeof maybeName === 'string' && maybeName.trim()) {
+              parentName = maybeName.trim();
+            }
+          }
+          const nameTag = parentName || node.icon.name || 'web_server';
+          const resourceName = sanitize(nameTag);
+
+          return {
+            type: 'aws_instance',
+            name: resourceName,
+            properties: {
+              ami,
+              instance_type: instanceType,
+              subnet_id: resolveSubnetIdForInstance(node.id),
+              key_name: keyName,
+              security_groups: securityGroups,
+              tags: { Name: nameTag, Environment: 'Production' },
+            },
+          };
+        });
+
+      // S3 Buckets
+      const s3Resources = state.placedNodes
+        .filter((node) => node.subServiceId === 's3-bucket' || node.icon.id === 's3-bucket')
+        .map((node) => {
+          let bucketName: string = '';
+          const parentId = (node as any)?.parentNodeId;
+          if (parentId) {
+            const parent = state.placedNodes.find((n) => n.id === parentId);
+            const maybeBucket = (parent as any)?.properties?.bucketName;
+            if (typeof maybeBucket === 'string' && maybeBucket.trim()) bucketName = maybeBucket.trim();
+          }
+          if (!bucketName) {
+            const own = (node as any)?.properties?.bucketName;
+            if (typeof own === 'string' && own.trim()) bucketName = own.trim();
+          }
+          if (!bucketName) bucketName = 'my-s3-bucket';
+
+          const storageClass = (node as any)?.properties?.storageClass || 'STANDARD';
+          const versioning = Boolean((node as any)?.properties?.versioning);
+          const blockPublicAccess = (node as any)?.properties?.publicAccess;
+          const blockPublic = typeof blockPublicAccess === 'boolean' ? blockPublicAccess : true;
+
+          let lifecycle: { transition_days?: number; expiration_days?: number } | undefined;
+          if (parentId) {
+            const lifecycleNode = state.placedNodes.find(
+              (n) => (n.subServiceId === 's3-lifecycle' || n.icon.id === 's3-lifecycle') && n.parentNodeId === parentId
+            );
+            if (lifecycleNode) {
+              const t = (lifecycleNode as any)?.properties?.transitionDays;
+              const e = (lifecycleNode as any)?.properties?.expirationDays;
+              const transition_days = typeof t === 'number' ? t : undefined;
+              const expiration_days = typeof e === 'number' ? e : undefined;
+              if (transition_days !== undefined || expiration_days !== undefined) {
+                lifecycle = { transition_days, expiration_days };
+              }
+            }
+          }
+
+          const resourceName = sanitize(bucketName);
+          return {
+            type: 'aws_s3_bucket',
+            name: resourceName,
+            properties: {
+              bucket: bucketName,
+              acl: blockPublic ? 'private' : 'public-read',
+              storage_class: storageClass,
+              versioning: { enabled: versioning },
+              block_public_access: blockPublic,
+              tags: { Name: bucketName, Environment: 'Production' },
+              ...(lifecycle ? { lifecycle } : {}),
+            },
+          };
+        });
+
+      // Lambda Functions
+      const lambdaResources = state.placedNodes
+        .filter((node) => node.subServiceId === 'lambda-function' || node.icon.id === 'lambda-function')
+        .map((node) => {
+          let functionName: string = '';
+          let runtime: string = '';
+          if ((node as any)?.parentNodeId) {
+            const parent = state.placedNodes.find((n) => n.id === (node as any).parentNodeId);
+            const maybeFn = (parent as any)?.properties?.functionName;
+            const maybeRt = (parent as any)?.properties?.runtime;
+            if (typeof maybeFn === 'string' && maybeFn.trim()) functionName = maybeFn.trim();
+            if (typeof maybeRt === 'string' && maybeRt.trim()) runtime = maybeRt.trim();
+          }
+          if (!functionName) functionName = node.icon.name || 'MyLambdaFunction';
+          if (!runtime) runtime = 'nodejs18.x';
+
+          const handler = (node as any)?.properties?.handler || 'index.handler';
+          const roleProp = (node as any)?.properties?.role || ((node as any)?.parentNodeId
+            ? (state.placedNodes.find((n) => n.id === (node as any).parentNodeId) as any)?.properties?.role
+            : undefined);
+          const role = typeof roleProp === 'string' && roleProp.trim()
+            ? roleProp.trim()
+            : 'arn:aws:iam::123456789012:role/lambda-execution-role';
+
+          const nameTag = functionName;
+          const resourceName = sanitize(nameTag);
+          const sourceCodePath = `./lambda_code/${resourceName}/`;
+
+          return {
+            type: 'aws_lambda_function',
+            name: resourceName,
+            properties: {
+              function_name: functionName,
+              role,
+              handler,
+              runtime,
+              source_code_path: sourceCodePath,
+              tags: { Name: nameTag },
+            },
+          };
+        });
+
+      // RDS Instances
+      const rdsResources = state.placedNodes
+        .filter((node) => node.subServiceId === 'rds-instance' || node.icon.id === 'rds-instance')
+        .map((node) => {
+          let identifier: string = '';
+          const parentId = (node as any)?.parentNodeId;
+          if (parentId) {
+            const parent = state.placedNodes.find((n) => n.id === parentId);
+            const maybeId = (parent as any)?.properties?.dbInstanceIdentifier;
+            if (typeof maybeId === 'string' && maybeId.trim()) identifier = maybeId.trim();
+          }
+          if (!identifier) identifier = node.icon.name || 'my-database';
+
+          const engine = (node as any)?.properties?.engine || 'mysql';
+          const instanceClass = (node as any)?.properties?.instanceClass || 'db.t3.micro';
+          const alloc = (node as any)?.properties?.allocatedStorage;
+          const allocated_storage = typeof alloc === 'number' ? alloc : 20;
+          const engineVersion = (node as any)?.properties?.engineVersion;
+          const publiclyAccessibleProp = (node as any)?.properties?.publiclyAccessible;
+          const dbSubnetGroupNameProp = (node as any)?.properties?.dbSubnetGroupName;
+
+          const resourceName = sanitize(identifier);
+          return {
+            type: 'aws_db_instance',
+            name: resourceName,
+            properties: {
+              identifier,
+              engine,
+              engine_version: typeof engineVersion === 'string' && engineVersion.trim() ? engineVersion.trim() : null,
+              instance_class: instanceClass,
+              allocated_storage,
+              db_name: 'mydatabase',
+              username: 'dbadmin',
+              password: 'SECRET_PASSWORD_PLACEHOLDER',
+              publicly_accessible: typeof publiclyAccessibleProp === 'boolean' ? publiclyAccessibleProp : null,
+              db_subnet_group_name: typeof dbSubnetGroupNameProp === 'string' && dbSubnetGroupNameProp.trim() ? dbSubnetGroupNameProp.trim() : null,
+              skip_final_snapshot: true,
+              tags: { Name: identifier },
+            },
+          };
+        });
+
+      // VPC Resources
+      const vpcResources = state.placedNodes
+        .filter((node) => ((node as any)?.serviceId === 'vpc' && !(node as any)?.subServiceId) || node.icon?.id === 'vpc')
+        .map((node) => {
+          const vpcName = (node as any)?.properties?.vpcName || node.icon.name || 'MyVPC';
+          const cidrBlock = (node as any)?.properties?.cidrBlock || '10.0.0.0/16';
+          const resourceName = sanitize(vpcName);
+          return {
+            type: 'aws_vpc',
+            name: resourceName,
+            properties: {
+              cidr_block: cidrBlock,
+              enable_dns_hostnames: true,
+              tags: { Name: vpcName },
+            },
+          };
+        });
+
+      // CloudFront Distributions
+      const cloudfrontResources = state.placedNodes
+        .filter((node) => node.subServiceId === 'cf-distribution' || node.icon.id === 'cf-distribution')
+        .map((node) => {
+          let distributionName: string = '';
+          const parentId = (node as any)?.parentNodeId;
+          if (parentId) {
+            const parent = state.placedNodes.find((n) => n.id === parentId);
+            const maybeName = (parent as any)?.properties?.distributionName;
+            if (typeof maybeName === 'string' && maybeName.trim()) distributionName = maybeName.trim();
+          }
+          if (!distributionName) distributionName = node.icon.name || 'my_cdn_distribution';
+
+          let originDomain = (node as any)?.properties?.originDomain;
+          if (typeof originDomain !== 'string' || !originDomain.trim()) originDomain = 'my_app_storage_bucket.s3.amazonaws.com';
+
+          const resolveBucketNameFromDomain = (domain: string): string => {
+            const match = domain.match(/^([a-z0-9\-_.]+)\.s3\.amazonaws\.com$/i);
+            return match ? match[1] : domain.replace(/[^a-z0-9\-]/gi, '-');
+          };
+
+          const findConnectedS3BucketName = (cfNodeId: string): string | null => {
+            for (const conn of state.connections) {
+              let otherNodeId: string | null = null;
+              if (conn.fromNodeId === cfNodeId) otherNodeId = conn.toNodeId;
+              else if (conn.toNodeId === cfNodeId) otherNodeId = conn.fromNodeId;
+              if (!otherNodeId) continue;
+
+              const other = state.placedNodes.find((n) => n.id === otherNodeId);
+              if (!other) continue;
+              const isS3Bucket = other.subServiceId === 's3-bucket' || other.icon.id === 's3-bucket';
+              if (isS3Bucket) {
+                let bName = '';
+                const s3ParentId = (other as any)?.parentNodeId;
+                if (s3ParentId) {
+                  const s3Parent = state.placedNodes.find((n) => n.id === s3ParentId);
+                  const maybeBucket = (s3Parent as any)?.properties?.bucketName;
+                  if (typeof maybeBucket === 'string' && maybeBucket.trim()) bName = maybeBucket.trim();
+                }
+                if (!bName) {
+                  const own = (other as any)?.properties?.bucketName;
+                  if (typeof own === 'string' && own.trim()) bName = own.trim();
+                }
+                if (!bName) bName = other.icon.name || 'my_app_storage_bucket';
+                return bName;
+              }
+            }
+            return null;
+          };
+
+          const connectedBucketName = findConnectedS3BucketName(node.id);
+          const bucketNameForIds = connectedBucketName || resolveBucketNameFromDomain(originDomain);
+          const originId = `S3-${bucketNameForIds.replace(/_/g, '-')}`;
+
+          const resourceName = sanitize(distributionName);
+          return {
+            type: 'aws_cloudfront_distribution',
+            name: resourceName,
+            properties: {
+              origin: { domain_name: originDomain, origin_id: originId },
+              enabled: true,
+              is_ipv6_enabled: true,
+              default_cache_behavior: {
+                target_origin_id: originId,
+                viewer_protocol_policy: 'redirect-to-https',
+                allowed_methods: ['GET', 'HEAD', 'OPTIONS'],
+                cached_methods: ['GET', 'HEAD'],
+              },
+              restrictions: { geo_restriction: { restriction_type: 'none' } },
+              viewer_certificate: { cloudfront_default_certificate: true },
+            },
+          };
+        });
+
+      allResources.push(
+        ...ec2Resources,
+        ...s3Resources,
+        ...lambdaResources,
+        ...rdsResources,
+        ...vpcResources,
+        ...cloudfrontResources
+      );
+
+      return {
+        total_resources: allResources.length,
+        resources: allResources
+      };
+    }
 
     // EC2 Instance
     const isEc2Instance = editingNode.subServiceId === 'ec2-instance' || (editingNode as any).icon?.id === 'ec2-instance';
@@ -60,6 +366,9 @@ const PropertiesPanel: React.FC = () => {
       const ami = (editingNode as any)?.properties?.ami || '';
       const instanceType = (editingNode as any)?.properties?.instanceType || '';
       const keyName = (editingNode as any)?.properties?.keyPair || '';
+      const sgNames: string[] = Array.isArray((editingNode as any)?.properties?.securityGroups)
+        ? (editingNode as any).properties.securityGroups
+        : [];
 
       let parentName: string | undefined = undefined;
       if ((editingNode as any)?.parentNodeId) {
@@ -81,6 +390,7 @@ const PropertiesPanel: React.FC = () => {
           instance_type: instanceType,
           subnet_id: resolveSubnetIdForInstance((editingNode as any).id),
           key_name: keyName,
+          security_groups: sgNames,
           tags: { Name: nameTag, Environment: 'Production' },
         },
       };
@@ -699,11 +1009,107 @@ const PropertiesPanel: React.FC = () => {
             </div>
             {activeTab === 'properties' ? (
               allProperties.length === 0 ? (
-                <div
-                  className="text-center py-8"
-                  style={{ color: theme.textSecondary }}
-                >
-                  <p>Select a service to configure its properties</p>
+                <div className="space-y-4">
+                  {(scriptObject as any)?.resources && (scriptObject as any).resources.length > 0 ? (
+                    <>
+                      <div className="text-sm text-slate-600">
+                        Showing {(scriptObject as any).total_resources} resources from canvas
+                      </div>
+                      <div className="space-y-3">
+                        {(scriptObject as any).resources.map((res: any, idx: number) => (
+                          <div key={idx} className="p-4 rounded-xl border bg-white">
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm font-semibold text-slate-800">{res.name}</div>
+                              <div className="text-xs text-slate-600">{res.type}</div>
+                            </div>
+                            <div className="mt-2 text-xs text-slate-700">
+                              {res.type === 'aws_instance' && (
+                                <span>AMI: {res.properties?.ami} | Type: {res.properties?.instance_type}</span>
+                              )}
+                              {res.type === 'aws_s3_bucket' && (
+                                <span>Bucket: {res.properties?.bucket} | Public: {String(!res.properties?.block_public_access)}</span>
+                              )}
+                              {res.type === 'aws_lambda_function' && (
+                                <span>Function: {res.properties?.function_name} | Runtime: {res.properties?.runtime}</span>
+                              )}
+                              {res.type === 'aws_db_instance' && (
+                                <span>DB: {res.properties?.identifier} | Engine: {res.properties?.engine}</span>
+                              )}
+                              {res.type === 'aws_vpc' && (
+                                <span>CIDR: {res.properties?.cidr_block}</span>
+                              )}
+                              {res.type === 'aws_cloudfront_distribution' && (
+                                <span>Origin: {res.properties?.origin?.domain_name}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-4">
+                        <h4 className="text-sm font-semibold text-slate-800 mb-2">Export JSON</h4>
+                        <pre className="text-xs p-3 rounded-lg bg-slate-50 border overflow-x-auto">
+                          {JSON.stringify(scriptObject, null, 2)}
+                        </pre>
+                      </div>
+                    </>
+                  ) : (
+                    <div>
+                      {state.placedNodes.length === 0 ? (
+                        <div className="text-center py-8" style={{ color: theme.textSecondary }}>
+                          <p>No services on canvas. Add items to see export data.</p>
+                        </div>
+                      ) : (
+                        <>
+
+                          <div className="mt-4">
+                            <h4 className="text-sm font-semibold text-slate-800 mb-2">Canvas Nodes JSON</h4>
+                            <pre className="text-xs text-black p-3 rounded-lg bg-slate-50 border overflow-x-auto">
+                              {JSON.stringify(
+                                state.placedNodes
+                                  .filter((group: any) => group.parentNodeId !== "root" && group.parentNodeId !== null && group.parentNodeId !== undefined)
+                                  .map((group: any) => ({
+                                    id: group.id,
+                                    name: group.icon?.name || group.label || "",
+                                    serviceId: group.serviceId,
+                                    subServiceId: group.subServiceId,
+                                    properties: group.properties || {},
+                                    parentNodeId: group.parentNodeId,
+                                  }))
+                                  .reduce((acc: any[], current: any) => {
+                                    const parentId = current.parentNodeId;
+                                    const existingParent = acc.find((item: any) => item.parentNodeId === parentId && item.children);
+
+                                    if (existingParent) {
+                                      // Add to existing parent's children
+                                      existingParent.children.push(current);
+                                    } else {
+                                      // Check if this is the first child of this parent
+                                      const parentGroup = acc.find((item: any) => item.parentNodeId === parentId);
+
+                                      if (parentGroup && !parentGroup.children) {
+                                        // Convert existing item to parent with children
+                                        const firstChild = acc.splice(acc.indexOf(parentGroup), 1)[0];
+                                        acc.push({
+                                          parentNodeId: parentId,
+                                          children: [firstChild, current],
+                                        });
+                                      } else {
+                                        // First item of this parent
+                                        acc.push(current);
+                                      }
+                                    }
+
+                                    return acc;
+                                  }, []),
+                                null,
+                                2
+                              )}
+                            </pre>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -773,9 +1179,50 @@ const PropertiesPanel: React.FC = () => {
                             )}
                           </div>
                         ))}
+
+                        {/* Security Groups dropdown inside Configuration for EC2 Instances */}
+                        {(editingNode && (editingNode.subServiceId === 'ec2-instance' || (editingNode as any)?.icon?.id === 'ec2-instance')) && (
+                          <div className="p-4 rounded-xl border bg-white">
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="text-xs font-medium text-slate-700">Security Groups</label>
+                              <span className="text-xs px-2 py-0.5 rounded border bg-slate-100 text-slate-700">Optional</span>
+                            </div>
+                            <p className="text-xs mb-2 text-slate-600">Associate security groups with this EC2 instance.</p>
+                            {(() => {
+                              const parentId = (editingNode as any)?.parentNodeId;
+                              const sgNodes = parentId ? listSecurityGroupsForParent(parentId) : [];
+                              if (!sgNodes || sgNodes.length === 0) {
+                                return (
+                                  <p className="text-xs text-slate-600">No security groups available. Add one from the Sub-Services tab.</p>
+                                );
+                              }
+                              const value = selectedSecurityGroups;
+                              return (
+                                <select
+                                  multiple
+                                  className="w-full bg-white border rounded-lg px-3 py-2 text-sm text-slate-900"
+                                  value={value}
+                                  onChange={(e) => {
+                                    const next = Array.from(e.target.selectedOptions).map((o) => o.value);
+                                    setSelectedSecurityGroups(next);
+                                    updateEc2SecurityGroups((editingNode as any).id, next);
+                                  }}
+                                >
+                                  {sgNodes.map((sg) => {
+                                    const name = (sg as any)?.properties?.groupName || sg.icon.name || 'security-group';
+                                    return (
+                                      <option key={sg.id} value={name}>{name}</option>
+                                    );
+                                  })}
+                                </select>
+                              );
+                            })()}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
+
                   {/* Cost Estimation */}
                   <div>
                     <h3 className="text-sm font-semibold text-slate-800 mb-3">Cost Estimation</h3>
@@ -800,7 +1247,7 @@ const PropertiesPanel: React.FC = () => {
                       </pre>
                     </div>
                   </div>
-                  
+
                   {/* Listeners section for Load Balancer-style UI */}
                   {listeners.length > 0 && (
                     <div>

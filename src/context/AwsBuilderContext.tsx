@@ -83,6 +83,9 @@ export type AwsBuilderContextValue = {
   // Virtual anchor registration for aggregated boxes
   registerVirtualAnchors: (anchors: { id: string; x: number; y: number }[]) => void;
   unregisterVirtualAnchorsByPrefix: (prefix: string) => void;
+  // Security Group helpers
+  listSecurityGroupsForParent: (parentNodeId: string) => PlacedNode[];
+  updateEc2SecurityGroups: (ec2NodeId: string, groupNames: string[]) => void;
 };
 
 const AwsBuilderContext = createContext<AwsBuilderContextValue | undefined>(undefined);
@@ -229,6 +232,25 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
     if (ec2Sub) addSubServiceNode(ec2Sub, service, baseX, baseY, ec2Props, parentNode.id);
     if (ebsSub) addSubServiceNode(ebsSub, service, baseX + 120, baseY, ebsProps, parentNode.id);
     if (sgSub) addSubServiceNode(sgSub, service, baseX + 240, baseY, sgProps, parentNode.id);
+  };
+
+  // Helper: list SG sub-service nodes under a given parent EC2 aggregate
+  const listSecurityGroupsForParent = (parentNodeId: string): PlacedNode[] => {
+    return state.placedNodes.filter(
+      (n) => (n.subServiceId === 'security-group' || n.icon.id === 'security-group') && n.parentNodeId === parentNodeId
+    );
+  };
+
+  // Helper: update EC2 instance node with selected SG names
+  const updateEc2SecurityGroups = (ec2NodeId: string, groupNames: string[]) => {
+    setState((prev) => ({
+      ...prev,
+      placedNodes: prev.placedNodes.map((n) =>
+        n.id === ec2NodeId
+          ? { ...n, properties: { ...(n.properties || {}), securityGroups: groupNames } }
+          : n
+      ),
+    }));
   };
   const removeNode = (nodeId: string) => {
     // Remove pricing for the service
@@ -629,6 +651,9 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
      // Virtual anchor helpers
      registerVirtualAnchors,
      unregisterVirtualAnchorsByPrefix,
+     // Security Group helpers
+     listSecurityGroupsForParent,
+     updateEc2SecurityGroups,
   };
 
   return (

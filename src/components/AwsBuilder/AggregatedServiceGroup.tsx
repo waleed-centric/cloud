@@ -51,7 +51,7 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
   const [pos, setPos] = useState<{ x: number; y: number }>({ x, y });
   const [hovered, setHovered] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-
+  
   // Provider-aware service resolution for required props
   const resolveService = () => {
     switch (currentProvider) {
@@ -119,7 +119,7 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
     // Use a unique prefix that includes position to avoid conflicts between multiple instances
     const uniqueId = nodeIds.length > 0 ? nodeIds[0] : 'default';
     const prefix = `agg-${serviceId}-${uniqueId}-`;
-    
+
     // Clear old anchors first
     unregisterVirtualAnchorsByPrefix(prefix);
 
@@ -308,8 +308,8 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
                   {category || 'Service'} • {nodeIds.length} instance{nodeIds.length !== 1 ? 's' : ''}
                 </div>
               </div>
-              </div>
-              <div className="flex items-center gap-2">
+            </div>
+            <div className="flex items-center gap-2">
               <div className="text-xs px-2 py-1 rounded-full bg-blue-100 border border-blue-300 shrink-0 text-blue-700 font-medium">
                 {nodeIds.length}
               </div>
@@ -343,71 +343,71 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
 
         {/* Totals / Gating */}
         {!collapsed && (
-        <>
-        <div className="px-4 py-3 bg-slate-50/80">
-          <div className="text-sm text-slate-800">
-            {allConfigured ? (
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs opacity-75 text-slate-600">Total Monthly</div>
-                  <div className="text-lg font-bold text-blue-600">${totalMonthly.toFixed(2)}</div>
-                </div>
-                <div className="w-2 h-2 rounded-full bg-green-400"></div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-medium text-slate-700">Configuration Required</div>
-                  <div className="text-xs opacity-75 text-slate-600">
-                    {nodeIds.length - configuredCount} resource{nodeIds.length - configuredCount !== 1 ? 's' : ''} pending
-                  </div>
-                </div>
-                <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Resource tiles */}
-        <div className="px-4 pb-4">
-          <div className="grid grid-cols-2 gap-2">
-            {nodeIds.map((id) => {
-              const node = state.placedNodes.find((n) => n.id === id);
-              if (!node) return null;
-              const sub = resolveSub(node.subServiceId);
-              const props = (sub?.properties || []) as ServiceProperty[];
-              const subtitleProp = props.find((p: ServiceProperty) => p.required) || props[0];
-              const subtitleValue = subtitleProp ? node.properties?.[subtitleProp.id] : undefined;
-
-            return (
-              <div
-                key={id}
-                className="rounded-lg border bg-white hover:bg-slate-100 transition-all duration-200 cursor-pointer group border-slate-300"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedNode(id);
-                  if (service) {
-                    openPropertiesPanel(service as any, sub as any);
-                  }
-                }}
-              >
-                <div className="flex items-center gap-3 p-3">
-                  <div className="w-6 h-6 [&>svg]:w-full [&>svg]:h-full opacity-90 group-hover:opacity-100 transition-opacity" dangerouslySetInnerHTML={{ __html: (node.icon as any)?.svg || '' }} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-medium truncate text-slate-800">
-                      {node.icon.name}
+          <>
+            <div className="px-4 py-3 bg-slate-50/80">
+              <div className="text-sm text-slate-800">
+                {allConfigured ? (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs opacity-75 text-slate-600">Total Monthly</div>
+                      <div className="text-lg font-bold text-blue-600">${totalMonthly.toFixed(2)}</div>
                     </div>
-                    <div className="text-[10px] opacity-75 truncate text-slate-600">
-                      {subtitleValue ? String(subtitleValue) : (sub?.name || node.icon.category || '')}
-                    </div>
+                    <div className="w-2 h-2 rounded-full bg-green-400"></div>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-medium text-slate-700">Configuration Required</div>
+                      <div className="text-xs opacity-75 text-slate-600">
+                        {nodeIds.length - configuredCount} resource{nodeIds.length - configuredCount !== 1 ? 's' : ''} pending
+                      </div>
+                    </div>
+                    <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+                  </div>
+                )}
               </div>
-            );
-          })}
-          </div>
-        </div>
-        </>
+            </div>
+
+            {/* Resource tiles */}
+            <div className="px-4 pb-4">
+              <div className="grid grid-cols-2 gap-2">
+                {nodeIds.map((id) => {
+                  const node = state.placedNodes.find((n) => n.id === id);
+                  if (!node) return null;
+                  const sub = resolveSub(node.subServiceId);
+                  const props = (sub?.properties || []) as ServiceProperty[];
+                  const subtitleProp = props.find((p: ServiceProperty) => p.required) || props[0];
+                  const subtitleValue = subtitleProp ? node.properties?.[subtitleProp.id] : undefined;
+
+                  return (
+                    <div
+                      key={id}
+                      className="rounded-lg border bg-white hover:bg-slate-100 transition-all duration-200 cursor-pointer group border-slate-300"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedNode(id);
+                        if (service) {
+                          openPropertiesPanel(service as any, sub as any);
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-3 p-3">
+                        <div className="w-6 h-6 [&>svg]:w-full [&>svg]:h-full opacity-90 group-hover:opacity-100 transition-opacity" dangerouslySetInnerHTML={{ __html: (node.icon as any)?.svg || '' }} />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-medium truncate text-slate-800">
+                            {node.icon.name}
+                          </div>
+                          <div className="text-[10px] opacity-75 truncate text-slate-600">
+                            {subtitleValue ? String(subtitleValue) : (sub?.name || node.icon.category || '')}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
         )}
       </div>
       {/* Dragging handled on container; overlay removed to allow dot clicks */}
