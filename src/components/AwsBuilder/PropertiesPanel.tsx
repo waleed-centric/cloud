@@ -1017,7 +1017,103 @@ const PropertiesPanel: React.FC = () => {
                   ) : (
                     <>
                       <div className="mt-4">
-                        <h4 className="text-sm font-semibold text-slate-800 mb-2">Canvas Nodes JSON</h4>
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-sm font-semibold text-slate-800">Canvas Nodes JSON</h4>
+                          <button
+                            type="button"
+                            className="text-xs px-2 py-1 rounded-md bg-slate-800 text-white hover:bg-slate-700"
+                            onClick={() => {
+                              const nodes = state.placedNodes
+                                .filter((group: any) => group.parentNodeId !== "root" && group.parentNodeId !== null && group.parentNodeId !== undefined);
+
+                              const n = nodes.length;
+                              const parentArr: number[] = Array.from({ length: n }, (_, i) => i);
+                              const find = (x: number): number => {
+                                while (parentArr[x] !== x) { parentArr[x] = parentArr[parentArr[x]]; x = parentArr[x]; }
+                                return x;
+                              };
+                              const union = (a: number, b: number) => {
+                                const ra = find(a), rb = find(b);
+                                if (ra !== rb) parentArr[rb] = ra;
+                              };
+
+                              const nameMap: Record<string, number[]> = {};
+                              nodes.forEach((node: any, idx: number) => {
+                                const key = node?.icon?.name || node?.label || "instance name";
+                                if (!nameMap[key]) nameMap[key] = [];
+                                nameMap[key].push(idx);
+                              });
+                              Object.values(nameMap).forEach((arr) => { for (let i = 1; i < arr.length; i++) union(arr[0], arr[i]); });
+
+                              const pMap: Record<string, number[]> = {};
+                              nodes.forEach((node: any, idx: number) => {
+                                const p = (node as any)?.parentNodeId;
+                                if (!p) return;
+                                const key = String(p);
+                                if (!pMap[key]) pMap[key] = [];
+                                pMap[key].push(idx);
+                              });
+                              Object.values(pMap).forEach((arr) => { for (let i = 1; i < arr.length; i++) union(arr[0], arr[i]); });
+
+                              const groupsMap: Record<number, number[]> = {};
+                              for (let i = 0; i < n; i++) {
+                                const r = find(i);
+                                if (!groupsMap[r]) groupsMap[r] = [];
+                                groupsMap[r].push(i);
+                              }
+                              const groups = Object.values(groupsMap).map((idxs) => idxs.map((i) => nodes[i]));
+
+                              const mergeProps = (groupNodes: any[]) => {
+                                const allKeys = Array.from(new Set(groupNodes.flatMap((n: any) => Object.keys(n?.properties || {}))));
+                                const result: Record<string, any> = {};
+                                allKeys.forEach((k) => {
+                                  const vals = groupNodes.map((n: any) => (n?.properties || {})[k]).filter((v) => v !== undefined && v !== null);
+                                  if (vals.length === 0) return;
+                                  const first = vals[0];
+                                  const allEqual = vals.every((v) => {
+                                    try { return JSON.stringify(v) === JSON.stringify(first); } catch { return v === first; }
+                                  });
+                                  if (allEqual) {
+                                    result[k] = first;
+                                  } else if (vals.every((v) => Array.isArray(v))) {
+                                    const unionVals = Array.from(new Set((vals as any[]).flat()));
+                                    result[k] = unionVals;
+                                  } else if (vals.every((v) => typeof v !== 'object' || v === null)) {
+                                    const uniq = Array.from(new Set(vals));
+                                    result[k] = uniq.length === 1 ? uniq[0] : uniq;
+                                  } else {
+                                    result[k] = vals[vals.length - 1];
+                                  }
+                                });
+                                return result;
+                              };
+
+                              const exportGroups = groups.map((groupNodes) => {
+                                const names = groupNodes.map((n: any) => n?.icon?.name || n?.label).filter(Boolean) as string[];
+                                const nameFreq: Record<string, number> = {};
+                                names.forEach((nm) => { nameFreq[nm] = (nameFreq[nm] || 0) + 1; });
+                                const name = names.length
+                                  ? Object.entries(nameFreq).sort((a, b) => b[1] - a[1])[0][0]
+                                  : 'instance name';
+                                const distinctServiceIds = Array.from(new Set(groupNodes.map((n: any) => n?.serviceId || 'instance')));
+                                const merged = mergeProps(groupNodes);
+                                return { name, services: distinctServiceIds, properties: merged };
+                              });
+
+                              const blob = new Blob([JSON.stringify({ groups: exportGroups }, null, 2)], { type: 'application/json' });
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = `canvas-nodes-${Date.now()}.json`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              URL.revokeObjectURL(url);
+                            }}
+                          >
+                            Export JSON
+                          </button>
+                        </div>
                         <div className="text-xs text-black p-0 rounded-lg bg-slate-50 border overflow-x-auto">
                           <div className="p-3">
                             {(() => {
