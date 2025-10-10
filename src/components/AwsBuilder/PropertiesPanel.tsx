@@ -1017,43 +1017,7 @@ const PropertiesPanel: React.FC = () => {
                   ) : (
                     <>
                       {/* Show Export JSON if scriptObject has resources */}
-                      {(scriptObject as any)?.resources && (scriptObject as any).resources.length > 0 && (
-                        <>
-                          <div className="text-sm text-slate-600">
-                            Showing {(scriptObject as any).total_resources} resources from canvas
-                          </div>
-                          <div className="space-y-3">
-                            {(scriptObject as any).resources.map((res: any, idx: number) => (
-                              <div key={idx} className="p-4 rounded-xl border bg-white">
-                                <div className="flex items-center justify-between">
-                                  <div className="text-sm font-semibold text-slate-800">{res.name}</div>
-                                  <div className="text-xs text-slate-600">{res.type}</div>
-                                </div>
-                                <div className="mt-2 text-xs text-slate-700">
-                                  {res.type === 'aws_instance' && (
-                                    <span>AMI: {res.properties?.ami} | Type: {res.properties?.instance_type}</span>
-                                  )}
-                                  {res.type === 'aws_s3_bucket' && (
-                                    <span>Bucket: {res.properties?.bucket} | Public: {String(!res.properties?.block_public_access)}</span>
-                                  )}
-                                  {res.type === 'aws_lambda_function' && (
-                                    <span>Function: {res.properties?.function_name} | Runtime: {res.properties?.runtime}</span>
-                                  )}
-                                  {res.type === 'aws_db_instance' && (
-                                    <span>DB: {res.properties?.identifier} | Engine: {res.properties?.engine}</span>
-                                  )}
-                                  {res.type === 'aws_vpc' && (
-                                    <span>CIDR: {res.properties?.cidr_block}</span>
-                                  )}
-                                  {res.type === 'aws_cloudfront_distribution' && (
-                                    <span>Origin: {res.properties?.origin?.domain_name}</span>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
+                      
 
                       {/* Always show Canvas Nodes JSON when there are placed nodes */}
                       <div className="mt-4">
