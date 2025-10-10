@@ -522,21 +522,94 @@ export function ExportPanel() {
     return 'us-east-1';
   };
 
+  // --- Helpers for HCL formatting ---
+  const toSnakeCase = (key: string) => key
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/\s+/g, '_')
+    .toLowerCase();
+
+  const formatHclValue = (value: any): string => {
+    if (value === null || value === undefined) return 'null';
+    if (typeof value === 'number') return String(value);
+    if (typeof value === 'boolean') return value ? 'true' : 'false';
+    if (Array.isArray(value)) {
+      const parts = value.map(v => typeof v === 'string' ? `"${v}"` : formatHclValue(v));
+      return `[ ${parts.join(', ')} ]`;
+    }
+    if (typeof value === 'object') {
+      // simple object inline formatting
+      const entries = Object.entries(value).map(([k, v]) => `${toSnakeCase(k)} = ${formatHclValue(v)}`);
+      return `{ ${entries.join(', ')} }`;
+    }
+    return `"${String(value)}"`;
+  };
+
+  const formatAlignedHclBlock = (
+    resourceType: string,
+    resourceName: string,
+    properties: Record<string, any>
+  ): string => {
+    const entries = Object.entries(properties)
+      .map(([k, v]) => [toSnakeCase(k), v] as [string, any]);
+    const maxKeyLen = entries.reduce((m, [k]) => Math.max(m, k.length), 0);
+    const lines = entries.map(([k, v]) => `  ${k.padEnd(maxKeyLen, ' ')} = ${formatHclValue(v)}`);
+    return `resource "${resourceType}" "${resourceName}" {\n${lines.join('\n')}\n}`;
+  };
+
   const generateTerraformHCL = (): string => {
     const providerBlock = `provider "aws" {\n  region = "${getAwsRegionFromNodes()}"\n}`;
 
     const resources: string[] = [];
 
+    // EC2 Instances
     state.placedNodes.forEach((node) => {
       const isEc2Instance = node.subServiceId === 'ec2-instance' || node.icon.id === 'ec2-instance';
       if (!isEc2Instance) return;
 
-      const ami = (node as any)?.properties?.ami || 'ami-0c55b159cbfafe1f0';
-      const instanceType = (node as any)?.properties?.instanceType || 't2.micro';
       const nameTag = (node as any)?.properties?.name || node.icon.name || 'web_server';
       const resourceName = sanitizeResourceName(nameTag);
+      const ami = (node as any)?.properties?.ami || 'ami-0c55b159cbfafe1f0';
+      const instanceType = (node as any)?.properties?.instanceType || 't2.micro';
 
-      resources.push(`resource "aws_instance" "${resourceName}" {\n  ami           = "${ami}"\n  instance_type = "${instanceType}"\n\n  tags = {\n    Name = "${nameTag}"\n  }\n}`);
+      const props = {
+        ami,
+        instance_type: instanceType,
+        tags: { Name: nameTag },
+      } as Record<string, any>;
+
+      resources.push(formatAlignedHclBlock('aws_instance', resourceName, props));
+    });
+
+    // RDS Instances
+    state.placedNodes.forEach((node) => {
+      const isRdsInstance = node.subServiceId === 'rds-instance' || node.icon.id === 'rds-instance';
+      if (!isRdsInstance) return;
+
+      // Prefer parent identifier if present
+      let identifier: string = '';
+      const parentId = (node as any)?.parentNodeId;
+      if (parentId) {
+        const parent = state.placedNodes.find((n) => n.id === parentId);
+        const maybeId = (parent as any)?.properties?.dbInstanceIdentifier;
+        if (typeof maybeId === 'string' && maybeId.trim()) identifier = maybeId.trim();
+      }
+      if (!identifier) identifier = node.icon.name || 'my_database';
+
+      const engine = (node as any)?.properties?.engine || 'mysql';
+      const instanceClass = (node as any)?.properties?.instanceClass || 'db.t3.micro';
+      const alloc = (node as any)?.properties?.allocatedStorage;
+      const allocated_storage = typeof alloc === 'number' ? alloc : 20;
+      const engineVersion = (node as any)?.properties?.engineVersion;
+
+      const props: Record<string, any> = {
+        engine,
+        instance_class: instanceClass,
+        allocated_storage,
+      };
+      if (engineVersion) props.engine_version = engineVersion;
+
+      const resourceName = sanitizeResourceName(identifier);
+      resources.push(formatAlignedHclBlock('aws_db_instance', resourceName, props));
     });
 
     return [providerBlock, ...resources].join('\n\n');
@@ -546,8 +619,8 @@ export function ExportPanel() {
     // For now, support AWS EC2 Instance export
     const hcl = generateTerraformHCL();
 
-    if (!hcl || !hcl.includes('resource "aws_instance"')) {
-      alert('No EC2 Instance found to export. Add an EC2 Instance sub-service.');
+    if (!hcl || !hcl.includes('resource')) {
+      alert('No supported resources found to export. Add EC2 or RDS.');
       return;
     }
 
@@ -623,6 +696,14 @@ export function ExportPanel() {
             <div className="text-xs text-gray-500">Provider + aws_instance (AWS)</div>
           </div>
         </button>
+      </div>
+
+      {/* Terraform (HCL) Preview */}
+      <div className="mt-3">
+        <div className="text-xs text-gray-600 mb-1">Terraform Preview</div>
+        <pre className="text-xs rounded-lg p-3 bg-slate-900 text-slate-100 overflow-x-auto">
+          {generateTerraformHCL()}
+        </pre>
       </div>
     </div>
   );

@@ -1016,54 +1016,129 @@ const PropertiesPanel: React.FC = () => {
                     </div>
                   ) : (
                     <>
-                      {/* Show Export JSON if scriptObject has resources */}
-                      
-
-                      {/* Always show Canvas Nodes JSON when there are placed nodes */}
                       <div className="mt-4">
                         <h4 className="text-sm font-semibold text-slate-800 mb-2">Canvas Nodes JSON</h4>
-                        <pre className="text-xs text-black p-3 rounded-lg bg-slate-50 border overflow-x-auto">
-                          {JSON.stringify(
-                            state.placedNodes
-                              .filter((group: any) => group.parentNodeId !== "root" && group.parentNodeId !== null && group.parentNodeId !== undefined)
-                              .map((group: any) => ({
-                                id: group.id,
-                                name: group.icon?.name || group.label || "",
-                                serviceId: group.serviceId,
-                                subServiceId: group.subServiceId,
-                                properties: group.properties || {},
-                                parentNodeId: group.parentNodeId,
-                              }))
-                              .reduce((acc: any[], current: any) => {
-                                const parentId = current.parentNodeId;
-                                const existingParent = acc.find((item: any) => item.parentNodeId === parentId && item.children);
+                        <div className="text-xs text-black p-0 rounded-lg bg-slate-50 border overflow-x-auto">
+                          <div className="p-3">
+                            {(() => {
+                              const nodes = state.placedNodes
+                                .filter((group: any) => group.parentNodeId !== "root" && group.parentNodeId !== null && group.parentNodeId !== undefined);
 
-                                if (existingParent) {
-                                  // Add to existing parent's children
-                                  existingParent.children.push(current);
-                                } else {
-                                  // Check if this is the first child of this parent
-                                  const parentGroup = acc.find((item: any) => item.parentNodeId === parentId);
+                              const n = nodes.length;
+                              const parentArr: number[] = Array.from({ length: n }, (_, i) => i);
+                              const find = (x: number): number => {
+                                while (parentArr[x] !== x) { parentArr[x] = parentArr[parentArr[x]]; x = parentArr[x]; }
+                                return x;
+                              };
+                              const union = (a: number, b: number) => {
+                                const ra = find(a), rb = find(b);
+                                if (ra !== rb) parentArr[rb] = ra;
+                              };
 
-                                  if (parentGroup && !parentGroup.children) {
-                                    // Convert existing item to parent with children
-                                    const firstChild = acc.splice(acc.indexOf(parentGroup), 1)[0];
-                                    acc.push({
-                                      parentNodeId: parentId,
-                                      children: [firstChild, current],
-                                    });
-                                  } else {
-                                    // First item of this parent
-                                    acc.push(current);
-                                  }
+                              // Union by name
+                              const nameMap: Record<string, number[]> = {};
+                              nodes.forEach((node: any, idx: number) => {
+                                const key = node?.icon?.name || node?.label || "instance name";
+                                if (!nameMap[key]) nameMap[key] = [];
+                                nameMap[key].push(idx);
+                              });
+                              Object.values(nameMap).forEach((arr) => { for (let i = 1; i < arr.length; i++) union(arr[0], arr[i]); });
+
+                              // Union by parentNodeId
+                              const pMap: Record<string, number[]> = {};
+                              nodes.forEach((node: any, idx: number) => {
+                                const p = (node as any)?.parentNodeId;
+                                if (!p) return;
+                                const key = String(p);
+                                if (!pMap[key]) pMap[key] = [];
+                                pMap[key].push(idx);
+                              });
+                              Object.values(pMap).forEach((arr) => { for (let i = 1; i < arr.length; i++) union(arr[0], arr[i]); });
+
+                              // Build groups by root
+                              const groupsMap: Record<number, number[]> = {};
+                              for (let i = 0; i < n; i++) {
+                                const r = find(i);
+                                if (!groupsMap[r]) groupsMap[r] = [];
+                                groupsMap[r].push(i);
+                              }
+                              const groups = Object.values(groupsMap).map((idxs) => idxs.map((i) => nodes[i]));
+
+                              const renderValue = (val: any) => {
+                                if (Array.isArray(val)) {
+                                  const parts = val.map((v) => typeof v === 'string' ? `"${v}"` : String(v));
+                                  return `[ ${parts.join(', ')} ]`;
                                 }
+                                if (typeof val === 'object' && val !== null) {
+                                  try { return JSON.stringify(val); } catch { return String(val); }
+                                }
+                                if (typeof val === 'string') return `"${val}"`;
+                                return String(val);
+                              };
 
-                                return acc;
-                              }, []),
-                            null,
-                            2
-                          )}
-                        </pre>
+                              const mergeProps = (groupNodes: any[]) => {
+                                const allKeys = Array.from(new Set(groupNodes.flatMap((n: any) => Object.keys(n?.properties || {}))));
+                                const result: Record<string, any> = {};
+                                allKeys.forEach((k) => {
+                                  const vals = groupNodes.map((n: any) => (n?.properties || {})[k]).filter((v) => v !== undefined && v !== null);
+                                  if (vals.length === 0) return;
+                                  const first = vals[0];
+                                  const allEqual = vals.every((v) => {
+                                    try { return JSON.stringify(v) === JSON.stringify(first); } catch { return v === first; }
+                                  });
+                                  if (allEqual) {
+                                    result[k] = first;
+                                  } else if (vals.every((v) => Array.isArray(v))) {
+                                    const unionVals = Array.from(new Set((vals as any[]).flat()));
+                                    result[k] = unionVals;
+                                  } else if (vals.every((v) => typeof v !== 'object' || v === null)) {
+                                    const uniq = Array.from(new Set(vals));
+                                    result[k] = uniq.length === 1 ? uniq[0] : uniq;
+                                  } else {
+                                    result[k] = vals[vals.length - 1];
+                                  }
+                                });
+                                return result;
+                              };
+
+                              return groups.map((groupNodes, index) => {
+                                const names = groupNodes.map((n: any) => n?.icon?.name || n?.label).filter(Boolean) as string[];
+                                const nameFreq: Record<string, number> = {};
+                                names.forEach((nm) => { nameFreq[nm] = (nameFreq[nm] || 0) + 1; });
+                                const name = names.length
+                                  ? Object.entries(nameFreq).sort((a, b) => b[1] - a[1])[0][0]
+                                  : 'instance name';
+                                const distinctServiceIds = Array.from(new Set(groupNodes.map((n: any) => n?.serviceId || 'instance')));
+                                const serviceLabel = distinctServiceIds.join(', ');
+                                const merged = mergeProps(groupNodes);
+                                return (
+                                  <div key={`${name}-${index}`} className="mb-4 pb-4 border-b border-slate-200 last:border-0">
+                                    <div className="flex">
+                                      <span className="w-8 text-right pr-1 select-none text-slate-500 ">{index + 1}</span>
+                                      <span className="pl-2 font-semibold">{serviceLabel}</span>
+                                    </div>
+                                    <div className="flex">
+                                      <span className="w-8 text-right pr-2 select-none text-slate-500 "></span>
+                                      <span className="pl-2 text-blue-600">{name}</span>
+                                    </div>
+                                    <div className="flex">
+                                      <span className="w-8 text-right pr-2 select-none text-slate-500 "></span>
+                                      <div className="pl-2 w-full">
+                                        {Object.entries(merged).map(([key, value]: [string, any]) => (
+                                          <div key={key} className="flex">
+                                            <span className="text-green-600 mr-2">{key}</span>
+                                            <span className="text-orange-500">=</span>
+                                            <span className="text-blue-500 ml-2">{renderValue(value)}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+                        </div>
                       </div>
                     </>
                   )}
