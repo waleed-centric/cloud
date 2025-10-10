@@ -1010,105 +1010,98 @@ const PropertiesPanel: React.FC = () => {
             {activeTab === 'properties' ? (
               allProperties.length === 0 ? (
                 <div className="space-y-4">
-                  {(scriptObject as any)?.resources && (scriptObject as any).resources.length > 0 ? (
-                    <>
-                      <div className="text-sm text-slate-600">
-                        Showing {(scriptObject as any).total_resources} resources from canvas
-                      </div>
-                      <div className="space-y-3">
-                        {(scriptObject as any).resources.map((res: any, idx: number) => (
-                          <div key={idx} className="p-4 rounded-xl border bg-white">
-                            <div className="flex items-center justify-between">
-                              <div className="text-sm font-semibold text-slate-800">{res.name}</div>
-                              <div className="text-xs text-slate-600">{res.type}</div>
-                            </div>
-                            <div className="mt-2 text-xs text-slate-700">
-                              {res.type === 'aws_instance' && (
-                                <span>AMI: {res.properties?.ami} | Type: {res.properties?.instance_type}</span>
-                              )}
-                              {res.type === 'aws_s3_bucket' && (
-                                <span>Bucket: {res.properties?.bucket} | Public: {String(!res.properties?.block_public_access)}</span>
-                              )}
-                              {res.type === 'aws_lambda_function' && (
-                                <span>Function: {res.properties?.function_name} | Runtime: {res.properties?.runtime}</span>
-                              )}
-                              {res.type === 'aws_db_instance' && (
-                                <span>DB: {res.properties?.identifier} | Engine: {res.properties?.engine}</span>
-                              )}
-                              {res.type === 'aws_vpc' && (
-                                <span>CIDR: {res.properties?.cidr_block}</span>
-                              )}
-                              {res.type === 'aws_cloudfront_distribution' && (
-                                <span>Origin: {res.properties?.origin?.domain_name}</span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-4">
-                        <h4 className="text-sm font-semibold text-slate-800 mb-2">Export JSON</h4>
-                        <pre className="text-xs text-black p-3 rounded-lg bg-slate-50 border overflow-x-auto">
-                          {JSON.stringify(scriptObject, null, 2)}
-                        </pre>
-                      </div>
-                    </>
+                  {state.placedNodes.length === 0 ? (
+                    <div className="text-center py-8" style={{ color: theme.textSecondary }}>
+                      <p>No services on canvas. Add items to see export data.</p>
+                    </div>
                   ) : (
-                    <div>
-                      {state.placedNodes.length === 0 ? (
-                        <div className="text-center py-8" style={{ color: theme.textSecondary }}>
-                          <p>No services on canvas. Add items to see export data.</p>
-                        </div>
-                      ) : (
+                    <>
+                      {/* Show Export JSON if scriptObject has resources */}
+                      {(scriptObject as any)?.resources && (scriptObject as any).resources.length > 0 && (
                         <>
-
-                          <div className="mt-4">
-                            <h4 className="text-sm font-semibold text-slate-800 mb-2">Canvas Nodes JSON</h4>
-                            <pre className="text-xs text-black p-3 rounded-lg bg-slate-50 border overflow-x-auto">
-                              {JSON.stringify(
-                                state.placedNodes
-                                  .filter((group: any) => group.parentNodeId !== "root" && group.parentNodeId !== null && group.parentNodeId !== undefined)
-                                  .map((group: any) => ({
-                                    id: group.id,
-                                    name: group.icon?.name || group.label || "",
-                                    serviceId: group.serviceId,
-                                    subServiceId: group.subServiceId,
-                                    properties: group.properties || {},
-                                    parentNodeId: group.parentNodeId,
-                                  }))
-                                  .reduce((acc: any[], current: any) => {
-                                    const parentId = current.parentNodeId;
-                                    const existingParent = acc.find((item: any) => item.parentNodeId === parentId && item.children);
-
-                                    if (existingParent) {
-                                      // Add to existing parent's children
-                                      existingParent.children.push(current);
-                                    } else {
-                                      // Check if this is the first child of this parent
-                                      const parentGroup = acc.find((item: any) => item.parentNodeId === parentId);
-
-                                      if (parentGroup && !parentGroup.children) {
-                                        // Convert existing item to parent with children
-                                        const firstChild = acc.splice(acc.indexOf(parentGroup), 1)[0];
-                                        acc.push({
-                                          parentNodeId: parentId,
-                                          children: [firstChild, current],
-                                        });
-                                      } else {
-                                        // First item of this parent
-                                        acc.push(current);
-                                      }
-                                    }
-
-                                    return acc;
-                                  }, []),
-                                null,
-                                2
-                              )}
-                            </pre>
+                          <div className="text-sm text-slate-600">
+                            Showing {(scriptObject as any).total_resources} resources from canvas
+                          </div>
+                          <div className="space-y-3">
+                            {(scriptObject as any).resources.map((res: any, idx: number) => (
+                              <div key={idx} className="p-4 rounded-xl border bg-white">
+                                <div className="flex items-center justify-between">
+                                  <div className="text-sm font-semibold text-slate-800">{res.name}</div>
+                                  <div className="text-xs text-slate-600">{res.type}</div>
+                                </div>
+                                <div className="mt-2 text-xs text-slate-700">
+                                  {res.type === 'aws_instance' && (
+                                    <span>AMI: {res.properties?.ami} | Type: {res.properties?.instance_type}</span>
+                                  )}
+                                  {res.type === 'aws_s3_bucket' && (
+                                    <span>Bucket: {res.properties?.bucket} | Public: {String(!res.properties?.block_public_access)}</span>
+                                  )}
+                                  {res.type === 'aws_lambda_function' && (
+                                    <span>Function: {res.properties?.function_name} | Runtime: {res.properties?.runtime}</span>
+                                  )}
+                                  {res.type === 'aws_db_instance' && (
+                                    <span>DB: {res.properties?.identifier} | Engine: {res.properties?.engine}</span>
+                                  )}
+                                  {res.type === 'aws_vpc' && (
+                                    <span>CIDR: {res.properties?.cidr_block}</span>
+                                  )}
+                                  {res.type === 'aws_cloudfront_distribution' && (
+                                    <span>Origin: {res.properties?.origin?.domain_name}</span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </>
                       )}
-                    </div>
+
+                      {/* Always show Canvas Nodes JSON when there are placed nodes */}
+                      <div className="mt-4">
+                        <h4 className="text-sm font-semibold text-slate-800 mb-2">Canvas Nodes JSON</h4>
+                        <pre className="text-xs text-black p-3 rounded-lg bg-slate-50 border overflow-x-auto">
+                          {JSON.stringify(
+                            state.placedNodes
+                              .filter((group: any) => group.parentNodeId !== "root" && group.parentNodeId !== null && group.parentNodeId !== undefined)
+                              .map((group: any) => ({
+                                id: group.id,
+                                name: group.icon?.name || group.label || "",
+                                serviceId: group.serviceId,
+                                subServiceId: group.subServiceId,
+                                properties: group.properties || {},
+                                parentNodeId: group.parentNodeId,
+                              }))
+                              .reduce((acc: any[], current: any) => {
+                                const parentId = current.parentNodeId;
+                                const existingParent = acc.find((item: any) => item.parentNodeId === parentId && item.children);
+
+                                if (existingParent) {
+                                  // Add to existing parent's children
+                                  existingParent.children.push(current);
+                                } else {
+                                  // Check if this is the first child of this parent
+                                  const parentGroup = acc.find((item: any) => item.parentNodeId === parentId);
+
+                                  if (parentGroup && !parentGroup.children) {
+                                    // Convert existing item to parent with children
+                                    const firstChild = acc.splice(acc.indexOf(parentGroup), 1)[0];
+                                    acc.push({
+                                      parentNodeId: parentId,
+                                      children: [firstChild, current],
+                                    });
+                                  } else {
+                                    // First item of this parent
+                                    acc.push(current);
+                                  }
+                                }
+
+                                return acc;
+                              }, []),
+                            null,
+                            2
+                          )}
+                        </pre>
+                      </div>
+                    </>
                   )}
                 </div>
               ) : (
