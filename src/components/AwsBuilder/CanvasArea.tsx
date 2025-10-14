@@ -10,7 +10,7 @@ import { AISuggestionTooltip } from './AISuggestionTooltip';
 // - Handles drop events, node positioning, and hover-based connection mode
 
 export function CanvasArea() {
-  const { state, addNode, setConnecting, removeConnection } = useAwsBuilder();
+  const { state, addNode, setConnecting, removeConnection, setSelectedNode, closePropertiesPanel } = useAwsBuilder();
   const { currentProvider } = useCloudProvider();
   const canvasRef = useRef<HTMLDivElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -112,6 +112,9 @@ export function CanvasArea() {
     if (state.isConnecting) {
       setConnecting(false);
     }
+    // Deselect any selected node and close properties panel when clicking empty canvas
+    setSelectedNode(null);
+    closePropertiesPanel();
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {

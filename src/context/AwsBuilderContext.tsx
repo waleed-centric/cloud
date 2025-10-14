@@ -528,6 +528,8 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
     updateServiceCost(nodeId, properties);
     
     setState(prev => {
+      // Capture original target before mutation to access previous values
+      const originalTarget = prev.placedNodes.find(n => n.id === nodeId);
       // Update target node properties
       const updatedNodes = prev.placedNodes.map(node =>
         node.id === nodeId
@@ -543,42 +545,54 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
         const changedPrimary = primaryId && typeof (properties as any)[primaryId] === 'string';
         if (changedPrimary) {
           const newName = String((properties as any)[primaryId!]).trim();
-        for (let i = 0; i < updatedNodes.length; i++) {
-          const n = updatedNodes[i];
-          if (n.isSubService && n.parentNodeId === nodeId) {
-            // Resolve sub-service details to rebuild display label/svg
-            let baseName = n.icon.name;
-            let emoji = '';
-            const sub = resolveSubServiceById(n.serviceId, n.subServiceId);
-            if (sub) {
-              baseName = (sub as any).name;
-              emoji = (sub as any).icon || '';
-            }
+          const prevName = originalTarget && typeof (originalTarget.properties as any)?.[primaryId!] === 'string'
+            ? String((originalTarget.properties as any)[primaryId!]).trim()
+            : undefined;
+          const targetServiceId = originalTarget?.serviceId || originalTarget?.icon.id;
 
-            // Preserve ordinal suffix if present e.g. " (Parent 2)"
-            const match = n.icon.name.match(/\(([^)]*)\)/);
-            const ordinalPart = match && match[1] && match[1].match(/ (\d+)$/) ? ` ${match[1].match(/ (\d+)$/)![1]}` : '';
-            const displayName = `${baseName} (${newName}${ordinalPart})`;
+          // Count parents with the same previous name to avoid cross-updating
+          const sameNameParents = (prevName && targetServiceId)
+            ? updatedNodes.filter(p => !p.isSubService && (p.serviceId || p.icon.id) === targetServiceId && typeof (p.properties as any)?.[primaryId!] === 'string' && String((p.properties as any)[primaryId!]).trim() === prevName).length
+            : 0;
 
-            // Update node properties and icon
-            updatedNodes[i] = {
-              ...n,
-              properties: { ...(n.properties || {}), [primaryId!]: newName },
-              icon: {
-                id: n.icon.id,
-                name: displayName,
-                category: n.icon.category,
-                svg: `<svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+          for (let i = 0; i < updatedNodes.length; i++) {
+            const n = updatedNodes[i];
+            const isDirectChild = n.isSubService && n.parentNodeId === nodeId;
+            const isFallbackChild = !!prevName && !!targetServiceId && n.isSubService && !n.parentNodeId && n.serviceId === targetServiceId && typeof (n.properties as any)?.[primaryId!] === 'string' && String((n.properties as any)[primaryId!]).trim() === prevName && sameNameParents === 1;
+            if (isDirectChild || isFallbackChild) {
+              // Resolve sub-service details to rebuild display label/svg
+              let baseName = n.icon.name;
+              let emoji = '';
+              const sub = resolveSubServiceById(n.serviceId, n.subServiceId);
+              if (sub) {
+                baseName = (sub as any).name;
+                emoji = (sub as any).icon || '';
+              }
+
+              // Preserve ordinal suffix if present e.g. " (Parent 2)"
+              const match = n.icon.name.match(/\(([^)]*)\)/);
+              const ordinalPart = match && match[1] && match[1].match(/ (\d+)$/) ? ` ${match[1].match(/ (\d+)$/)![1]}` : '';
+              const displayName = `${baseName} (${newName}${ordinalPart})`;
+
+              // Update node properties and icon
+              updatedNodes[i] = {
+                ...n,
+                properties: { ...(n.properties || {}), [primaryId!]: newName },
+                icon: {
+                  id: n.icon.id,
+                  name: displayName,
+                  category: n.icon.category,
+                  svg: `<svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
           <rect x="5" y="5" width="40" height="40" rx="4" fill="#4F46E5" stroke="#232F3E" stroke-width="2"/>
           <text x="25" y="20" text-anchor="middle" fill="white" font-size="16" font-family="Inter, sans-serif">${emoji}</text>
 <text x="25" y="35" text-anchor="middle" fill="white" font-size="8" font-family="Inter, sans-serif">${displayName}</text>
         </svg>`,
-                width: n.icon.width,
-                height: n.icon.height,
-              },
-            };
+                  width: n.icon.width,
+                  height: n.icon.height,
+                },
+              };
+            }
           }
-        }
         }
       }
 

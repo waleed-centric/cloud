@@ -217,10 +217,22 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
             setConnecting(false);
             return;
           }
-          // Otherwise open service modal to add/edit resources
+          // Otherwise: select the parent instance and open properties panel
           if (service) {
             e.stopPropagation();
-            openServiceModal(service);
+            const firstNode = state.placedNodes.find((n) => n.id === nodeIds[0]);
+            const parentId = firstNode?.parentNodeId || null;
+            if (parentId) {
+              setSelectedNode(parentId);
+              openPropertiesPanel(service as any);
+            } else if (nodeIds[0]) {
+              // Fallback: select the first sub-service in the group
+              setSelectedNode(nodeIds[0]);
+              const sub = firstNode && firstNode.subServiceId ? resolveSub(firstNode.subServiceId) : undefined;
+              openPropertiesPanel(service as any, sub as any);
+            } else {
+              openServiceModal(service);
+            }
           }
         }}
       >
@@ -379,6 +391,21 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
                   const subtitleProp = props.find((p: ServiceProperty) => p.required) || props[0];
                   const subtitleValue = subtitleProp ? node.properties?.[subtitleProp.id] : undefined;
 
+                  // Dynamically compute display name with current parent name
+                  const parent = node.parentNodeId
+                    ? state.placedNodes.find((n) => n.id === node.parentNodeId)
+                    : undefined;
+                  const rawParentName = (parent as any)?.properties?.name;
+                  const cleanedParentFallback = (parent?.icon?.name || parent?.serviceId || '')
+                    .replace(/Amazon |Microsoft |Google /g, '')
+                    .trim();
+                  const parentName =
+                    typeof rawParentName === 'string' && rawParentName.trim()
+                      ? rawParentName.trim()
+                      : cleanedParentFallback || undefined;
+                  const baseName = (sub?.name || node.icon?.name || '').trim();
+                  const displayName = parentName ? `${baseName}` : baseName;
+
                   return (
                     <div
                       key={id}
@@ -395,7 +422,7 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
                         <div className="w-6 h-6 [&>svg]:w-full [&>svg]:h-full opacity-90 group-hover:opacity-100 transition-opacity" dangerouslySetInnerHTML={{ __html: (node.icon as any)?.svg || '' }} />
                         <div className="flex-1 min-w-0">
                           <div className="text-xs font-medium truncate text-slate-800">
-                            {node.icon.name}
+                            {displayName}
                           </div>
                           <div className="text-[10px] opacity-75 truncate text-slate-600">
                             {subtitleValue ? String(subtitleValue) : (sub?.name || node.icon.category || '')}

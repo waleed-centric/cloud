@@ -666,6 +666,7 @@ const PropertiesPanel: React.FC = () => {
   }, [service, subService, state.selectedNodeId]);
 
   const handlePropertyChange = (propertyId: string, value: any) => {
+    console.log({ propertyId, value });
     setPropertyValues(prev => ({
       ...prev,
       [propertyId]: value
@@ -678,6 +679,30 @@ const PropertiesPanel: React.FC = () => {
         [propertyId]: ''
       }));
     }
+
+    // Live-update parent instance name so aggregated tiles reflect immediately
+    try {
+      const isPrimaryName = !!primaryNameId && propertyId === primaryNameId;
+
+      if (isPrimaryName) {
+        // Determine the host parent similar to save logic
+        const hostParent =
+          (editingNode && !editingNode.isSubService ? editingNode : null)
+          || (editingNode && editingNode.isSubService && editingNode.parentNodeId
+            ? (state.placedNodes.find(n => n.id === editingNode.parentNodeId && !n.isSubService) || null)
+            : null)
+          || (state.selectedNodeId
+            ? (state.placedNodes.find(n => n.id === state.selectedNodeId && !n.isSubService) || null)
+            : null);
+
+        if (hostParent) {
+          updateNodeProperties(hostParent.id, { [primaryNameId as string]: value });
+        } else if (editingNode && !editingNode.isSubService) {
+          // Fallback: update currently editing parent
+          updateNodeProperties(editingNode.id, { [primaryNameId as string]: value });
+        }
+      }
+    } catch { }
   };
 
   const validateProperties = (): boolean => {
@@ -702,7 +727,7 @@ const PropertiesPanel: React.FC = () => {
       // Decide between editing existing node vs creating a new sub-service
       const commonPropIds = (service?.commonProperties || []).map(p => p.id);
       const subPropIds = (subService?.properties || []).map(p => p.id);
-
+      console.log(editingNode)
       // Parent node, if selected
       const parentNode = editingNode && !editingNode.isSubService ? editingNode : null;
 
@@ -721,12 +746,34 @@ const PropertiesPanel: React.FC = () => {
 
       // Create mode: adding a new sub-service under currently selected parent
       if (service && subService) {
+        // Collect any changes to parent common properties (e.g., instance name)
+        const parentCommonToSave: Record<string, any> = {};
+        commonPropIds.forEach(id => {
+          if (propertyValues[id] !== undefined) {
+            parentCommonToSave[id] = propertyValues[id];
+          }
+        });
+
+        // Resolve host parent when editing a sub-service or adding a new one
+        const hostParent: typeof parentNode =
+          parentNode
+          || (editingNode && editingNode.isSubService && editingNode.parentNodeId
+            ? (state.placedNodes.find(n => n.id === editingNode.parentNodeId && !n.isSubService) || null)
+            : null)
+          || (state.selectedNodeId
+            ? (state.placedNodes.find(n => n.id === state.selectedNodeId && !n.isSubService) || null)
+            : null);
+
         // If editing an existing sub-service node, update it
         if (editingNode && editingNode.isSubService) {
           const toSave: Record<string, any> = {};
           subPropIds.forEach(id => {
             toSave[id] = propertyValues[id];
           });
+          // Apply parent common property updates if present
+          if (hostParent && Object.keys(parentCommonToSave).length > 0) {
+            updateNodeProperties(hostParent.id, parentCommonToSave);
+          }
           updateNodeProperties(editingNode.id, toSave);
           closePropertiesPanel();
           // Auto-close service modal after any save operation
@@ -735,7 +782,6 @@ const PropertiesPanel: React.FC = () => {
         }
 
         // Otherwise, we are adding/updating a sub-service under the selected parent
-        const hostParent = parentNode || (state.selectedNodeId ? state.placedNodes.find(n => n.id === state.selectedNodeId && !n.isSubService) || null : null);
 
         // Check if the same sub-service already exists under this parent
         const existing = hostParent
@@ -748,6 +794,10 @@ const PropertiesPanel: React.FC = () => {
           subPropIds.forEach(id => {
             toSave[id] = propertyValues[id];
           });
+          // Apply parent common property updates if present
+          if (hostParent && Object.keys(parentCommonToSave).length > 0) {
+            updateNodeProperties(hostParent.id, parentCommonToSave);
+          }
           updateNodeProperties(existing.id, toSave);
         } else {
           // Add new sub-service under the parent with provided config
@@ -759,6 +809,10 @@ const PropertiesPanel: React.FC = () => {
             y = hostParent.y + 100 + Math.random() * 50;
             x = Math.max(50, Math.min(x, 750));
             y = Math.max(50, Math.min(y, 550));
+          }
+          // Apply parent common property updates if present before adding
+          if (hostParent && Object.keys(parentCommonToSave).length > 0) {
+            updateNodeProperties(hostParent.id, parentCommonToSave);
           }
           addSubServiceNode(subService, service, x, y, propertyValues, hostParent ? hostParent.id : undefined);
         }
@@ -774,7 +828,8 @@ const PropertiesPanel: React.FC = () => {
     const value = propertyValues[property.id] ?? '';
     const hasError = !!errors[property.id];
     const isPrimaryName = !!primaryNameId && property.id === primaryNameId;
-    const isReadOnlyInstanceName = isPrimaryName && !!subService;
+    // Allow renaming the parent instance even when configuring a sub-service
+    const isReadOnlyInstanceName = false;
 
     switch (property.type) {
       case 'text':
@@ -866,8 +921,6 @@ const PropertiesPanel: React.FC = () => {
         );
     }
   };
-
-  // Panel is now persistent; always render with default content when no selection
 
   return (
     <div
@@ -1198,7 +1251,20 @@ const PropertiesPanel: React.FC = () => {
                               };
 
                               return groups.map((groupNodes, index) => {
-                                const names = groupNodes.map((n: any) => n?.icon?.name || n?.label).filter(Boolean) as string[];
+                                // Prefer sub-service name with live parent name in brackets
+                                const names = groupNodes.map((n: any) => {
+                                  const base = n?.icon?.name || n?.label;
+                                  const parent = n?.parentNodeId ? state.placedNodes.find((p) => p.id === n.parentNodeId) : undefined;
+                                  const rawParentName = (parent as any)?.properties?.name;
+                                  const fallbackParent = (parent?.icon?.name || parent?.serviceId || '')?.replace(/Amazon |Microsoft |Google /g, '').trim();
+                                  const parentName = typeof rawParentName === 'string' && rawParentName.trim() ? rawParentName.trim() : fallbackParent;
+                                  if (base && parentName && n?.isSubService) {
+                                    // If tile already has "(...)" keep base inside brackets updated
+                                    const cleanBase = String(base).replace(/\s*\([^)]*\)\s*$/, '').trim();
+                                    return `${cleanBase} (${parentName})`;
+                                  }
+                                  return base;
+                                }).filter(Boolean) as string[];
                                 const nameFreq: Record<string, number> = {};
                                 names.forEach((nm) => { nameFreq[nm] = (nameFreq[nm] || 0) + 1; });
                                 const name = names.length
