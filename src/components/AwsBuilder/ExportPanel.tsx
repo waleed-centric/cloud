@@ -979,7 +979,6 @@ export function ExportPanel() {
           </div>
         </button>
 
-        {/* Export JSON (Grouped like PropertiesPanel Canvas Nodes JSON) */}
         <button
           type="button"
           className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium rounded-lg bg-slate-900 text-white shadow-sm hover:bg-slate-800 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-slate-500/30 transition-all"

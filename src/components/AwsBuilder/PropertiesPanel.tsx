@@ -1204,7 +1204,7 @@ const PropertiesPanel: React.FC = () => {
                               });
                               Object.values(pMap).forEach((arr) => { for (let i = 1; i < arr.length; i++) union(arr[0], arr[i]); });
 
-                              // Build groups by root
+                              // Build groups
                               const groupsMap: Record<number, number[]> = {};
                               for (let i = 0; i < n; i++) {
                                 const r = find(i);
@@ -1212,18 +1212,6 @@ const PropertiesPanel: React.FC = () => {
                                 groupsMap[r].push(i);
                               }
                               const groups = Object.values(groupsMap).map((idxs) => idxs.map((i) => nodes[i]));
-
-                              const renderValue = (val: any) => {
-                                if (Array.isArray(val)) {
-                                  const parts = val.map((v) => typeof v === 'string' ? `"${v}"` : String(v));
-                                  return `[ ${parts.join(', ')} ]`;
-                                }
-                                if (typeof val === 'object' && val !== null) {
-                                  try { return JSON.stringify(val); } catch { return String(val); }
-                                }
-                                if (typeof val === 'string') return `"${val}"`;
-                                return String(val);
-                              };
 
                               const mergeProps = (groupNodes: any[]) => {
                                 const allKeys = Array.from(new Set(groupNodes.flatMap((n: any) => Object.keys(n?.properties || {}))));
@@ -1250,54 +1238,39 @@ const PropertiesPanel: React.FC = () => {
                                 return result;
                               };
 
-                              return groups.map((groupNodes, index) => {
-                                // Prefer sub-service name with live parent name in brackets
-                                const names = groupNodes.map((n: any) => {
-                                  const base = n?.icon?.name || n?.label;
-                                  const parent = n?.parentNodeId ? state.placedNodes.find((p) => p.id === n.parentNodeId) : undefined;
-                                  const rawParentName = (parent as any)?.properties?.name;
-                                  const fallbackParent = (parent?.icon?.name || parent?.serviceId || '')?.replace(/Amazon |Microsoft |Google /g, '').trim();
-                                  const parentName = typeof rawParentName === 'string' && rawParentName.trim() ? rawParentName.trim() : fallbackParent;
-                                  if (base && parentName && n?.isSubService) {
-                                    // If tile already has "(...)" keep base inside brackets updated
-                                    const cleanBase = String(base).replace(/\s*\([^)]*\)\s*$/, '').trim();
-                                    return `${cleanBase} (${parentName})`;
-                                  }
-                                  return base;
-                                }).filter(Boolean) as string[];
+                              const exportGroups = groups.map((groupNodes) => {
+                                const names = groupNodes.map((n: any) => n?.icon?.name || n?.label).filter(Boolean) as string[];
                                 const nameFreq: Record<string, number> = {};
                                 names.forEach((nm) => { nameFreq[nm] = (nameFreq[nm] || 0) + 1; });
                                 const name = names.length
                                   ? Object.entries(nameFreq).sort((a, b) => b[1] - a[1])[0][0]
                                   : 'instance name';
-                                const distinctServiceIds = Array.from(new Set(groupNodes.map((n: any) => n?.serviceId || 'instance')));
-                                const serviceLabel = distinctServiceIds.join(', ');
                                 const merged = mergeProps(groupNodes);
-                                return (
-                                  <div key={`${name}-${index}`} className="mb-4 pb-4 border-b border-slate-200 last:border-0">
-                                    <div className="flex">
-                                      <span className="w-8 text-right pr-1 select-none text-slate-500 ">{index + 1}</span>
-                                      <span className="pl-2 font-semibold">{serviceLabel}</span>
-                                    </div>
-                                    <div className="flex">
-                                      <span className="w-8 text-right pr-2 select-none text-slate-500 "></span>
-                                      <span className="pl-2 text-blue-600">{name}</span>
-                                    </div>
-                                    <div className="flex">
-                                      <span className="w-8 text-right pr-2 select-none text-slate-500 "></span>
-                                      <div className="pl-2 w-full">
-                                        {Object.entries(merged).map(([key, value]: [string, any]) => (
-                                          <div key={key} className="flex">
-                                            <span className="text-green-600 mr-2">{key}</span>
-                                            <span className="text-orange-500">=</span>
-                                            <span className="text-blue-500 ml-2">{renderValue(value)}</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
+                                return { name, properties: merged };
                               });
+
+                              const terraformCode = exportGroups.map((group) => {
+                                const { name, properties } = group;
+                                const formatVal = (v: any): string => {
+                                  if (Array.isArray(v)) {
+                                    const parts = v.map((x) => formatVal(x));
+                                    return `[${parts.join(', ')}]`;
+                                  }
+                                  if (v && typeof v === 'object') {
+                                    return JSON.stringify(v);
+                                  }
+                                  if (typeof v === 'boolean' || typeof v === 'number') return String(v);
+                                  return `"${String(v)}"`;
+                                };
+                                const lines = Object.entries(properties)
+                                  .map(([k, v]) => `  ${k} = ${formatVal(v)}`)
+                                  .join('\n');
+                                return `resource "aws_instance" "${name}" {\n${lines}\n}`;
+                              }).join('\n\n');
+
+                              return (
+                                <pre className="text-xs text-slate-700 whitespace-pre">{terraformCode}</pre>
+                              );
                             })()}
                           </div>
                         </div>
