@@ -58,6 +58,8 @@ export type AwsBuilderState = {
   showPropertiesPanel: boolean;
   // Virtual anchors to allow connecting from aggregated boxes
   virtualAnchors: { id: string; x: number; y: number }[];
+  // Canvas zoom level (1 = 100%)
+  zoom: number;
 };
 
 export type AwsBuilderContextValue = {
@@ -86,6 +88,11 @@ export type AwsBuilderContextValue = {
   // Security Group helpers
   listSecurityGroupsForParent: (parentNodeId: string) => PlacedNode[];
   updateEc2SecurityGroups: (ec2NodeId: string, groupNames: string[]) => void;
+  // Zoom controls
+  setZoom: (z: number) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetZoom: () => void;
 };
 
 const AwsBuilderContext = createContext<AwsBuilderContextValue | undefined>(undefined);
@@ -103,6 +110,7 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
     showServiceModal: false,
     showPropertiesPanel: false,
     virtualAnchors: [],
+    zoom: 1,
   });
 
   const { currentProvider } = useCloudProvider();
@@ -326,11 +334,25 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
       showServiceModal: false,
       showPropertiesPanel: false,
       virtualAnchors: [],
+      zoom: 1,
     });
 
     // Also clear pricing state
     clearAllCosts();
   };
+
+  // Zoom control helpers
+  const setZoom = (z: number) => {
+    const clamped = Math.max(0.75, Math.min(2, z));
+    setState(prev => ({ ...prev, zoom: clamped }));
+  };
+  const zoomIn = () => {
+    setState(prev => ({ ...prev, zoom: Math.min(2, +(prev.zoom + 0.1).toFixed(2)) }));
+  };
+  const zoomOut = () => {
+    setState(prev => ({ ...prev, zoom: Math.max(0.75, +(prev.zoom - 0.1).toFixed(2)) }));
+  };
+  const resetZoom = () => setZoom(1);
 
   const exportData = () => ({
     nodes: state.placedNodes,
@@ -668,6 +690,11 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
      // Security Group helpers
      listSecurityGroupsForParent,
      updateEc2SecurityGroups,
+     // Zoom
+     setZoom,
+     zoomIn,
+     zoomOut,
+     resetZoom,
   };
 
   return (

@@ -38,8 +38,9 @@ export function CanvasArea() {
       
       if (canvasRef.current) {
         const rect = canvasRef.current.getBoundingClientRect();
-        let x = e.clientX - rect.left - 40; // Center the icon (80px width / 2)
-        let y = e.clientY - rect.top - 40;  // Center the icon (80px height / 2)
+        const scale = state.zoom || 1;
+        let x = (e.clientX - rect.left) / scale - 40; // Center the icon (80px width / 2)
+        let y = (e.clientY - rect.top) / scale - 40;  // Center the icon (80px height / 2)
         
         // Smart positioning: Check if there's already a node at this position
         // If yes, offset the new node to prevent overlapping
@@ -120,9 +121,10 @@ export function CanvasArea() {
   const handleMouseMove = (e: React.MouseEvent) => {
     if (canvasRef.current) {
       const rect = canvasRef.current.getBoundingClientRect();
+      const scale = state.zoom || 1;
       setMousePosition({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
+        x: (e.clientX - rect.left) / scale,
+        y: (e.clientY - rect.top) / scale
       });
     }
   };
@@ -131,11 +133,15 @@ export function CanvasArea() {
     <div className="relative h-full">
       <div
         ref={canvasRef}
-        className="w-full h-full relative overflow-hidden transition-colors"
+        className="w-full h-full relative overflow-auto transition-colors"
           style={{
             backgroundColor: 'white',
             backgroundImage: 'url(/aws/DesignCanvas.png)',
             // backgroundSize: '60px 60px',
+            width: `${(1 / (state.zoom || 1)) * 100}%`,
+            height: `${(1 / (state.zoom || 1)) * 100}%`,
+            transform: `scale(${state.zoom || 1})`,
+            transformOrigin: 'top left',
           }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}

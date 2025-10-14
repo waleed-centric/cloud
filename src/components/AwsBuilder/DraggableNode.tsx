@@ -46,9 +46,10 @@ export function DraggableNode({ node, isSelected }: DraggableNodeProps) {
     
     const rect = nodeRef.current?.getBoundingClientRect();
     if (rect) {
+      const scale = state.zoom || 1;
       setDragOffset({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
+        x: (e.clientX - rect.left) / scale,
+        y: (e.clientY - rect.top) / scale
       });
     }
 
@@ -80,8 +81,9 @@ export function DraggableNode({ node, isSelected }: DraggableNodeProps) {
     const canvas = nodeRef.current?.parentElement;
     if (canvas) {
       const canvasRect = canvas.getBoundingClientRect();
-      const newX = e.clientX - canvasRect.left - dragOffset.x;
-      const newY = e.clientY - canvasRect.top - dragOffset.y;
+      const scale = state.zoom || 1;
+      const newX = (e.clientX - canvasRect.left) / scale - dragOffset.x;
+      const newY = (e.clientY - canvasRect.top) / scale - dragOffset.y;
       
       // Keep within canvas bounds
       const maxX = canvas.clientWidth - node.icon.width;
