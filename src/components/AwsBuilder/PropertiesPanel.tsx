@@ -22,13 +22,16 @@ const PropertiesPanel: React.FC = () => {
   const { groups: allSecurityGroups, updateGroup } = useSecurityGroups();
   const [sgModalOpen, setSgModalOpen] = useState(false);
   const [sgEditTargetId, setSgEditTargetId] = useState<string | null>(null);
-  console.log(selectedSecurityGroups, "selectedSecurityGroups")
+  // console.log(state.selectedService.subServices.find('security')
+
+// , "selectedSecurityGroups")
   // console.log(propertyValues, "propertyValues")
   const service = state.selectedService;
   const subService = state.selectedSubService;
   const editingNode = state.selectedNodeId
     ? state.placedNodes.find(n => n.id === state.selectedNodeId)
     : null;
+    
   const theme = getProviderTheme(currentProvider);
   const subServicesList = useMemo(() => {
     const svc = service as any;
