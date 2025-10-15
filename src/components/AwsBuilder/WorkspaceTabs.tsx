@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useRef } from 'react';
 import { AwsBuilderProvider } from '@/context/AwsBuilderContext';
+import { SecurityGroupsProvider } from '@/context/SecurityGroupsContext';
 import { CloudProviderProvider } from '@/context/CloudProviderContext';
 import { DragDropBuilder } from '@/components/AwsBuilder/DragDropBuilder';
 
@@ -24,9 +25,11 @@ const TabWorkspace: React.FC = () => {
 
   return (
     <CloudProviderProvider onProviderChange={handleProviderChange}>
-      <AwsBuilderProvider>
-        <DragDropBuilder clearCanvasRef={clearCanvasRef} />
-      </AwsBuilderProvider>
+      <SecurityGroupsProvider>
+        <AwsBuilderProvider>
+          <DragDropBuilder clearCanvasRef={clearCanvasRef} />
+        </AwsBuilderProvider>
+      </SecurityGroupsProvider>
     </CloudProviderProvider>
   );
 };

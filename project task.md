@@ -652,3 +652,51 @@ Timestamp: 2025-09-27 12:24
 ### Notes
 - Dev preview verified: http://localhost:3001/aws-builder
 - Next: connection line polish finalize karna aur UX micro-interactions smooth karna.
+ 
+---
+
+## Sprint: Security Groups UI & Dropdown Integration
+Status: COMPLETED
+Owner: Assistant
+Timestamp: 2025-10-14 12:10
+
+### Goals
+1. Central Security Groups data + Context (CRUD)
+2. Dropdown with expandable details + Add/Edit/Delete
+3. EC2 Properties integration (store SG names)
+4. Always-visible Global SG dropdown preview
+
+### Tasks
+1. Add static `src/data/securityGroups.js`
+   - Status: [x] Done
+   - Owner: Assistant
+   - Timestamp: 2025-10-14 11:35
+2. Create `SecurityGroupsContext` (Provider + CRUD)
+   - Status: [x] Done
+   - Owner: Assistant
+   - Timestamp: 2025-10-14 11:45
+3. Build `SecurityGroupModal` (rules card UI)
+   - Status: [x] Done
+   - Owner: Assistant
+   - Timestamp: 2025-10-14 11:55
+4. Build `SecurityGroupDropdown` (search, multi-select, expand details)
+   - Status: [x] Done
+   - Owner: Assistant
+   - Timestamp: 2025-10-14 12:00
+5. Wrap app with `SecurityGroupsProvider` in `WorkspaceTabs`
+   - Status: [x] Done
+   - Owner: Assistant
+   - Timestamp: 2025-10-14 12:02
+6. Integrate dropdown into EC2 PropertiesPanel; show selected groups with cards
+   - Status: [x] Done
+   - Owner: Assistant
+   - Timestamp: 2025-10-14 12:05
+7. Add always-visible Global SG dropdown preview in PropertiesPanel
+   - Status: [x] Done
+   - Owner: Assistant
+   - Timestamp: 2025-10-14 12:10
+
+### Notes
+- EC2 nodes still store SGs as names for export compatibility.
+- Dropdown items show VPC, ID, and expandable Ingress/Egress previews.
+- Modal handles deep edits; quick inline edits added for name/desc/VPC.

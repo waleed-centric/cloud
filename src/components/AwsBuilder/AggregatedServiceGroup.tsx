@@ -429,16 +429,7 @@ export const AggregatedServiceGroup: React.FC<AggregatedServiceGroupProps> = ({
                           </div>
                         </div>
                         {/* Cross/Delete Button */}
-                        <button
-                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 hover:bg-red-600 text-white text-xs font-bold opacity-0 group-hover/item:opacity-100 transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md z-10"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeNode(id);
-                          }}
-                          title="Delete service"
-                        >
-                          ×
-                        </button>
+                        
                       </div>
                     </div>
                   );
