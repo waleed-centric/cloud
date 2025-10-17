@@ -302,7 +302,7 @@ export function ExportPanel() {
       return [eipRes, assoc];
     }).flat();
 
-    // --- S3 Buckets ---
+    // --- S3 Buckets (Terraform v5 split resources) ---
     const s3Nodes = state.placedNodes.filter((node) => node.subServiceId === 's3-bucket' || node.icon.id === 's3-bucket');
     const s3Items: Item[] = s3Nodes.map((node) => {
       let bucketName: string = '';
@@ -318,11 +318,27 @@ export function ExportPanel() {
       }
       if (!bucketName) bucketName = 'my-s3-bucket';
 
-      const storageClass = (node as any)?.properties?.storageClass || 'STANDARD';
-      const versioning = Boolean((node as any)?.properties?.versioning);
-      const blockPublicAccess = (node as any)?.properties?.publicAccess;
-      const blockPublic = typeof blockPublicAccess === 'boolean' ? blockPublicAccess : true;
+      const p: any = (node as any)?.properties || {};
+      const storageClass = p.storageClass || 'STANDARD'; // informational
+      const versioning = Boolean(p.versioning);
+      const blockPublic = typeof p.publicAccess === 'boolean' ? p.publicAccess : true;
+      const forceDestroy = Boolean(p.forceDestroy);
+      const acl = typeof p.acl === 'string' && p.acl ? p.acl : undefined;
+      const acceleration = Boolean(p.acceleration);
+      const sseAlgorithm = typeof p.sseAlgorithm === 'string' ? p.sseAlgorithm : '';
+      const kmsKeyId = typeof p.kmsKeyId === 'string' ? p.kmsKeyId : '';
+      const bucketKeyEnabled = Boolean(p.bucketKeyEnabled);
+      const loggingBucket = typeof p.loggingBucket === 'string' ? p.loggingBucket : '';
+      const loggingPrefix = typeof p.loggingPrefix === 'string' ? p.loggingPrefix : '';
+      const corsAllowedOrigins = typeof p.corsAllowedOrigins === 'string' ? p.corsAllowedOrigins : '';
+      const corsAllowedMethods = typeof p.corsAllowedMethods === 'string' ? p.corsAllowedMethods : '';
+      const corsAllowedHeaders = typeof p.corsAllowedHeaders === 'string' ? p.corsAllowedHeaders : '';
+      const corsExposeHeaders = typeof p.corsExposeHeaders === 'string' ? p.corsExposeHeaders : '';
+      const corsMaxAgeSeconds = typeof p.corsMaxAgeSeconds === 'number' ? p.corsMaxAgeSeconds : 0;
+      const websiteIndexDocument = typeof p.websiteIndexDocument === 'string' ? p.websiteIndexDocument : '';
+      const websiteErrorDocument = typeof p.websiteErrorDocument === 'string' ? p.websiteErrorDocument : '';
 
+      // lifecycle via separate sub-service if present
       let lifecycle: { transition_days?: number; expiration_days?: number } | undefined;
       if (parentId) {
         const lifecycleNode = state.placedNodes.find(
@@ -341,110 +357,130 @@ export function ExportPanel() {
       const sanitizedName = sanitize(bucketName);
       const properties = {
         bucket: bucketName,
-        acl: blockPublic ? 'private' : 'public-read',
-        storage_class: storageClass,
-        versioning: { enabled: versioning },
+        force_destroy: forceDestroy,
         block_public_access: blockPublic,
+        versioning_enabled: versioning,
+        acl,
+        acceleration,
+        storage_class: storageClass,
+        sse: { algorithm: sseAlgorithm, kms_key_id: kmsKeyId, bucket_key_enabled: bucketKeyEnabled },
+        logging: { bucket: loggingBucket, prefix: loggingPrefix },
+        cors: { allowed_origins: corsAllowedOrigins, allowed_methods: corsAllowedMethods, allowed_headers: corsAllowedHeaders, expose_headers: corsExposeHeaders, max_age_seconds: corsMaxAgeSeconds },
+        website: { index_document: websiteIndexDocument, error_document: websiteErrorDocument },
+        lifecycle,
         tags: { Name: bucketName, Environment: 'Production' },
-        ...(lifecycle ? { lifecycle } : {}),
       } as Record<string, any>;
       return { nodeId: node.id, parentId, nameTag, sanitizedName, properties };
     });
     const s3Groups = groupItems(s3Items);
     const s3BucketResources = s3Groups.map((group) => {
-      const mergedProps = group.reduce((acc, it) => mergeProps(acc, it.properties), {} as Record<string, any>);
+      const merged = group.reduce((acc, it) => mergeProps(acc, it.properties), {} as Record<string, any>);
       const nameTag = group[0]?.nameTag || 'my_s3_bucket';
-      return { type: 'aws_s3_bucket', name: sanitize(nameTag), properties: stripNullsDeep(mergedProps) };
-    });
+      const resName = sanitize(nameTag);
 
-    // --- Lambda Functions ---
-    const lambdaNodes = state.placedNodes.filter((node) => node.subServiceId === 'lambda-function' || node.icon.id === 'lambda-function');
-    const lambdaItems: Item[] = lambdaNodes.map((node) => {
-      let functionName: string = '';
-      let runtime: string = '';
-      const parentId = (node as any)?.parentNodeId;
-      if (parentId) {
-        const parent = state.placedNodes.find((n) => n.id === parentId);
-        const maybeFn = (parent as any)?.properties?.functionName;
-        const maybeRt = (parent as any)?.properties?.runtime;
-        if (typeof maybeFn === 'string' && maybeFn.trim()) functionName = maybeFn.trim();
-        if (typeof maybeRt === 'string' && maybeRt.trim()) runtime = maybeRt.trim();
-      }
-      if (!functionName) functionName = (node.icon.name || 'MyLambdaFunction').toString();
-      if (!runtime) runtime = 'nodejs18.x';
-      const handler = (node as any)?.properties?.handler || 'index.handler';
-      const roleProp = (node as any)?.properties?.role || (parentId
-        ? (state.placedNodes.find((n) => n.id === parentId) as any)?.properties?.role
-        : undefined);
-      const role = typeof roleProp === 'string' && roleProp.trim() ? roleProp.trim() : 'arn:aws:iam::123456789012:role/lambda-execution-role';
-      const nameTag = functionName;
-      const sanitizedName = sanitize(nameTag);
-      const sourceCodePath = `./lambda_code/${sanitizedName}/`;
-      const properties = {
-        function_name: functionName,
-        role,
-        handler,
-        runtime,
-        source_code_path: sourceCodePath,
-        tags: { Name: nameTag },
-      } as Record<string, any>;
-      return { nodeId: node.id, parentId, nameTag, sanitizedName, properties };
-    });
-    const lambdaGroups = groupItems(lambdaItems);
-    const lambdaResources = lambdaGroups.map((group) => {
-      const mergedProps = group.reduce((acc, it) => mergeProps(acc, it.properties), {} as Record<string, any>);
-      const nameTag = group[0]?.nameTag || 'lambda_function';
-      return { type: 'aws_lambda_function', name: sanitize(nameTag), properties: stripNullsDeep(mergedProps) };
-    });
+      // Base bucket
+      const out: any[] = [];
+      out.push({ type: 'aws_s3_bucket', name: resName, properties: stripNullsDeep({
+        bucket: merged.bucket,
+        force_destroy: merged.force_destroy || false,
+        tags: merged.tags,
+      })});
 
-    // --- RDS Instances ---
-    const rdsNodes = state.placedNodes.filter((node) => node.subServiceId === 'rds-instance' || node.icon.id === 'rds-instance');
-    const rdsItems: Item[] = rdsNodes.map((node) => {
-      let identifier: string = '';
-      const parentId = (node as any)?.parentNodeId;
-      if (parentId) {
-        const parent = state.placedNodes.find((n) => n.id === parentId);
-        const maybeId = (parent as any)?.properties?.dbInstanceIdentifier;
-        if (typeof maybeId === 'string' && maybeId.trim()) identifier = maybeId.trim();
+      // Public access block
+      out.push({ type: 'aws_s3_bucket_public_access_block', name: resName, properties: stripNullsDeep({
+        bucket: { __ref: `aws_s3_bucket.${resName}.id` },
+        block_public_acls: !!merged.block_public_access,
+        ignore_public_acls: !!merged.block_public_access,
+        block_public_policy: !!merged.block_public_access,
+        restrict_public_buckets: !!merged.block_public_access,
+      })});
+      
+      // Ownership controls + ACL (when ACL provided)
+      if (merged.acl) {
+        out.push({ type: 'aws_s3_bucket_ownership_controls', name: resName, properties: stripNullsDeep({
+          bucket: { __ref: `aws_s3_bucket.${resName}.id` },
+          rule: { object_ownership: 'BucketOwnerPreferred' },
+        })});
+        out.push({ type: 'aws_s3_bucket_acl', name: resName, properties: stripNullsDeep({
+          bucket: { __ref: `aws_s3_bucket.${resName}.id` },
+          acl: merged.acl,
+          depends_on: [
+            { __ref: `aws_s3_bucket_public_access_block.${resName}` },
+            { __ref: `aws_s3_bucket_ownership_controls.${resName}` },
+          ],
+        })});
       }
-      if (!identifier) identifier = (node.icon.name || 'my-database').toString();
-      const engine = (node as any)?.properties?.engine || 'mysql';
-      const instanceClass = (node as any)?.properties?.instanceClass || 'db.t3.micro';
-      const alloc = (node as any)?.properties?.allocatedStorage;
-      const allocated_storage = typeof alloc === 'number' ? alloc : 20;
-      const engineVersion = (node as any)?.properties?.engineVersion;
-      const publiclyAccessible = (node as any)?.properties?.publiclyAccessible;
-      let dbSubnetGroupName: string | undefined;
-      if (parentId) {
-        const subnetGroup = state.placedNodes.find(
-          (n) => (n.subServiceId === 'rds-subnet-group' || n.icon.id === 'rds-subnet-group') && n.parentNodeId === parentId
-        );
-        const maybeSubnet = (subnetGroup as any)?.properties?.subnetGroupName;
-        if (typeof maybeSubnet === 'string' && maybeSubnet.trim()) dbSubnetGroupName = maybeSubnet.trim();
+
+      // Versioning
+      if (typeof merged.versioning_enabled === 'boolean') {
+        out.push({ type: 'aws_s3_bucket_versioning', name: resName, properties: stripNullsDeep({
+          bucket: { __ref: `aws_s3_bucket.${resName}.id` },
+          versioning_configuration: { status: merged.versioning_enabled ? 'Enabled' : 'Suspended' },
+        })});
       }
-      const nameTag = identifier;
-      const sanitizedName = sanitize(identifier);
-      const properties = {
-        identifier,
-        engine,
-        engine_version: typeof engineVersion === 'string' && engineVersion.trim() ? engineVersion.trim() : null,
-        instance_class: instanceClass,
-        allocated_storage,
-        db_name: 'mydatabase',
-        username: 'dbadmin',
-        password: 'SECRET_PASSWORD_PLACEHOLDER',
-        skip_final_snapshot: true,
-        publicly_accessible: typeof publiclyAccessible === 'boolean' ? publiclyAccessible : undefined,
-        db_subnet_group_name: dbSubnetGroupName,
-        tags: { Name: identifier },
-      } as Record<string, any>;
-      return { nodeId: node.id, parentId, nameTag, sanitizedName, properties };
-    });
-    const rdsGroups = groupItems(rdsItems);
-    const rdsResources = rdsGroups.map((group) => {
-      const mergedProps = group.reduce((acc, it) => mergeProps(acc, it.properties), {} as Record<string, any>);
-      const nameTag = group[0]?.nameTag || 'db_instance';
-      return { type: 'aws_db_instance', name: sanitize(nameTag), properties: stripNullsDeep(mergedProps) };
+
+      // Acceleration
+      if (merged.acceleration) {
+        out.push({ type: 'aws_s3_bucket_accelerate', name: resName, properties: stripNullsDeep({
+          bucket: { __ref: `aws_s3_bucket.${resName}.id` },
+          accelerate_status: 'Enabled',
+        })});
+      }
+
+      // SSE configuration
+      if (merged.sse && (merged.sse.algorithm || merged.sse.kms_key_id)) {
+        const sseProps: any = { bucket: { __ref: `aws_s3_bucket.${resName}.id` }, rule: { apply_server_side_encryption_by_default: {} } };
+        if (merged.sse.algorithm) sseProps.rule.apply_server_side_encryption_by_default.sse_algorithm = merged.sse.algorithm;
+        if (merged.sse.kms_key_id) sseProps.rule.apply_server_side_encryption_by_default.kms_master_key_id = merged.sse.kms_key_id;
+        out.push({ type: 'aws_s3_bucket_server_side_encryption_configuration', name: resName, properties: stripNullsDeep(sseProps) });
+      }
+
+      // Logging
+      if (merged.logging && merged.logging.bucket) {
+        out.push({ type: 'aws_s3_bucket_logging', name: resName, properties: stripNullsDeep({
+          bucket: { __ref: `aws_s3_bucket.${resName}.id` },
+          target_bucket: merged.logging.bucket,
+          target_prefix: merged.logging.prefix || undefined,
+        })});
+      }
+
+      // CORS
+      if (merged.cors && (merged.cors.allowed_origins || merged.cors.allowed_methods || merged.cors.allowed_headers)) {
+        // Allow comma-separated strings from UI
+        const split = (v: any) => typeof v === 'string' ? v.split(',').map((x: string) => x.trim()).filter(Boolean) : v;
+        out.push({ type: 'aws_s3_bucket_cors_configuration', name: resName, properties: stripNullsDeep({
+          bucket: { __ref: `aws_s3_bucket.${resName}.id` },
+          cors_rule: {
+            allowed_origins: split(merged.cors.allowed_origins) || ['*'],
+            allowed_methods: split(merged.cors.allowed_methods) || ['GET'],
+            allowed_headers: split(merged.cors.allowed_headers) || undefined,
+            expose_headers: split(merged.cors.expose_headers) || undefined,
+            max_age_seconds: typeof merged.cors.max_age_seconds === 'number' ? merged.cors.max_age_seconds : undefined,
+          },
+        })});
+      }
+
+      // Website
+      if (merged.website && (merged.website.index_document || merged.website.error_document)) {
+        out.push({ type: 'aws_s3_bucket_website_configuration', name: resName, properties: stripNullsDeep({
+          bucket: { __ref: `aws_s3_bucket.${resName}.id` },
+          index_document: merged.website.index_document || undefined,
+          error_document: merged.website.error_document || undefined,
+        })});
+      }
+
+      // Lifecycle
+      if (merged.lifecycle && (merged.lifecycle.transition_days || merged.lifecycle.expiration_days)) {
+        const rule: any = { id: 'default', status: 'Enabled' };
+        if (merged.lifecycle.transition_days) rule.transition = { days: merged.lifecycle.transition_days, storage_class: 'STANDARD_IA' };
+        if (merged.lifecycle.expiration_days) rule.expiration = { days: merged.lifecycle.expiration_days };
+        out.push({ type: 'aws_s3_bucket_lifecycle_configuration', name: resName, properties: stripNullsDeep({
+          bucket: { __ref: `aws_s3_bucket.${resName}.id` },
+          rule,
+        })});
+      }
+
+      return out;
     });
 
     // --- VPCs ---
@@ -570,8 +606,6 @@ export function ExportPanel() {
       ...securityGroupResources,
       ...eipResources,
       ...s3BucketResources,
-      ...lambdaResources,
-      ...rdsResources,
       ...vpcResources,
       ...cloudfrontResources,
     ];
@@ -680,7 +714,12 @@ export function ExportPanel() {
     }
 
     // Compile all resources into a single JSON file
-    const compiled = { resources };
+    const resourcesWithHcl = resources.map((r: any) => ({
+      ...r,
+      hcl: formatAlignedHclBlock(r.type, sanitizeResourceName(r.name), r.properties),
+    }));
+    const compiled = { resources: resourcesWithHcl };
+
     const blob = new Blob([JSON.stringify(compiled, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

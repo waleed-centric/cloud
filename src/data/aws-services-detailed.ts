@@ -324,6 +324,110 @@ const S3_SERVICE: DetailedAwsService = {
           type: "boolean",
           defaultValue: true,
           description: "Block all public access"
+        },
+        {
+          id: "forceDestroy",
+          name: "Force Destroy",
+          type: "boolean",
+          defaultValue: false,
+          description: "Delete bucket even if not empty"
+        },
+        {
+          id: "acl",
+          name: "ACL",
+          type: "select",
+          options: ["private", "public-read", "public-read-write", "authenticated-read", "log-delivery-write"],
+          description: "Access control list (requires ownership controls)"
+        },
+        {
+          id: "acceleration",
+          name: "Transfer Acceleration",
+          type: "boolean",
+          defaultValue: false,
+          description: "Enable S3 transfer acceleration"
+        },
+        {
+          id: "sseAlgorithm",
+          name: "SSE Algorithm",
+          type: "select",
+          options: ["", "AES256", "aws:kms"],
+          defaultValue: "",
+          description: "Default server-side encryption"
+        },
+        {
+          id: "kmsKeyId",
+          name: "KMS Key ID",
+          type: "text",
+          description: "KMS key ARN/ID when using aws:kms"
+        },
+        {
+          id: "bucketKeyEnabled",
+          name: "Bucket Key Enabled",
+          type: "boolean",
+          defaultValue: false,
+          description: "Use S3 Bucket Keys for SSE-KMS"
+        },
+        {
+          id: "loggingBucket",
+          name: "Logging Target Bucket",
+          type: "text",
+          description: "Target bucket for server access logs"
+        },
+        {
+          id: "loggingPrefix",
+          name: "Logging Prefix",
+          type: "text",
+          defaultValue: "",
+          description: "Prefix for log object keys"
+        },
+        {
+          id: "corsAllowedOrigins",
+          name: "CORS Allowed Origins",
+          type: "textarea",
+          defaultValue: "*",
+          description: "Comma-separated list of origins"
+        },
+        {
+          id: "corsAllowedMethods",
+          name: "CORS Allowed Methods",
+          type: "textarea",
+          defaultValue: "GET,HEAD",
+          description: "Comma-separated HTTP methods"
+        },
+        {
+          id: "corsAllowedHeaders",
+          name: "CORS Allowed Headers",
+          type: "textarea",
+          defaultValue: "*",
+          description: "Comma-separated allowed headers"
+        },
+        {
+          id: "corsExposeHeaders",
+          name: "CORS Expose Headers",
+          type: "textarea",
+          defaultValue: "",
+          description: "Comma-separated response headers to expose"
+        },
+        {
+          id: "corsMaxAgeSeconds",
+          name: "CORS Max Age (s)",
+          type: "number",
+          defaultValue: 0,
+          description: "How long browsers can cache CORS responses"
+        },
+        {
+          id: "websiteIndexDocument",
+          name: "Website Index Document",
+          type: "text",
+          defaultValue: "",
+          description: "Index document for static hosting"
+        },
+        {
+          id: "websiteErrorDocument",
+          name: "Website Error Document",
+          type: "text",
+          defaultValue: "",
+          description: "Error document for static hosting"
         }
       ]
     },

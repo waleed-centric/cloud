@@ -211,6 +211,14 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
         openPropertiesPanel(ec2Svc as DetailedService);
       }
     }
+
+    if (currentProvider === 'aws' && icon.id === 's3') {
+      autoAddDefaultS3SubServices(newNode);
+      const s3Svc = getAwsServiceById('s3');
+      if (s3Svc) {
+        openPropertiesPanel(s3Svc as DetailedService);
+      }
+    }
   };
 
   // Helper: auto-add default EC2 sub-services for a newly added EC2 instance
@@ -240,6 +248,30 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
     if (ec2Sub) addSubServiceNode(ec2Sub, service, baseX, baseY, ec2Props, parentNode.id);
     if (ebsSub) addSubServiceNode(ebsSub, service, baseX + 120, baseY, ebsProps, parentNode.id);
     if (sgSub) addSubServiceNode(sgSub, service, baseX + 240, baseY, sgProps, parentNode.id);
+  };
+
+  const autoAddDefaultS3SubServices = (parentNode: PlacedNode) => {
+    if (currentProvider !== 'aws') return;
+    const service = getAwsServiceById('s3');
+    if (!service) return;
+
+    const buildDefaultProps = (subId: string) => {
+      const sub = getAwsSubServiceById('s3', subId);
+      const props: Record<string, any> = {};
+      (sub?.properties || []).forEach((p) => {
+        props[p.id] = p.defaultValue ?? '';
+      });
+      return { sub, props };
+    };
+
+    const { sub: bucketSub, props: bucketProps } = buildDefaultProps('s3-bucket');
+    const { sub: lifecycleSub, props: lifecycleProps } = buildDefaultProps('s3-lifecycle');
+
+    const baseX = parentNode.x;
+    const baseY = parentNode.y + (parentNode.icon?.height || 80) + 30;
+
+    if (bucketSub) addSubServiceNode(bucketSub, service, baseX, baseY, bucketProps, parentNode.id);
+    if (lifecycleSub) addSubServiceNode(lifecycleSub, service, baseX + 120, baseY, lifecycleProps, parentNode.id);
   };
 
   // Helper: list SG sub-service nodes under a given parent EC2 aggregate

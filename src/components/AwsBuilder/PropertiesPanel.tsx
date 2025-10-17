@@ -22,22 +22,22 @@ const PropertiesPanel: React.FC = () => {
   const { groups: allSecurityGroups, updateGroup } = useSecurityGroups();
   const [sgModalOpen, setSgModalOpen] = useState(false);
   const [sgEditTargetId, setSgEditTargetId] = useState<string | null>(null);
-  // console.log(state.selectedService.subServices.find('security')
+  // console.log(state.selectedService.subServices.find('security'))
 
-// , "selectedSecurityGroups")
+  // , "selectedSecurityGroups")
   // console.log(propertyValues, "propertyValues")
   const service = state.selectedService;
   const subService = state.selectedSubService;
   const editingNode = state.selectedNodeId
     ? state.placedNodes.find(n => n.id === state.selectedNodeId)
     : null;
-    
+
   const theme = getProviderTheme(currentProvider);
   const subServicesList = useMemo(() => {
     const svc = service as any;
     return Array.isArray(svc?.subServices) ? svc.subServices : [];
   }, [service]);
-
+  // console.log(editingNode?.properties?.securityGroups, "selectedSecurityGroups")
   // Initialize SG selection from current EC2 node properties
   useEffect(() => {
     if (!editingNode) {
@@ -930,7 +930,9 @@ const PropertiesPanel: React.FC = () => {
         );
     }
   };
-
+  let securityTabs
+  securityTabs = editingNode?.properties?.securityGroups || selectedSecurityGroups
+  // console.log(securityTabs, "securityTabs")
   return (
     <div
       className={`fixed top-0 right-0 h-[calc(100vh-104px)] mt-[104px] ${panelExpanded ? 'w-96' : 'w-14'} shadow-2xl z-[100] transition-all duration-300 ease-in-out border-l`}
@@ -1357,125 +1359,7 @@ const PropertiesPanel: React.FC = () => {
                         ))}
 
                         {/* Security Groups selection inside Configuration for EC2 Instances (central SG management) */}
-                        {(editingNode && (editingNode.subServiceId === 'ec2-instance' || (editingNode as any)?.icon?.id === 'ec2-instance')) && (
-                          <div className="p-4 rounded-xl border bg-white">
-                            <div className="flex items-center justify-between mb-1">
-                              <label className="text-xs font-medium text-slate-700">Security Groups</label>
-                              <span className="text-xs px-2 py-0.5 rounded border bg-slate-100 text-slate-700">Optional</span>
-                            </div>
-                            <p className="text-xs mb-2 text-slate-600">Select existing security groups or add a new one.</p>
-                            {(() => {
-                              const names = selectedSecurityGroups;
-                              const nameToId = (nm: string) => allSecurityGroups.find((g) => g.name === nm)?.id || '';
-                              const idToName = (id: string) => allSecurityGroups.find((g) => g.id === id)?.name || '';
-                              const selectedIds = names.map(nameToId).filter(Boolean);
-                              const handleIdsChange = (ids: string[]) => {
-                                const nextNames = ids.map(idToName).filter((s) => s && s.trim());
-                                setSelectedSecurityGroups(nextNames);
-                                updateEc2SecurityGroups((editingNode as any).id, nextNames);
-                              };
-                              return (
-                                <div className="space-y-3">
-                                  <SecurityGroupDropdown selectedIds={selectedIds} onChange={handleIdsChange} allowMulti buttonLabel={selectedIds.length ? `${selectedIds.length} selected` : 'Select Security Groups'} />
-                                  {/* Show selected groups with rule cards */}
-                                  {selectedIds.length > 0 && (
-                                    <div className="space-y-3">
-                                      {selectedIds.map((id) => {
-                                        const g = allSecurityGroups.find((x) => x.id === id);
-                                        if (!g) return null;
-                                        return (
-                                          <div key={id} className="rounded-xl border bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
-                                            <div className="px-4 py-3 border-b bg-gradient-to-r from-slate-50 to-white rounded-t-xl flex items-center justify-between">
-                                              <div>
-                                                <div className="text-sm font-bold text-slate-900">{g.name}</div>
-                                                <div className="text-xs text-slate-600 mt-0.5">{g.description}</div>
-                                              </div>
-                                              <div className="text-xs text-slate-500 bg-white px-2 py-1 rounded-full border">VPC: {g.vpcId || '—'}</div>
-                                            </div>
-                                            <div className="p-4 grid grid-cols-2 gap-4">
-                                              <div>
-                                                <div className="text-xs font-bold mb-3 flex items-center gap-2">
-                                                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                                  Ingress Rules
-                                                </div>
-                                                <div className="space-y-2">
-                                                  {g.ingress.map((r, i) => (
-                                                    <div key={`ing-${i}`} className="p-3 rounded-lg border bg-green-50 border-green-200 hover:bg-green-100 transition-colors">
-                                                      <div className="text-xs font-semibold text-green-900">{r.description || 'Rule'} — {r.protocol.toUpperCase()} {r.fromPort}:{r.toPort}</div>
-                                                      <div className="text-[11px] text-green-700 mt-1">CIDR: {r.cidr}</div>
-                                                    </div>
-                                                  ))}
-                                                  {g.ingress.length === 0 && (
-                                                    <div className="text-[11px] text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">No ingress rules</div>
-                                                  )}
-                                                </div>
-                                              </div>
-                                              <div>
-                                                <div className="text-xs font-bold mb-3 flex items-center gap-2">
-                                                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                                                  Egress Rules
-                                                </div>
-                                                <div className="space-y-2">
-                                                  {g.egress.map((r, i) => (
-                                                    <div key={`eg-${i}`} className="p-3 rounded-lg border bg-blue-50 border-blue-200 hover:bg-blue-100 transition-colors">
-                                                      <div className="text-xs font-semibold text-blue-900">{r.description || 'Rule'} — {r.protocol === '-1' ? 'ALL' : r.protocol.toUpperCase()} {r.fromPort}:{r.toPort}</div>
-                                                      <div className="text-[11px] text-blue-700 mt-1">CIDR: {r.cidr}</div>
-                                                    </div>
-                                                  ))}
-                                                  {g.egress.length === 0 && (
-                                                    <div className="text-[11px] text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">No egress rules</div>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            </div>
-                                            {/* Quick Edit Properties */}
-                                            <div className="px-4 pb-4 bg-slate-50 rounded-b-xl">
-                                              <div className="grid grid-cols-3 gap-4">
-                                                <div>
-                                                  <label className="text-[11px] font-medium text-slate-700 mb-1 block">Group Name</label>
-                                                  <input
-                                                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                                                    value={g.name}
-                                                    onChange={(e) => updateGroup(g.id, { name: e.target.value })}
-                                                  />
-                                                </div>
-                                                <div>
-                                                  <label className="text-[11px] font-medium text-slate-700 mb-1 block">VPC ID</label>
-                                                  <input
-                                                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                                                    value={g.vpcId || ''}
-                                                    onChange={(e) => updateGroup(g.id, { vpcId: e.target.value })}
-                                                  />
-                                                </div>
-                                                <div>
-                                                  <label className="text-[11px] font-medium text-slate-700 mb-1 block">Description</label>
-                                                  <input
-                                                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                                                    value={g.description || ''}
-                                                    onChange={(e) => updateGroup(g.id, { description: e.target.value })}
-                                                  />
-                                                </div>
-                                              </div>
-                                              <div className="mt-4 text-right">
-                                                <button
-                                                  className="text-xs px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium shadow-sm hover:shadow"
-                                                  onClick={() => { setSgEditTargetId(g.id); setSgModalOpen(true); }}
-                                                >
-                                                  ✏️ Edit Rules
-                                                </button>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })()}
-
-                          </div>
-                        )}
+                       
 
                         {/* Global Security Groups viewer (interactive selection) */}
                         <div className="p-4 rounded-xl border bg-white mt-3">
@@ -1500,10 +1384,10 @@ const PropertiesPanel: React.FC = () => {
                           })()}
                           {/* Selected SG chips with remove (cross) */}
                           <div className="mt-2 flex flex-wrap gap-2 bg-slate-50 rounded-lg p-2 border border-slate-200">
-                            {selectedSecurityGroups.length === 0 && (
+                            {securityTabs.length === 0 && (
                               <span className="text-[11px] text-slate-500">No security groups selected</span>
                             )}
-                            {selectedSecurityGroups.map((name: string, i: number) => {
+                            {securityTabs?.map((name: string, i: number) => {
                               const removeOne = () => {
                                 const next = selectedSecurityGroups.filter((n) => n !== name);
                                 setSelectedSecurityGroups(next);
