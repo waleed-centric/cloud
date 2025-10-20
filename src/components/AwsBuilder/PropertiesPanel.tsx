@@ -22,10 +22,7 @@ const PropertiesPanel: React.FC = () => {
   const { groups: allSecurityGroups, updateGroup } = useSecurityGroups();
   const [sgModalOpen, setSgModalOpen] = useState(false);
   const [sgEditTargetId, setSgEditTargetId] = useState<string | null>(null);
-  // console.log(state.selectedService.subServices.find('security'))
-
-  // , "selectedSecurityGroups")
-  // console.log(propertyValues, "propertyValues")
+ 
   const service = state.selectedService;
   const subService = state.selectedSubService;
   const editingNode = state.selectedNodeId
@@ -37,8 +34,7 @@ const PropertiesPanel: React.FC = () => {
     const svc = service as any;
     return Array.isArray(svc?.subServices) ? svc.subServices : [];
   }, [service]);
-  // console.log(editingNode?.properties?.securityGroups, "selectedSecurityGroups")
-  // Initialize SG selection from current EC2 node properties
+  
   useEffect(() => {
     if (!editingNode) {
       setSelectedSecurityGroups([]);
@@ -675,7 +671,6 @@ const PropertiesPanel: React.FC = () => {
   }, [service, subService, state.selectedNodeId]);
 
   const handlePropertyChange = (propertyId: string, value: any) => {
-    console.log({ propertyId, value });
     setPropertyValues(prev => ({
       ...prev,
       [propertyId]: value
@@ -736,12 +731,10 @@ const PropertiesPanel: React.FC = () => {
       // Decide between editing existing node vs creating a new sub-service
       const commonPropIds = (service?.commonProperties || []).map(p => p.id);
       const subPropIds = (subService?.properties || []).map(p => p.id);
-      console.log(editingNode)
-      // Parent node, if selected
+      
       const parentNode = editingNode && !editingNode.isSubService ? editingNode : null;
 
       if (editingNode && !subService) {
-        // Editing a parent service (e.g., EC2): update common properties; name change will propagate
         const toSave: Record<string, any> = {};
         commonPropIds.forEach(id => {
           toSave[id] = propertyValues[id];
@@ -932,7 +925,6 @@ const PropertiesPanel: React.FC = () => {
   };
   let securityTabs
   securityTabs = editingNode?.properties?.securityGroups || selectedSecurityGroups
-  // console.log(securityTabs, "securityTabs")
   return (
     <div
       className={`fixed top-0 right-0 h-[calc(100vh-104px)] mt-[104px] ${panelExpanded ? 'w-96' : 'w-14'} shadow-2xl z-[100] transition-all duration-300 ease-in-out border-l`}
@@ -1083,100 +1075,6 @@ const PropertiesPanel: React.FC = () => {
                       <div className="mt-4">
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="text-sm font-semibold text-slate-800">Canvas Nodes JSON</h4>
-                          <button
-                            type="button"
-                            className="text-xs px-2 py-1 rounded-md bg-slate-800 text-white hover:bg-slate-700"
-                            onClick={() => {
-                              const nodes = state.placedNodes
-                                .filter((group: any) => group.parentNodeId !== "root" && group.parentNodeId !== null && group.parentNodeId !== undefined);
-
-                              const n = nodes.length;
-                              const parentArr: number[] = Array.from({ length: n }, (_, i) => i);
-                              const find = (x: number): number => {
-                                while (parentArr[x] !== x) { parentArr[x] = parentArr[parentArr[x]]; x = parentArr[x]; }
-                                return x;
-                              };
-                              const union = (a: number, b: number) => {
-                                const ra = find(a), rb = find(b);
-                                if (ra !== rb) parentArr[rb] = ra;
-                              };
-
-                              const nameMap: Record<string, number[]> = {};
-                              nodes.forEach((node: any, idx: number) => {
-                                const key = node?.icon?.name || node?.label || "instance name";
-                                if (!nameMap[key]) nameMap[key] = [];
-                                nameMap[key].push(idx);
-                              });
-                              Object.values(nameMap).forEach((arr) => { for (let i = 1; i < arr.length; i++) union(arr[0], arr[i]); });
-
-                              const pMap: Record<string, number[]> = {};
-                              nodes.forEach((node: any, idx: number) => {
-                                const p = (node as any)?.parentNodeId;
-                                if (!p) return;
-                                const key = String(p);
-                                if (!pMap[key]) pMap[key] = [];
-                                pMap[key].push(idx);
-                              });
-                              Object.values(pMap).forEach((arr) => { for (let i = 1; i < arr.length; i++) union(arr[0], arr[i]); });
-
-                              const groupsMap: Record<number, number[]> = {};
-                              for (let i = 0; i < n; i++) {
-                                const r = find(i);
-                                if (!groupsMap[r]) groupsMap[r] = [];
-                                groupsMap[r].push(i);
-                              }
-                              const groups = Object.values(groupsMap).map((idxs) => idxs.map((i) => nodes[i]));
-
-                              const mergeProps = (groupNodes: any[]) => {
-                                const allKeys = Array.from(new Set(groupNodes.flatMap((n: any) => Object.keys(n?.properties || {}))));
-                                const result: Record<string, any> = {};
-                                allKeys.forEach((k) => {
-                                  const vals = groupNodes.map((n: any) => (n?.properties || {})[k]).filter((v) => v !== undefined && v !== null);
-                                  if (vals.length === 0) return;
-                                  const first = vals[0];
-                                  const allEqual = vals.every((v) => {
-                                    try { return JSON.stringify(v) === JSON.stringify(first); } catch { return v === first; }
-                                  });
-                                  if (allEqual) {
-                                    result[k] = first;
-                                  } else if (vals.every((v) => Array.isArray(v))) {
-                                    const unionVals = Array.from(new Set((vals as any[]).flat()));
-                                    result[k] = unionVals;
-                                  } else if (vals.every((v) => typeof v !== 'object' || v === null)) {
-                                    const uniq = Array.from(new Set(vals));
-                                    result[k] = uniq.length === 1 ? uniq[0] : uniq;
-                                  } else {
-                                    result[k] = vals[vals.length - 1];
-                                  }
-                                });
-                                return result;
-                              };
-
-                              const exportGroups = groups.map((groupNodes) => {
-                                const names = groupNodes.map((n: any) => n?.icon?.name || n?.label).filter(Boolean) as string[];
-                                const nameFreq: Record<string, number> = {};
-                                names.forEach((nm) => { nameFreq[nm] = (nameFreq[nm] || 0) + 1; });
-                                const name = names.length
-                                  ? Object.entries(nameFreq).sort((a, b) => b[1] - a[1])[0][0]
-                                  : 'instance name';
-                                const distinctServiceIds = Array.from(new Set(groupNodes.map((n: any) => n?.serviceId || 'instance')));
-                                const merged = mergeProps(groupNodes);
-                                return { name, services: distinctServiceIds, properties: merged };
-                              });
-
-                              const blob = new Blob([JSON.stringify({ groups: exportGroups }, null, 2)], { type: 'application/json' });
-                              const url = URL.createObjectURL(blob);
-                              const link = document.createElement('a');
-                              link.href = url;
-                              link.download = `canvas-nodes-${Date.now()}.json`;
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
-                              URL.revokeObjectURL(url);
-                            }}
-                          >
-                            Export JSON
-                          </button>
                         </div>
                         <div className="text-xs text-black p-0 rounded-lg bg-slate-50 border overflow-x-auto">
                           <div className="p-3">
@@ -1256,28 +1154,391 @@ const PropertiesPanel: React.FC = () => {
                                 const name = names.length
                                   ? Object.entries(nameFreq).sort((a, b) => b[1] - a[1])[0][0]
                                   : 'instance name';
+                                const distinctServiceIds = Array.from(new Set(groupNodes.map((n: any) => n?.subServiceId || n?.icon?.id || 'unknown')));
                                 const merged = mergeProps(groupNodes);
-                                return { name, properties: merged };
+                                return { name, services: distinctServiceIds, properties: merged, nodes: groupNodes } as any;
                               });
 
-                              const terraformCode = exportGroups.map((group) => {
-                                const { name, properties } = group;
-                                const formatVal = (v: any): string => {
-                                  if (Array.isArray(v)) {
-                                    const parts = v.map((x) => formatVal(x));
-                                    return `[${parts.join(', ')}]`;
+                              // Helper: parse inbound rules text into port numbers
+                              const parseInboundPorts = (text: any): number[] => {
+                                if (typeof text !== 'string') return [];
+                                const parts = text.split(',').map((s) => s.trim()).filter(Boolean);
+                                const ports: number[] = [];
+                                for (const p of parts) {
+                                  const match = p.match(/(\d{1,5})/);
+                                  if (match) {
+                                    const portStr = match[1];
+                                    const parsed = parseInt(portStr, 10);
+                                    if (!isNaN(parsed)) ports.push(parsed);
                                   }
-                                  if (v && typeof v === 'object') {
-                                    return JSON.stringify(v);
+                                }
+                                return ports;
+                              };
+
+                              const terraformCode = exportGroups.map((group: any) => {
+                                const { name, properties, services, nodes } = group;
+                                const resName = sanitize(name);
+                                const blocks: string[] = [];
+
+                                // EC2-centric blocks (security group, instance, ebs, eip)
+                                const hasEc2 = services.includes('ec2-instance');
+                                if (hasEc2) {
+                                  const sgResName = `ec2_instance_${resName}_sg`;
+                                  const instanceResName = `ec2_instance_${resName}`;
+                                  const volResName = `ec2_instance_${resName}_volume`;
+                                  const attachResName = `ec2_instance_${resName}_attachment`;
+                                  const eipResName = `ec2_instance_${resName}_eip`;
+
+                                  // Security Group details
+                                  const sgNode = nodes.find((n: any) => n?.subServiceId === 'security-group' || n?.icon?.id === 'security-group');
+                                  const inboundText = (sgNode as any)?.properties?.inboundRules || properties.inboundRules || '';
+                                  let ports = parseInboundPorts(inboundText);
+                                  if (ports.length === 0) ports = [22, 80, 443];
+                                  const portLabel = (p: number) => (p === 22 ? 'SSH' : p === 80 ? 'HTTP' : p === 443 ? 'HTTPS' : `PORT ${p}`);
+                                  const sgNameTag = (sgNode as any)?.properties?.groupName || 'default-sg';
+
+                                  // EC2 instance properties
+                                  const ami = properties.ami || (properties.AMI || 'ami-0abcdef1234567890');
+                                  const instanceType = properties.instance_type || properties.instanceType || 't2.micro';
+                                  const keyName = properties.key_name || properties.keyPair;
+
+                                  // EBS volume properties
+                                  const volSize = properties.size || properties.volumeSize || 20;
+                                  const volType = properties.volumeType || 'gp3';
+                                  const volEncrypted = typeof properties.encrypted === 'boolean' ? properties.encrypted : false;
+                                  const deviceName = properties.deviceName || '/dev/xvdf';
+
+                                  // Whether group contains Elastic IP sub-service
+                                  const hasEip = nodes.some((n: any) => n?.subServiceId === 'elastic-ip' || n?.icon?.id === 'elastic-ip');
+                                  const eipDomain = properties.domain || 'vpc';
+
+                                  // Build SG block
+                                  const sgBlockLines: string[] = [];
+                                  sgBlockLines.push(`# Create Security Group`);
+                                  sgBlockLines.push(`resource \"aws_security_group\" \"${sgResName}\" {`);
+                                  sgBlockLines.push(`  name        = \"${sgNameTag}\"`);
+                                  sgBlockLines.push(`  description = \"Allow ${ports.map(portLabel).join(', ')}\"`);
+                                  sgBlockLines.push(`  vpc_id      = \"your-vpc-id\" # Replace with your actual VPC ID`);
+                                  for (const p of ports) {
+                                    sgBlockLines.push(`  ingress {`);
+                                    sgBlockLines.push(`    description = \"${portLabel(p)}\"`);
+                                    sgBlockLines.push(`    from_port   = ${p}`);
+                                    sgBlockLines.push(`    to_port     = ${p}`);
+                                    sgBlockLines.push(`    protocol    = \"tcp\"`);
+                                    sgBlockLines.push(`    cidr_blocks = [\"0.0.0.0/0\"]`);
+                                    sgBlockLines.push(`  }`);
                                   }
-                                  if (typeof v === 'boolean' || typeof v === 'number') return String(v);
-                                  return `"${String(v)}"`;
-                                };
-                                const lines = Object.entries(properties)
-                                  .map(([k, v]) => `  ${k} = ${formatVal(v)}`)
-                                  .join('\n');
-                                return `resource "aws_instance" "${name}" {\n${lines}\n}`;
-                              }).join('\n\n');
+                                  sgBlockLines.push(`  egress {`);
+                                  sgBlockLines.push(`    from_port   = 0`);
+                                  sgBlockLines.push(`    to_port     = 0`);
+                                  sgBlockLines.push(`    protocol    = \"-1\"`);
+                                  sgBlockLines.push(`    cidr_blocks = [\"0.0.0.0/0\"]`);
+                                  sgBlockLines.push(`  }`);
+                                  sgBlockLines.push(`  tags = {`);
+                                  sgBlockLines.push(`    Name = \"${sgNameTag}\"`);
+                                  sgBlockLines.push(`  }`);
+                                  sgBlockLines.push(`}`);
+
+                                  // Build EC2 instance block
+                                  const ec2Lines: string[] = [];
+                                  ec2Lines.push(`# Create EC2 instance`);
+                                  ec2Lines.push(`resource \"aws_instance\" \"${instanceResName}\" {`);
+                                  ec2Lines.push(`  ami                    = \"${ami}\"`);
+                                  ec2Lines.push(`  instance_type          = \"${instanceType}\"`);
+                                  if (keyName) ec2Lines.push(`  key_name               = \"${keyName}\"`);
+                                  ec2Lines.push(`  vpc_security_group_ids = [aws_security_group.${sgResName}.id]`);
+                                  ec2Lines.push(`  tags = {`);
+                                  ec2Lines.push(`    Name = \"${name}\"`);
+                                  ec2Lines.push(`  }`);
+                                  ec2Lines.push(`}`);
+
+                                  // Build EBS volume & attachment blocks
+                                  const ebsLines: string[] = [];
+                                  ebsLines.push(`# Create an EBS volume`);
+                                  ebsLines.push(`resource \"aws_ebs_volume\" \"${volResName}\" {`);
+                                  ebsLines.push(`  availability_zone = aws_instance.${instanceResName}.availability_zone`);
+                                  ebsLines.push(`  size              = ${volSize}`);
+                                  ebsLines.push(`  type              = \"${volType}\"`);
+                                  ebsLines.push(`  encrypted         = ${volEncrypted ? 'true' : 'false'}`);
+                                  ebsLines.push(`  tags = {`);
+                                  ebsLines.push(`    Name = \"${name}-volume\"`);
+                                  ebsLines.push(`  }`);
+                                  ebsLines.push(`}`);
+                                  ebsLines.push(`# Attach EBS volume to instance`);
+                                  ebsLines.push(`resource \"aws_volume_attachment\" \"${attachResName}\" {`);
+                                  ebsLines.push(`  device_name = \"${deviceName}\"`);
+                                  ebsLines.push(`  volume_id   = aws_ebs_volume.${volResName}.id`);
+                                  ebsLines.push(`  instance_id = aws_instance.${instanceResName}.id`);
+                                  ebsLines.push(`}`);
+
+                                  // Optional EIP block
+                                  const eipLines: string[] = [];
+                                  if (hasEip) {
+                                    eipLines.push(`# Allocate and associate Elastic IP`);
+                                    eipLines.push(`resource \"aws_eip\" \"${eipResName}\" {`);
+                                    eipLines.push(`  instance = aws_instance.${instanceResName}.id`);
+                                    eipLines.push(`  domain   = \"${eipDomain}\"`);
+                                    eipLines.push(`  tags = {`);
+                                    eipLines.push(`    Name = \"${name}-eip\"`);
+                                    eipLines.push(`  }`);
+                                    eipLines.push(`}`);
+                                  }
+
+                                  blocks.push(
+                                    [
+                                      sgBlockLines.join('\n'),
+                                      ec2Lines.join('\n'),
+                                      ebsLines.join('\n'),
+                                      eipLines.join('\n'),
+                                    ].filter(Boolean).join('\n')
+                                  );
+                                }
+
+                                // S3 bucket and related split resources
+                                const s3Node = nodes.find((n: any) => n?.subServiceId === 's3-bucket' || n?.icon?.id === 's3-bucket');
+
+                                if (s3Node) {
+                                  let bucketName = (s3Node as any)?.properties?.bucketName || properties.bucketName || '';
+                                  if (!bucketName) {
+                                    const parent = state.placedNodes.find((pn: any) => pn?.id === (s3Node as any)?.parentNodeId);
+                                    bucketName = (parent as any)?.properties?.bucketName || 'my-s3-bucket';
+                                  }
+                                  const s3ResName = `s3_bucket_${sanitize(bucketName)}`;
+                                  const forceDestroy = typeof ((s3Node as any)?.properties?.forceDestroy ?? properties.forceDestroy) === 'boolean'
+                                    ? ((s3Node as any)?.properties?.forceDestroy ?? properties.forceDestroy)
+                                    : false;
+                                  const blockPublic = typeof ((s3Node as any)?.properties?.publicAccess ?? properties.publicAccess) === 'boolean'
+                                    ? ((s3Node as any)?.properties?.publicAccess ?? properties.publicAccess)
+                                    : true;
+                                  const versioningEnabled = !!(((s3Node as any)?.properties?.versioning ?? properties.versioning) || false);
+                                  const accelEnabled = !!(((s3Node as any)?.properties?.acceleration ?? properties.acceleration) || false);
+                                  const sseAlgorithm = (s3Node as any)?.properties?.sseAlgorithm || properties.sseAlgorithm || '';
+                                  const kmsKeyId = (s3Node as any)?.properties?.kmsKeyId || properties.kmsKeyId || '';
+                                  const bucketKeyEnabled = !!(((s3Node as any)?.properties?.bucketKeyEnabled ?? properties.bucketKeyEnabled) || false);
+                                  const websiteIndex = (s3Node as any)?.properties?.websiteIndexDocument || properties.websiteIndexDocument || '';
+                                  const websiteError = (s3Node as any)?.properties?.websiteErrorDocument || properties.websiteErrorDocument || '';
+
+                                  // Derive lifecycle from s3-lifecycle child if present
+                                  let transitionDays: number | undefined;
+                                  let expirationDays: number | undefined;
+                                  const S3Group=groups.filter((item: any) => item.subServiceId === "s3-lifecycle")
+                                  {
+                                    const parentId = (s3Node as any)?.parentNodeId;
+                                    if (parentId) {
+                                      const lifecycleNode = state.placedNodes.find(
+                                        (n: any) => (n?.subServiceId === 's3-lifecycle' || n?.icon?.id === 's3-lifecycle') && n?.parentNodeId === parentId
+                                      );
+                                      if (lifecycleNode) {
+                                        const t = (lifecycleNode as any)?.properties?.transitionDays;
+                                        const e = (lifecycleNode as any)?.properties?.expirationDays;
+                                        if (typeof t === 'number') transitionDays = t;
+                                        else if (typeof t === 'string' && t.trim() !== '' && !isNaN(Number(t))) transitionDays = Number(t);
+                                        if (typeof e === 'number') expirationDays = e;
+                                        else if (typeof e === 'string' && e.trim() !== '' && !isNaN(Number(e))) expirationDays = Number(e);
+                                      }
+                                    }
+                                    // Fallback to direct bucket/group properties if lifecycle child not provided
+                                    if (expirationDays === undefined) {
+                                      const expProp = (s3Node as any)?.properties?.expirationDays ?? properties.expirationDays;
+                                      if (typeof expProp === 'number' && isFinite(expProp)) expirationDays = expProp;
+                                      else if (typeof expProp === 'string' && expProp.trim() !== '' && !isNaN(Number(expProp))) expirationDays = Number(expProp);
+                                    }
+                                    if (transitionDays === undefined) {
+                                      const transProp = (s3Node as any)?.properties?.transitionDays ?? properties.transitionDays;
+                                      if (typeof transProp === 'number' && isFinite(transProp)) transitionDays = transProp;
+                                      else if (typeof transProp === 'string' && transProp.trim() !== '' && !isNaN(Number(transProp))) transitionDays = Number(transProp);
+                                    }
+                                  }
+                                  // Object lock: accept boolean or string; fallback to var
+                                  const objectLockEnabledProp = (s3Node as any)?.properties?.objectLockEnabled ?? properties.objectLockEnabled;
+                                  let objectLockEnabledValue: string | undefined;
+                                  if (typeof objectLockEnabledProp === 'boolean') {
+                                    objectLockEnabledValue = objectLockEnabledProp ? 'Enabled' : 'Disabled';
+                                  } else if (typeof objectLockEnabledProp === 'string') {
+                                    const s = objectLockEnabledProp.trim().toLowerCase();
+                                    if (s === 'enabled' || s === 'true') objectLockEnabledValue = 'Enabled';
+                                    else if (s === 'disabled' || s === 'false') objectLockEnabledValue = 'Disabled';
+                                  }
+
+                                  const s3Blocks: string[] = [];
+                                  s3Blocks.push(`# Create S3 bucket`);
+                                  s3Blocks.push(`resource \"aws_s3_bucket\" \"${s3ResName}\" {`);
+                                  s3Blocks.push(`  bucket        = \"${bucketName}\"`);
+                                  s3Blocks.push(`  acl           = \"${blockPublic ? 'private' : 'public-read'}\"`);
+                                  s3Blocks.push(`  force_destroy = ${forceDestroy ? 'true' : 'false'}`);
+                                  s3Blocks.push(`  tags = merge(var.tags, {})`);
+                                  s3Blocks.push(`  lifecycle_rule {`);
+                                  s3Blocks.push(`    expiration {`);
+                                  s3Blocks.push(`      days = ${typeof expirationDays === 'number' ? expirationDays : '\${var.s3_expiration_days}'}`);
+                                  s3Blocks.push(`    }`);
+                                  s3Blocks.push(`    transition {`);
+                                  s3Blocks.push(`      storage_class = \"STANDARD_IA\"`);
+                                  s3Blocks.push(`      days          = ${typeof transitionDays === 'number' ? transitionDays : '\${var.s3_transition_days}'}`);
+                                  s3Blocks.push(`    }`);
+                                  s3Blocks.push(`  }`);
+                                  s3Blocks.push(`  object_lock_configuration {`);
+                                  s3Blocks.push(`    object_lock_enabled = ${objectLockEnabledValue ? '"' + objectLockEnabledValue + '"' : 'var.s3_object_lock_enabled'}`);
+                                  s3Blocks.push(`  }`);
+                                  s3Blocks.push(`}`);
+
+                                  if (accelEnabled) {
+                                    s3Blocks.push(`# S3 transfer acceleration`);
+                                    s3Blocks.push(`resource \"aws_s3_bucket_accelerate\" \"${s3ResName}\" {`);
+                                    s3Blocks.push(`  bucket            = aws_s3_bucket.${s3ResName}.id`);
+                                    s3Blocks.push(`  accelerate_status = \"Enabled\"`);
+                                    s3Blocks.push(`}`);
+                                  }
+
+                                  if (sseAlgorithm || kmsKeyId || bucketKeyEnabled) {
+                                    s3Blocks.push(`# S3 server-side encryption`);
+                                    s3Blocks.push(`resource \"aws_s3_bucket_server_side_encryption_configuration\" \"${s3ResName}\" {`);
+                                    s3Blocks.push(`  bucket = aws_s3_bucket.${s3ResName}.id`);
+                                    s3Blocks.push(`  rule {`);
+                                    s3Blocks.push(`    apply_server_side_encryption_by_default {`);
+                                    if (sseAlgorithm) s3Blocks.push(`      sse_algorithm     = \"${sseAlgorithm}\"`);
+                                    if (kmsKeyId) s3Blocks.push(`      kms_master_key_id = \"${kmsKeyId}\"`);
+                                    s3Blocks.push(`    }`);
+                                    s3Blocks.push(`    bucket_key_enabled = ${bucketKeyEnabled ? 'true' : 'false'}`);
+                                    s3Blocks.push(`  }`);
+                                    s3Blocks.push(`}`);
+                                  }
+
+                                  if (websiteIndex || websiteError) {
+                                    s3Blocks.push(`# S3 website configuration`);
+                                    s3Blocks.push(`resource \"aws_s3_bucket_website_configuration\" \"${s3ResName}\" {`);
+                                    s3Blocks.push(`  bucket = aws_s3_bucket.${s3ResName}.id`);
+                                    if (websiteIndex) {
+                                      s3Blocks.push(`  index_document {`);
+                                      s3Blocks.push(`    suffix = \"${websiteIndex}\"`);
+                                      s3Blocks.push(`  }`);
+                                    }
+                                    if (websiteError) {
+                                      s3Blocks.push(`  error_document {`);
+                                      s3Blocks.push(`    key = \"${websiteError}\"`);
+                                      s3Blocks.push(`  }`);
+                                    }
+                                    s3Blocks.push(`}`);
+                                  }
+
+                                  blocks.push(s3Blocks.join('\n'));
+                                }
+
+                                // Lambda function and optional layer
+                                const lambdaNode = nodes.find((n: any) => n?.subServiceId === 'lambda-function' || n?.icon?.id === 'lambda-function');
+                                if (lambdaNode) {
+                                  const functionName = (lambdaNode as any)?.properties?.functionName || properties.functionName || resName;
+                                  const runtime = (lambdaNode as any)?.properties?.runtime || properties.runtime || 'nodejs18.x';
+                                  const handler = (lambdaNode as any)?.properties?.handler || properties.handler || 'index.handler';
+                                  const role = (lambdaNode as any)?.properties?.role || (lambdaNode as any)?.properties?.iamRole || properties.role || 'arn:aws:iam::123456789012:role/example';
+                                  const lfName = `lambda_${sanitize(functionName)}`;
+
+                                  const lambdaLines: string[] = [];
+                                  lambdaLines.push(`# Create Lambda function`);
+                                  lambdaLines.push(`resource \"aws_lambda_function\" \"${lfName}\" {`);
+                                  lambdaLines.push(`  function_name = \"${functionName}\"`);
+                                  lambdaLines.push(`  role          = \"${role}\"`);
+                                  lambdaLines.push(`  handler       = \"${handler}\"`);
+                                  lambdaLines.push(`  runtime       = \"${runtime}\"`);
+                                  lambdaLines.push(`  tags = {`);
+                                  lambdaLines.push(`    Name = \"${functionName}\"`);
+                                  lambdaLines.push(`  }`);
+                                  lambdaLines.push(`}`);
+
+                                  const layerNode = nodes.find((n: any) => n?.subServiceId === 'lambda-layer' || n?.icon?.id === 'lambda-layer');
+                                  if (layerNode) {
+                                    const layerName = (layerNode as any)?.properties?.layerName || 'layer';
+                                    const compat = (layerNode as any)?.properties?.compatibleRuntimes || [runtime];
+                                    const layerRes = `lambda_layer_${sanitize(layerName)}`;
+                                    const layerLines: string[] = [];
+                                    layerLines.push(`# Create Lambda layer`);
+                                    layerLines.push(`resource \"aws_lambda_layer_version\" \"${layerRes}\" {`);
+                                    layerLines.push(`  layer_name          = \"${layerName}\"`);
+                                    layerLines.push(`  compatible_runtimes = ${JSON.stringify(compat)}`);
+                                    layerLines.push(`}`);
+                                    blocks.push(layerLines.join('\n'));
+                                  }
+
+                                  blocks.push(lambdaLines.join('\n'));
+                                }
+
+                                // RDS instance
+                                const rdsNode = nodes.find((n: any) => n?.subServiceId === 'rds-instance' || n?.icon?.id === 'rds-instance');
+                                if (rdsNode) {
+                                  const identifier = (rdsNode as any)?.properties?.identifier || properties.identifier || resName;
+                                  const engine = (rdsNode as any)?.properties?.engine || properties.engine || 'mysql';
+                                  const instanceClass = (rdsNode as any)?.properties?.instanceClass || properties.instanceClass || 'db.t3.micro';
+                                  const allocatedStorage = (rdsNode as any)?.properties?.allocatedStorage || properties.allocatedStorage || 20;
+                                  const engineVersion = (rdsNode as any)?.properties?.engineVersion || properties.engineVersion || '8.0';
+                                  const publiclyAccessible = !!(((rdsNode as any)?.properties?.publiclyAccessible ?? properties.publiclyAccessible) || false);
+                                  const rdsRes = `db_${sanitize(identifier)}`;
+
+                                  const rdsLines: string[] = [];
+                                  rdsLines.push(`# Create RDS instance`);
+                                  rdsLines.push(`resource \"aws_db_instance\" \"${rdsRes}\" {`);
+                                  rdsLines.push(`  identifier         = \"${identifier}\"`);
+                                  rdsLines.push(`  engine             = \"${engine}\"`);
+                                  rdsLines.push(`  engine_version     = \"${engineVersion}\"`);
+                                  rdsLines.push(`  instance_class     = \"${instanceClass}\"`);
+                                  rdsLines.push(`  allocated_storage  = ${allocatedStorage}`);
+                                  rdsLines.push(`  publicly_accessible = ${publiclyAccessible ? 'true' : 'false'}`);
+                                  rdsLines.push(`  skip_final_snapshot = true`);
+                                  rdsLines.push(`  tags = {`);
+                                  rdsLines.push(`    Name = \"${identifier}\"`);
+                                  rdsLines.push(`  }`);
+                                  rdsLines.push(`}`);
+                                  blocks.push(rdsLines.join('\n'));
+                                }
+
+                                // VPC
+                                const vpcNode = nodes.find((n: any) => n?.subServiceId === 'vpc' || n?.icon?.id === 'vpc');
+                                if (vpcNode) {
+                                  const vpcName = (vpcNode as any)?.properties?.vpcName || properties.vpcName || resName;
+                                  const cidr = (vpcNode as any)?.properties?.cidrBlock || properties.cidrBlock || '10.0.0.0/16';
+                                  const vpcRes = `vpc_${sanitize(vpcName)}`;
+                                  const vpcLines: string[] = [];
+                                  vpcLines.push(`# Create VPC`);
+                                  vpcLines.push(`resource \"aws_vpc\" \"${vpcRes}\" {`);
+                                  vpcLines.push(`  cidr_block = \"${cidr}\"`);
+                                  vpcLines.push(`  tags = {`);
+                                  vpcLines.push(`    Name = \"${vpcName}\"`);
+                                  vpcLines.push(`  }`);
+                                  vpcLines.push(`}`);
+                                  blocks.push(vpcLines.join('\n'));
+                                }
+
+                                // CloudFront (minimal)
+                                const cfNode = nodes.find((n: any) => n?.subServiceId === 'cloudfront-distribution' || n?.icon?.id === 'cloudfront-distribution');
+                                if (cfNode) {
+                                  const distName = (cfNode as any)?.properties?.distributionName || properties.distributionName || resName;
+                                  const originDomain = (cfNode as any)?.properties?.originDomain || properties.originDomain || `${resName}.s3.amazonaws.com`;
+                                  const cfRes = `cloudfront_${sanitize(distName)}`;
+                                  const cfLines: string[] = [];
+                                  cfLines.push(`# Create CloudFront distribution`);
+                                  cfLines.push(`resource \"aws_cloudfront_distribution\" \"${cfRes}\" {`);
+                                  cfLines.push(`  enabled = true`);
+                                  cfLines.push(`  origin {`);
+                                  cfLines.push(`    domain_name = \"${originDomain}\"`);
+                                  cfLines.push(`    origin_id   = \"${distName}-origin\"`);
+                                  cfLines.push(`  }`);
+                                  cfLines.push(`  default_cache_behavior {`);
+                                  cfLines.push(`    target_origin_id = \"${distName}-origin\"`);
+                                  cfLines.push(`    viewer_protocol_policy = \"redirect-to-https\"`);
+                                  cfLines.push(`    allowed_methods = [\"GET\", \"HEAD\"]`);
+                                  cfLines.push(`    cached_methods  = [\"GET\", \"HEAD\"]`);
+                                  cfLines.push(`  }`);
+                                  cfLines.push(`  restrictions {`);
+                                  cfLines.push(`    geo_restriction { restriction_type = \"none\" }`);
+                                  cfLines.push(`  }`);
+                                  cfLines.push(`  viewer_certificate {`);
+                                  cfLines.push(`    cloudfront_default_certificate = true`);
+                                  cfLines.push(`  }`);
+                                  cfLines.push(`}`);
+                                  blocks.push(cfLines.join('\n'));
+                                }
+
+                                if (blocks.length === 0) return '';
+                                return blocks.join('\n');
+                              }).filter(Boolean).join('\n\n');
 
                               return (
                                 <pre className="text-xs text-slate-700 whitespace-pre">{terraformCode}</pre>
@@ -1359,7 +1620,7 @@ const PropertiesPanel: React.FC = () => {
                         ))}
 
                         {/* Security Groups selection inside Configuration for EC2 Instances (central SG management) */}
-                       
+
 
                         {/* Global Security Groups viewer (interactive selection) */}
                         <div className="p-4 rounded-xl border bg-white mt-3">

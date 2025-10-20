@@ -319,6 +319,13 @@ const S3_SERVICE: DetailedAwsService = {
           description: "Enable object versioning"
         },
         {
+          id: "objectLockEnabled",
+          name: "Object Lock Enabled",
+          type: "boolean",
+          defaultValue: false,
+          description: "Enable object lock (requires versioning)"
+        },
+        {
           id: "publicAccess",
           name: "Block Public Access",
           type: "boolean",

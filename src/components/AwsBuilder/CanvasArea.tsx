@@ -16,7 +16,9 @@ export function CanvasArea() {
   const [dragOver, setDragOver] = useState(false);
   const [showAISuggestion, setShowAISuggestion] = useState(false);
   const [suggestionPosition, setSuggestionPosition] = useState({ x: 0, y: 0 });
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | undefined>(undefined);
+  const [isPanning, setIsPanning] = useState(false);
+  const panStartRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
@@ -108,7 +110,9 @@ export function CanvasArea() {
     }
   };
 
-  const handleCanvasClick = (e: React.MouseEvent) => {
+  const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Ignore clicks immediately following a pan gesture
+    if (isPanning) return;
     // If in connect mode and clicking on empty canvas, cancel connection
     if (state.isConnecting) {
       setConnecting(false);
@@ -129,11 +133,50 @@ export function CanvasArea() {
     }
   };
 
+  const handlePanMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!canvasRef.current) return;
+    // Left button only
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    // Start panning only when clicking the bare canvas background
+    if (target !== canvasRef.current) return;
+  
+    setIsPanning(true);
+    const scroller = canvasRef.current;
+    panStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      left: scroller.scrollLeft,
+      top: scroller.scrollTop,
+    };
+    e.preventDefault();
+  
+    const handleMove = (ev: MouseEvent) => {
+      if (!panStartRef.current || !canvasRef.current) return;
+      const scale = state.zoom || 1;
+      const dx = ev.clientX - panStartRef.current.x;
+      const dy = ev.clientY - panStartRef.current.y;
+      canvasRef.current.scrollLeft = panStartRef.current.left - dx / scale;
+      canvasRef.current.scrollTop = panStartRef.current.top - dy / scale;
+    };
+  
+    const handleUp = () => {
+      setIsPanning(false);
+      panStartRef.current = null;
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+  
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+  };
+
   return (
     <div className="relative h-full">
       <div
         ref={canvasRef}
-        className="w-full h-full relative overflow-auto transition-colors"
+        className={`w-full h-full relative overflow-auto transition-colors ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
+        onMouseDown={handlePanMouseDown}
           style={{
             backgroundColor: 'white',
             backgroundImage: 'url(/aws/DesignCanvas.png)',

@@ -1097,19 +1097,116 @@ export function ExportPanel() {
               const name = names.length
                 ? Object.entries(nameFreq).sort((a, b) => b[1] - a[1])[0][0]
                 : 'instance name';
-              const distinctServiceIds = Array.from(new Set(groupNodes.map((n: any) => n?.serviceId || 'instance')));
+              const distinctServiceIds = Array.from(new Set(groupNodes.map((n: any) => n?.subServiceId || n?.icon?.id || 'instance')));
               const merged = mergeProps(groupNodes);
               return { name, services: distinctServiceIds, properties: merged };
             });
 
-            const blob = new Blob([JSON.stringify({ groups: exportGroups }, null, 2)], { type: 'application/json' });
+            const sanitize = (name: string) => sanitizeResourceName(name || 'instance');
+            const parsePorts = (rules: any): number[] => {
+              if (typeof rules !== 'string') return [];
+              return rules
+                .split(',')
+                .map((s) => s.trim())
+                .map((s) => {
+                  const m = s.match(/(\d{1,5})/);
+                  return m ? parseInt(m[1], 10) : NaN;
+                })
+                .filter((p) => !isNaN(p));
+            };
+
+            const hclParts: string[] = [];
+            exportGroups.forEach((group) => {
+              // Only build EC2-style stack if EC2 present
+              const hasEc2 = group.services.some((s: any) => s === 'ec2-instance');
+              if (!hasEc2) return;
+
+              const baseName = sanitize(group.name);
+              const ami = typeof group.properties.ami === 'string' ? group.properties.ami : 'ami-0abcdef1234567890';
+              const instanceType = typeof group.properties.instanceType === 'string' ? group.properties.instanceType : 't2.micro';
+              const volumeSize = typeof group.properties.size === 'number' ? group.properties.size : 20;
+              const volumeType = typeof group.properties.volumeType === 'string' ? group.properties.volumeType : 'gp3';
+              const encrypted = typeof group.properties.encrypted === 'boolean' ? group.properties.encrypted : false;
+              const sgName = typeof group.properties.groupName === 'string' && group.properties.groupName.trim()
+                ? group.properties.groupName.trim()
+                : 'default-sg';
+
+              const ports = parsePorts(group.properties.inboundRules);
+              const ingressPorts = ports.length ? ports : [22, 80, 443];
+
+              // Security Group
+              hclParts.push(`resource "aws_security_group" "ec2_instance_${baseName}_sg" {
+  name        = "${sgName}"
+  description = "Allow SSH, HTTP, and HTTPS"
+  vpc_id      = "your-vpc-id"
+${ingressPorts.map((p: number) => `  ingress {
+    description = "${p === 22 ? 'SSH' : p === 80 ? 'HTTP' : p === 443 ? 'HTTPS' : 'Port ' + p}"
+    from_port   = ${p}
+    to_port     = ${p}
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }`).join('\n')}
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags = {
+    Name = "${sgName}"
+  }
+}`);
+
+              // EC2 Instance
+              hclParts.push(`resource "aws_instance" "ec2_instance_${baseName}" {
+  ami                    = "${ami}"
+  instance_type          = "${instanceType}"
+  vpc_security_group_ids = [aws_security_group.ec2_instance_${baseName}_sg.id]
+  tags = {
+    Name = "${group.name}"
+  }
+}`);
+
+              // EBS Volume
+              hclParts.push(`resource "aws_ebs_volume" "ec2_instance_${baseName}_volume" {
+  availability_zone = aws_instance.ec2_instance_${baseName}.availability_zone
+  size              = ${volumeSize}
+  type              = "${volumeType}"
+  encrypted         = ${encrypted ? 'true' : 'false'}
+  tags = {
+    Name = "${baseName}-volume"
+  }
+}`);
+
+              // Attach EBS volume
+              hclParts.push(`resource "aws_volume_attachment" "ec2_instance_${baseName}_attachment" {
+  device_name = "/dev/xvdf"
+  volume_id   = aws_ebs_volume.ec2_instance_${baseName}_volume.id
+  instance_id = aws_instance.ec2_instance_${baseName}.id
+}`);
+
+              // Elastic IP
+              hclParts.push(`resource "aws_eip" "ec2_instance_${baseName}_eip" {
+  instance = aws_instance.ec2_instance_${baseName}.id
+  domain   = "vpc"
+  tags = {
+    Name = "${baseName}-eip"
+  }
+}`);
+            });
+
+            const terraformCode = hclParts.join('\n\n');
+            if (!terraformCode.trim()) {
+              alert('No EC2 groups found to export in tf-example style.');
+              return;
+            }
+
+            const blob = new Blob([terraformCode], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `canvas-nodes-${Date.now()}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'tf-example-style.tf';
+            a.click();
             URL.revokeObjectURL(url);
           }}
         >
