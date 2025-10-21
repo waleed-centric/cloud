@@ -136,14 +136,6 @@ const EC2_SERVICE: DetailedAwsService = {
           defaultValue: "default-sg",
           required: true,
           description: "Security group name"
-        },
-        {
-          id: "inboundRules",
-          name: "Inbound Rules",
-          type: "textarea",
-          // defaultValue: "SSH: 22, HTTP: 80, HTTPS: 443",
-          defaultValue: "",
-          description: "Inbound traffic rules"
         }
       ]
     },

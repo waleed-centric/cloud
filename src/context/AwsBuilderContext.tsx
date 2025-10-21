@@ -181,7 +181,35 @@ export function AwsBuilderProvider({ children }: { children: ReactNode }) {
       commons.forEach((prop: any) => {
         defaultProperties[prop.id] = prop.defaultValue ?? '';
       });
+
+      // Auto-name EC2 instances uniquely on creation
+      const primaryId = resolvePrimaryNameId(svc);
+      if (icon.id === 'ec2' && primaryId) {
+        const base = typeof defaultProperties[primaryId] === 'string' && defaultProperties[primaryId]
+          ? String(defaultProperties[primaryId]).trim()
+          : 'EC2 Instance';
+        const ec2Parents = state.placedNodes.filter(
+          (n) => !n.isSubService && ((n.serviceId || n.icon.id) === 'ec2')
+        );
+        const existingNames = new Set(
+          ec2Parents
+            .map((n) => {
+              const v = getPrimaryNameValue(n);
+              return typeof v === 'string' ? v.trim().toLowerCase() : '';
+            })
+            .filter(Boolean)
+        );
+        let idx = 1;
+        let candidate = base;
+        while (existingNames.has(candidate.toLowerCase())) {
+          candidate = `${base} ${idx}`;
+          idx++;
+        }
+        defaultProperties[primaryId] = candidate;
+      }
+
       serviceId = (svc as any).id;
+      console.log('Node created with properties:', defaultProperties, 'for service:', icon.id);
     }
 
     const newNode: PlacedNode = {

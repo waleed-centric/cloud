@@ -68,10 +68,7 @@ export const SecurityGroupModal: React.FC<Props> = ({ open, onClose, initialGrou
               <label className="text-xs font-medium text-black">VPC ID</label>
               <input value={vpcId} onChange={(e) => setVpcId(e.target.value)} className="mt-1 w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black" placeholder="vpc-12345" />
             </div>
-            <div className="col-span-2">
-              <label className="text-xs font-medium text-black">Description</label>
-              <input value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1 w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black" placeholder="Allow HTTP/HTTPS from internet; SSH from admin subnet" />
-            </div>
+            
           </div>
 
           <div>

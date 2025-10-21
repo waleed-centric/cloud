@@ -1116,7 +1116,7 @@ const PropertiesPanel: React.FC = () => {
                                 groupsMap[r].push(i);
                               }
                               const groups = Object.values(groupsMap).map((idxs) => idxs.map((i) => nodes[i]));
-
+                              console.log(nodes, "nodes");
                               const mergeProps = (groupNodes: any[]) => {
                                 const allKeys = Array.from(new Set(groupNodes.flatMap((n: any) => Object.keys(n?.properties || {}))));
                                 const result: Record<string, any> = {};
@@ -1151,7 +1151,21 @@ const PropertiesPanel: React.FC = () => {
                                   : 'instance name';
                                 const distinctServiceIds = Array.from(new Set(groupNodes.map((n: any) => n?.subServiceId || n?.icon?.id || 'unknown')));
                                 const merged = mergeProps(groupNodes);
-                                return { name, services: distinctServiceIds, properties: merged, nodes: groupNodes } as any;
+                                // Derive group region: prefer merged.region, else majority of node regions, else default
+                                const regionCounts: Record<string, number> = {};
+                                const addRegion = (val: any) => {
+                                  if (typeof val === 'string') {
+                                    const r = val.trim();
+                                    if (r) regionCounts[r] = (regionCounts[r] || 0) + 1;
+                                  }
+                                };
+                                addRegion((merged as any)?.region);
+                                for (const n of groupNodes) addRegion((n as any)?.properties?.region);
+                                const groupRegion = (() => {
+                                  const entries = Object.entries(regionCounts).sort((a, b) => b[1] - a[1]);
+                                  return entries.length ? entries[0][0] : 'us-east-1';
+                                })();
+                                return { name, services: distinctServiceIds, properties: merged, nodes: groupNodes, region: groupRegion } as any;
                               });
 
                               // Helper: parse inbound rules text into port numbers
@@ -1169,11 +1183,50 @@ const PropertiesPanel: React.FC = () => {
                                 }
                                 return ports;
                               };
-                              const terraformCode = exportGroups.map((group: any) => {
-                                const { name, properties, services, nodes } = group;
+                              const selectedRegion = (() => {
+                                const counts: Record<string, number> = {};
+                                const addRegion = (val: any) => {
+                                  if (typeof val === 'string') {
+                                    const r = val.trim();
+                                    if (r) counts[r] = (counts[r] || 0) + 1;
+                                  }
+                                };
+                                for (const n of state.placedNodes) {
+                                  addRegion((n as any)?.properties?.region);
+                                  const pid = (n as any)?.parentNodeId;
+                                  if (pid) {
+                                    const parent = state.placedNodes.find((m: any) => m.id === pid);
+                                    addRegion((parent as any)?.properties?.region);
+                                  }
+                                }
+                                const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+                                return entries.length ? entries[0][0] : 'us-east-1';
+                              })();
+
+                              const aliasForRegion = (r: string) => `region_${sanitize(r)}`;
+
+                              const regionsUsed = (() => {
+                                const set = new Set<string>();
+                                const add = (val: any) => {
+                                  if (typeof val === 'string') {
+                                    const r = val.trim();
+                                    if (r) set.add(r);
+                                  }
+                                };
+                                for (const g of exportGroups) {
+                                  add((g as any)?.region);
+                                  add((g as any)?.properties?.region);
+                                  const ns = (g as any)?.nodes || [];
+                                  for (const n of ns) add((n as any)?.properties?.region);
+                                }
+                                return Array.from(set);
+                              })();
+
+                              const resourceBlocks = exportGroups.map((group: any) => {
+                                const { name, properties, services, nodes, region } = group;
                                 const resName = sanitize(name);
                                 const blocks: string[] = [];
-
+                                
                                 // EC2-centric blocks (security group, instance, ebs, eip)
                                 const hasEc2 = services.includes('ec2-instance');
                                 if (hasEc2) {
@@ -1247,10 +1300,16 @@ const PropertiesPanel: React.FC = () => {
                                     sgBlockLines.push(`  }`);
                                     sgBlockLines.push(`}`);
                                   }
-
+                                  // console.log({nodeRegion })
+                                  // console.log(groups)
                                   // Build EC2 instance block
                                   const ec2Lines: string[] = [];
                                   ec2Lines.push(`resource \"aws_instance\" \"${instanceResName}\" {`);
+                                  const ec2Node = nodes.find((n: any) => n?.subServiceId === 'ec2-instance' || n?.icon?.id === 'ec2-instance');
+                                  const nodeRegion = ((ec2Node as any)?.properties?.region || properties.region || selectedRegion).trim();
+                                  const regionAlias = `region_${sanitize(nodeRegion)}`;
+                                  ec2Lines.push(`  provider               = aws.${regionAlias}`);
+                                  ec2Lines.push(`  region                 = \"${nodeRegion}\"`);
                                   ec2Lines.push(`  ami                    = \"${ami}\"`);
                                   ec2Lines.push(`  instance_type          = \"${instanceType}\"`);
                                   if (keyName) ec2Lines.push(`  key_name               = \"${keyName}\"`);
@@ -1528,6 +1587,8 @@ const PropertiesPanel: React.FC = () => {
                                 return blocks.join('\n');
                               }).filter(Boolean).join('\n\n');
 
+                              const terraformCode = [resourceBlocks].filter(Boolean).join('\n\n');
+
                               return (
                                 <pre className="text-xs text-slate-700 whitespace-pre">{terraformCode}</pre>
                               );
@@ -1545,7 +1606,7 @@ const PropertiesPanel: React.FC = () => {
                     <div>
                       <h3 className="text-sm font-semibold text-slate-800 mb-3">Basic Information</h3>
                       <div className="space-y-3">
-                        {service.commonProperties.map((property) => (
+                        {service.commonProperties.filter(p => !(((((editingNode?.subServiceId === 'security-group' || editingNode?.subServiceId === 'elastic-ip' || editingNode?.subServiceId === 'ebs-volume')) || (subService?.id === 'elastic-ip' || subService?.id === 'ebs-volume')) && p.id === 'region'))).map((property) => (
                           <div key={property.id} className="p-4 rounded-xl border bg-white" >
                             <div className="flex items-center justify-between mb-1">
                               <label
@@ -1619,7 +1680,7 @@ const PropertiesPanel: React.FC = () => {
                                 <label className="text-xs font-medium text-slate-700">Global Security Groups</label>
                                 <span className="text-xs px-2 py-0.5 rounded border bg-green-50 text-green-700">Selectable</span>
                               </div>
-                              <p className="text-xs mb-2 text-slate-600">Dropdown se groups select karo aur EC2 par apply ho jayenge.</p>
+                              <p className="text-xs mb-2 text-slate-600">Select from DropDown</p>
                               {(() => {
                                 const names = selectedSecurityGroups;
                                 const nameToId = (nm: string) => allSecurityGroups.find((g) => g.name === nm)?.id || '';
