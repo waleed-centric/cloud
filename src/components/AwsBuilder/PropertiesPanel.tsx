@@ -1173,8 +1173,7 @@ const PropertiesPanel: React.FC = () => {
                                   }
                                 }
                                 return ports;
-                              };
-                              console.log(exportGroups,"exportGroups")
+                              }; 
                               const terraformCode = exportGroups.map((group: any) => {
                                 const { name, properties, services, nodes } = group;
                                 const resName = sanitize(name);

@@ -177,21 +177,27 @@ export function CanvasArea() {
         ref={canvasRef}
         className={`w-full h-full relative overflow-auto transition-colors ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
         onMouseDown={handlePanMouseDown}
+        style={{
+          backgroundColor: '#f5f5f5',
+        }}
+      >
+        <div
           style={{
             backgroundColor: 'white',
             backgroundImage: 'url(/aws/DesignCanvas.png)',
-            // backgroundSize: '60px 60px',
-            width: `${(1 / (state.zoom || 1)) * 100}%`,
-            height: `${(1 / (state.zoom || 1)) * 100}%`,
+            // Make canvas substantially larger than viewport to enable scroll-based panning
+            width: `${Math.max(2000, (state.placedNodes.reduce((max, n) => Math.max(max, n.x + (n.icon?.width || 80)), 0) + 400))}px`,
+            height: `${Math.max(1500, (state.placedNodes.reduce((max, n) => Math.max(max, n.y + (n.icon?.height || 80)), 0) + 400))}px`,
             transform: `scale(${state.zoom || 1})`,
             transformOrigin: 'top left',
+            position: 'relative',
           }}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={handleCanvasClick}
-        onMouseMove={handleMouseMove}
-      >
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={handleCanvasClick}
+          onMouseMove={handleMouseMove}
+        >
       <ConnectionLayer
           nodes={state.placedNodes}
           connections={state.connections}
@@ -288,6 +294,7 @@ export function CanvasArea() {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
