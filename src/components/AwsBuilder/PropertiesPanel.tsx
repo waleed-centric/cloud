@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAwsBuilder } from '@/context/AwsBuilderContext';
+import { useSecurityGroups } from '@/context/SecurityGroupsContext';
 import { useCloudProvider } from '@/context/CloudProviderContext';
 import { getProviderTheme } from '@/data/theme-colors';
 import { ServiceProperty, SubService, DetailedAwsService } from '../../data/aws-services-detailed';
-import { useSecurityGroups } from '@/context/SecurityGroupsContext';
 import SecurityGroupDropdown from '@/components/SecurityGroups/SecurityGroupDropdown';
 import SecurityGroupModal from '@/components/SecurityGroups/SecurityGroupModal';
 
@@ -1081,7 +1081,7 @@ const PropertiesPanel: React.FC = () => {
                             {(() => {
                               const nodes = state.placedNodes
                                 .filter((group: any) => group.parentNodeId !== "root" && group.parentNodeId !== null && group.parentNodeId !== undefined);
-
+                              // console.log(nodes, "nodes");
                               const n = nodes.length;
                               const parentArr: number[] = Array.from({ length: n }, (_, i) => i);
                               const find = (x: number): number => {
@@ -1174,7 +1174,7 @@ const PropertiesPanel: React.FC = () => {
                                 }
                                 return ports;
                               };
-
+                              console.log(exportGroups,"exportGroups")
                               const terraformCode = exportGroups.map((group: any) => {
                                 const { name, properties, services, nodes } = group;
                                 const resName = sanitize(name);
@@ -1188,14 +1188,26 @@ const PropertiesPanel: React.FC = () => {
                                   const volResName = `ec2_instance_${resName}_volume`;
                                   const attachResName = `ec2_instance_${resName}_attachment`;
                                   const eipResName = `ec2_instance_${resName}_eip`;
-
                                   // Security Group details
                                   const sgNode = nodes.find((n: any) => n?.subServiceId === 'security-group' || n?.icon?.id === 'security-group');
-                                  const inboundText = (sgNode as any)?.properties?.inboundRules || properties.inboundRules || '';
-                                  let ports = parseInboundPorts(inboundText);
-                                  if (ports.length === 0) ports = [22, 80, 443];
-                                  const portLabel = (p: number) => (p === 22 ? 'SSH' : p === 80 ? 'HTTP' : p === 443 ? 'HTTPS' : `PORT ${p}`);
-                                  const sgNameTag = (sgNode as any)?.properties?.groupName || 'default-sg';
+                                  const inboundText = (sgNode as any)?.properties?.inboundRules || '';
+                                  const selectedGroupNames = Array.isArray(properties.securityGroups) ? properties.securityGroups : [];
+                                  const selectedGroups = selectedGroupNames
+                                    .map((nm: string) => allSecurityGroups.find((g: any) => g?.name === nm))
+                                    .filter(Boolean);
+                                  const portLabel = (p: number) => (p === 22 ? 'SSH' : p === 80 ? 'HTTP' : p === 443 ? 'HTTPS' : `Port ${p}`);
+                                  const sgNameTag = selectedGroupNames.length ? selectedGroupNames[0] : ((sgNode as any)?.properties?.groupName || 'default-sg');
+                                  const ports = parseInboundPorts(inboundText);
+
+                                  // Build dynamic ingress/egress from selected groups; fallback to parsed inbound ports; no static defaults
+                                  const ingressRules: Array<{ protocol: string; fromPort: number; toPort: number; cidr: string; description?: string }> =
+                                    selectedGroups.length
+                                      ? selectedGroups.flatMap((g: any) => (g?.ingress || []))
+                                      : ports.map((p: number) => ({ protocol: 'tcp', fromPort: p, toPort: p, cidr: '0.0.0.0/0', description: portLabel(p) }));
+                                  const egressRules: Array<{ protocol: string; fromPort: number; toPort: number; cidr: string; description?: string }> =
+                                    selectedGroups.length
+                                      ? selectedGroups.flatMap((g: any) => (g?.egress || []))
+                                      : [];
 
                                   // EC2 instance properties
                                   const ami = properties.ami || (properties.AMI || 'ami-0abcdef1234567890');
@@ -1212,41 +1224,43 @@ const PropertiesPanel: React.FC = () => {
                                   const hasEip = nodes.some((n: any) => n?.subServiceId === 'elastic-ip' || n?.icon?.id === 'elastic-ip');
                                   const eipDomain = properties.domain || 'vpc';
 
-                                  // Build SG block
+                                  // Build SG block only if any rules are defined
                                   const sgBlockLines: string[] = [];
-                                  sgBlockLines.push(`# Create Security Group`);
-                                  sgBlockLines.push(`resource \"aws_security_group\" \"${sgResName}\" {`);
-                                  sgBlockLines.push(`  name        = \"${sgNameTag}\"`);
-                                  sgBlockLines.push(`  description = \"Allow ${ports.map(portLabel).join(', ')}\"`);
-                                  sgBlockLines.push(`  vpc_id      = \"your-vpc-id\" # Replace with your actual VPC ID`);
-                                  for (const p of ports) {
-                                    sgBlockLines.push(`  ingress {`);
-                                    sgBlockLines.push(`    description = \"${portLabel(p)}\"`);
-                                    sgBlockLines.push(`    from_port   = ${p}`);
-                                    sgBlockLines.push(`    to_port     = ${p}`);
-                                    sgBlockLines.push(`    protocol    = \"tcp\"`);
-                                    sgBlockLines.push(`    cidr_blocks = [\"0.0.0.0/0\"]`);
+                                  if (ingressRules.length > 0 || egressRules.length > 0) {
+                                    sgBlockLines.push(`resource \"aws_security_group\" \"${sgResName}\" {`);
+                                    sgBlockLines.push(`  name        = \"${sgNameTag}\"`);
+                                    sgBlockLines.push(`  description = \"${ingressRules.length ? 'Allow ' + ingressRules.map((r) => r.description || ((r.protocol === '-1' ? 'ALL' : r.protocol.toUpperCase()) + ' ' + r.fromPort)).join(', ') : 'Custom SG'}\"`);
+                                    sgBlockLines.push(`  vpc_id      = \"your-vpc-id\" # Replace with your actual VPC ID`);
+                                    for (const r of ingressRules) {
+                                      sgBlockLines.push(`  ingress {`);
+                                      sgBlockLines.push(`    description = \"${r.description || ''}\"`);
+                                      sgBlockLines.push(`    from_port   = ${r.fromPort}`);
+                                      sgBlockLines.push(`    to_port     = ${r.toPort}`);
+                                      sgBlockLines.push(`    protocol    = \"${r.protocol}\"`);
+                                      sgBlockLines.push(`    cidr_blocks = [\"${r.cidr}\"]`);
+                                      sgBlockLines.push(`  }`);
+                                    }
+                                    for (const r of egressRules) {
+                                      sgBlockLines.push(`  egress {`);
+                                      sgBlockLines.push(`    from_port   = ${r.fromPort}`);
+                                      sgBlockLines.push(`    to_port     = ${r.toPort}`);
+                                      sgBlockLines.push(`    protocol    = \"${r.protocol}\"`);
+                                      sgBlockLines.push(`    cidr_blocks = [\"${r.cidr}\"]`);
+                                      sgBlockLines.push(`  }`);
+                                    }
+                                    sgBlockLines.push(`  tags = {`);
+                                    sgBlockLines.push(`    Name = \"${sgNameTag}\"`);
                                     sgBlockLines.push(`  }`);
+                                    sgBlockLines.push(`}`);
                                   }
-                                  sgBlockLines.push(`  egress {`);
-                                  sgBlockLines.push(`    from_port   = 0`);
-                                  sgBlockLines.push(`    to_port     = 0`);
-                                  sgBlockLines.push(`    protocol    = \"-1\"`);
-                                  sgBlockLines.push(`    cidr_blocks = [\"0.0.0.0/0\"]`);
-                                  sgBlockLines.push(`  }`);
-                                  sgBlockLines.push(`  tags = {`);
-                                  sgBlockLines.push(`    Name = \"${sgNameTag}\"`);
-                                  sgBlockLines.push(`  }`);
-                                  sgBlockLines.push(`}`);
 
                                   // Build EC2 instance block
                                   const ec2Lines: string[] = [];
-                                  ec2Lines.push(`# Create EC2 instance`);
                                   ec2Lines.push(`resource \"aws_instance\" \"${instanceResName}\" {`);
                                   ec2Lines.push(`  ami                    = \"${ami}\"`);
                                   ec2Lines.push(`  instance_type          = \"${instanceType}\"`);
                                   if (keyName) ec2Lines.push(`  key_name               = \"${keyName}\"`);
-                                  ec2Lines.push(`  vpc_security_group_ids = [aws_security_group.${sgResName}.id]`);
+                                  if (sgBlockLines.length > 0) ec2Lines.push(`  vpc_security_group_ids = [aws_security_group.${sgResName}.id]`);
                                   ec2Lines.push(`  tags = {`);
                                   ec2Lines.push(`    Name = \"${name}\"`);
                                   ec2Lines.push(`  }`);
@@ -1254,7 +1268,6 @@ const PropertiesPanel: React.FC = () => {
 
                                   // Build EBS volume & attachment blocks
                                   const ebsLines: string[] = [];
-                                  ebsLines.push(`# Create an EBS volume`);
                                   ebsLines.push(`resource \"aws_ebs_volume\" \"${volResName}\" {`);
                                   ebsLines.push(`  availability_zone = aws_instance.${instanceResName}.availability_zone`);
                                   ebsLines.push(`  size              = ${volSize}`);
@@ -1264,7 +1277,6 @@ const PropertiesPanel: React.FC = () => {
                                   ebsLines.push(`    Name = \"${name}-volume\"`);
                                   ebsLines.push(`  }`);
                                   ebsLines.push(`}`);
-                                  ebsLines.push(`# Attach EBS volume to instance`);
                                   ebsLines.push(`resource \"aws_volume_attachment\" \"${attachResName}\" {`);
                                   ebsLines.push(`  device_name = \"${deviceName}\"`);
                                   ebsLines.push(`  volume_id   = aws_ebs_volume.${volResName}.id`);
@@ -1286,7 +1298,7 @@ const PropertiesPanel: React.FC = () => {
 
                                   blocks.push(
                                     [
-                                      sgBlockLines.join('\n'),
+                                      sgBlockLines.length ? sgBlockLines.join('\n') : '',
                                       ec2Lines.join('\n'),
                                       ebsLines.join('\n'),
                                       eipLines.join('\n'),
@@ -1360,8 +1372,16 @@ const PropertiesPanel: React.FC = () => {
                                     else if (s === 'disabled' || s === 'false') objectLockEnabledValue = 'Disabled';
                                   }
 
+                                  // Storage class: prefer explicit bucket storageClass, else derive default or use var
+                                  const storageClassProp = (s3Node as any)?.properties?.storageClass ?? properties.storageClass;
+                                  let storageClassValue: string | undefined;
+                                  if (typeof storageClassProp === 'string' && storageClassProp.trim()) {
+                                    storageClassValue = storageClassProp.trim();
+                                  } else if (typeof transitionDays === 'number') {
+                                    storageClassValue = 'STANDARD_IA';
+                                  }
+
                                   const s3Blocks: string[] = [];
-                                  s3Blocks.push(`# Create S3 bucket`);
                                   s3Blocks.push(`resource \"aws_s3_bucket\" \"${s3ResName}\" {`);
                                   s3Blocks.push(`  bucket        = \"${bucketName}\"`);
                                   s3Blocks.push(`  acl           = \"${blockPublic ? 'private' : 'public-read'}\"`);
@@ -1372,7 +1392,7 @@ const PropertiesPanel: React.FC = () => {
                                   s3Blocks.push(`      days = ${typeof expirationDays === 'number' ? expirationDays : '\${var.s3_expiration_days}'}`);
                                   s3Blocks.push(`    }`);
                                   s3Blocks.push(`    transition {`);
-                                  s3Blocks.push(`      storage_class = \"STANDARD_IA\"`);
+                                  s3Blocks.push(`      storage_class = ${storageClassValue ? '"' + storageClassValue + '"' : '\${var.s3_storage_class}'}`);
                                   s3Blocks.push(`      days          = ${typeof transitionDays === 'number' ? transitionDays : '\${var.s3_transition_days}'}`);
                                   s3Blocks.push(`    }`);
                                   s3Blocks.push(`  }`);
@@ -1386,20 +1406,6 @@ const PropertiesPanel: React.FC = () => {
                                     s3Blocks.push(`resource \"aws_s3_bucket_accelerate\" \"${s3ResName}\" {`);
                                     s3Blocks.push(`  bucket            = aws_s3_bucket.${s3ResName}.id`);
                                     s3Blocks.push(`  accelerate_status = \"Enabled\"`);
-                                    s3Blocks.push(`}`);
-                                  }
-
-                                  if (sseAlgorithm || kmsKeyId || bucketKeyEnabled) {
-                                    s3Blocks.push(`# S3 server-side encryption`);
-                                    s3Blocks.push(`resource \"aws_s3_bucket_server_side_encryption_configuration\" \"${s3ResName}\" {`);
-                                    s3Blocks.push(`  bucket = aws_s3_bucket.${s3ResName}.id`);
-                                    s3Blocks.push(`  rule {`);
-                                    s3Blocks.push(`    apply_server_side_encryption_by_default {`);
-                                    if (sseAlgorithm) s3Blocks.push(`      sse_algorithm     = \"${sseAlgorithm}\"`);
-                                    if (kmsKeyId) s3Blocks.push(`      kms_master_key_id = \"${kmsKeyId}\"`);
-                                    s3Blocks.push(`    }`);
-                                    s3Blocks.push(`    bucket_key_enabled = ${bucketKeyEnabled ? 'true' : 'false'}`);
-                                    s3Blocks.push(`  }`);
                                     s3Blocks.push(`}`);
                                   }
 
@@ -1433,7 +1439,6 @@ const PropertiesPanel: React.FC = () => {
                                   const lfName = `lambda_${sanitize(functionName)}`;
 
                                   const lambdaLines: string[] = [];
-                                  lambdaLines.push(`# Create Lambda function`);
                                   lambdaLines.push(`resource \"aws_lambda_function\" \"${lfName}\" {`);
                                   lambdaLines.push(`  function_name = \"${functionName}\"`);
                                   lambdaLines.push(`  role          = \"${role}\"`);
@@ -1450,7 +1455,6 @@ const PropertiesPanel: React.FC = () => {
                                     const compat = (layerNode as any)?.properties?.compatibleRuntimes || [runtime];
                                     const layerRes = `lambda_layer_${sanitize(layerName)}`;
                                     const layerLines: string[] = [];
-                                    layerLines.push(`# Create Lambda layer`);
                                     layerLines.push(`resource \"aws_lambda_layer_version\" \"${layerRes}\" {`);
                                     layerLines.push(`  layer_name          = \"${layerName}\"`);
                                     layerLines.push(`  compatible_runtimes = ${JSON.stringify(compat)}`);
@@ -1473,7 +1477,6 @@ const PropertiesPanel: React.FC = () => {
                                   const rdsRes = `db_${sanitize(identifier)}`;
 
                                   const rdsLines: string[] = [];
-                                  rdsLines.push(`# Create RDS instance`);
                                   rdsLines.push(`resource \"aws_db_instance\" \"${rdsRes}\" {`);
                                   rdsLines.push(`  identifier         = \"${identifier}\"`);
                                   rdsLines.push(`  engine             = \"${engine}\"`);
@@ -1496,7 +1499,6 @@ const PropertiesPanel: React.FC = () => {
                                   const cidr = (vpcNode as any)?.properties?.cidrBlock || properties.cidrBlock || '10.0.0.0/16';
                                   const vpcRes = `vpc_${sanitize(vpcName)}`;
                                   const vpcLines: string[] = [];
-                                  vpcLines.push(`# Create VPC`);
                                   vpcLines.push(`resource \"aws_vpc\" \"${vpcRes}\" {`);
                                   vpcLines.push(`  cidr_block = \"${cidr}\"`);
                                   vpcLines.push(`  tags = {`);
@@ -1513,7 +1515,6 @@ const PropertiesPanel: React.FC = () => {
                                   const originDomain = (cfNode as any)?.properties?.originDomain || properties.originDomain || `${resName}.s3.amazonaws.com`;
                                   const cfRes = `cloudfront_${sanitize(distName)}`;
                                   const cfLines: string[] = [];
-                                  cfLines.push(`# Create CloudFront distribution`);
                                   cfLines.push(`resource \"aws_cloudfront_distribution\" \"${cfRes}\" {`);
                                   cfLines.push(`  enabled = true`);
                                   cfLines.push(`  origin {`);

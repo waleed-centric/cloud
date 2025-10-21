@@ -9,8 +9,7 @@ export const initialSecurityGroups = [
     vpcId: 'vpc-12345',
     ingress: [
       { protocol: 'tcp', fromPort: 80, toPort: 80, cidr: '0.0.0.0/0', description: 'HTTP' },
-      { protocol: 'tcp', fromPort: 443, toPort: 443, cidr: '0.0.0.0/0', description: 'HTTPS' },
-      { protocol: 'tcp', fromPort: 22, toPort: 22, cidr: '10.0.1.0/24', description: 'SSH from admin subnet' },
+      // Removed extra defaults: keep only one ingress rule by default
     ],
     egress: [
       { protocol: '-1', fromPort: 0, toPort: 0, cidr: '0.0.0.0/0', description: 'All outbound' },
@@ -35,7 +34,7 @@ export const initialSecurityGroups = [
     vpcId: 'vpc-12345',
     ingress: [
       { protocol: 'tcp', fromPort: 80, toPort: 80, cidr: '0.0.0.0/0', description: 'HTTP' },
-      { protocol: 'tcp', fromPort: 443, toPort: 443, cidr: '0.0.0.0/0', description: 'HTTPS' },
+      // Removed extra defaults: keep only one ingress rule by default
     ],
     egress: [
       { protocol: '-1', fromPort: 0, toPort: 0, cidr: '0.0.0.0/0', description: 'All outbound' },

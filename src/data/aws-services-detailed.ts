@@ -141,7 +141,8 @@ const EC2_SERVICE: DetailedAwsService = {
           id: "inboundRules",
           name: "Inbound Rules",
           type: "textarea",
-          defaultValue: "SSH: 22, HTTP: 80, HTTPS: 443",
+          // defaultValue: "SSH: 22, HTTP: 80, HTTPS: 443",
+          defaultValue: "",
           description: "Inbound traffic rules"
         }
       ]

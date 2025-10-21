@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useAwsBuilder } from '@/context/AwsBuilderContext';
+import { useSecurityGroups } from '@/context/SecurityGroupsContext';
 
 // Summary: Export Panel component - handles export to Draw.io format
 // - Generates XML compatible with Draw.io/diagrams.net
 
 export function ExportPanel() {
   const { state } = useAwsBuilder();
+  const { groups: allSecurityGroups } = useSecurityGroups();
   const [isExporting, setIsExporting] = useState(false);
   // return false
   // Build grouped JSON: merge nodes by same name or same parentNodeId
@@ -380,51 +382,63 @@ export function ExportPanel() {
 
       // Base bucket
       const out: any[] = [];
-      out.push({ type: 'aws_s3_bucket', name: resName, properties: stripNullsDeep({
-        bucket: merged.bucket,
-        force_destroy: merged.force_destroy || false,
-        tags: merged.tags,
-      })});
+      out.push({
+        type: 'aws_s3_bucket', name: resName, properties: stripNullsDeep({
+          bucket: merged.bucket,
+          force_destroy: merged.force_destroy || false,
+          tags: merged.tags,
+        })
+      });
 
       // Public access block
-      out.push({ type: 'aws_s3_bucket_public_access_block', name: resName, properties: stripNullsDeep({
-        bucket: { __ref: `aws_s3_bucket.${resName}.id` },
-        block_public_acls: !!merged.block_public_access,
-        ignore_public_acls: !!merged.block_public_access,
-        block_public_policy: !!merged.block_public_access,
-        restrict_public_buckets: !!merged.block_public_access,
-      })});
-      
+      out.push({
+        type: 'aws_s3_bucket_public_access_block', name: resName, properties: stripNullsDeep({
+          bucket: { __ref: `aws_s3_bucket.${resName}.id` },
+          block_public_acls: !!merged.block_public_access,
+          ignore_public_acls: !!merged.block_public_access,
+          block_public_policy: !!merged.block_public_access,
+          restrict_public_buckets: !!merged.block_public_access,
+        })
+      });
+
       // Ownership controls + ACL (when ACL provided)
       if (merged.acl) {
-        out.push({ type: 'aws_s3_bucket_ownership_controls', name: resName, properties: stripNullsDeep({
-          bucket: { __ref: `aws_s3_bucket.${resName}.id` },
-          rule: { object_ownership: 'BucketOwnerPreferred' },
-        })});
-        out.push({ type: 'aws_s3_bucket_acl', name: resName, properties: stripNullsDeep({
-          bucket: { __ref: `aws_s3_bucket.${resName}.id` },
-          acl: merged.acl,
-          depends_on: [
-            { __ref: `aws_s3_bucket_public_access_block.${resName}` },
-            { __ref: `aws_s3_bucket_ownership_controls.${resName}` },
-          ],
-        })});
+        out.push({
+          type: 'aws_s3_bucket_ownership_controls', name: resName, properties: stripNullsDeep({
+            bucket: { __ref: `aws_s3_bucket.${resName}.id` },
+            rule: { object_ownership: 'BucketOwnerPreferred' },
+          })
+        });
+        out.push({
+          type: 'aws_s3_bucket_acl', name: resName, properties: stripNullsDeep({
+            bucket: { __ref: `aws_s3_bucket.${resName}.id` },
+            acl: merged.acl,
+            depends_on: [
+              { __ref: `aws_s3_bucket_public_access_block.${resName}` },
+              { __ref: `aws_s3_bucket_ownership_controls.${resName}` },
+            ],
+          })
+        });
       }
 
       // Versioning
       if (typeof merged.versioning_enabled === 'boolean') {
-        out.push({ type: 'aws_s3_bucket_versioning', name: resName, properties: stripNullsDeep({
-          bucket: { __ref: `aws_s3_bucket.${resName}.id` },
-          versioning_configuration: { status: merged.versioning_enabled ? 'Enabled' : 'Suspended' },
-        })});
+        out.push({
+          type: 'aws_s3_bucket_versioning', name: resName, properties: stripNullsDeep({
+            bucket: { __ref: `aws_s3_bucket.${resName}.id` },
+            versioning_configuration: { status: merged.versioning_enabled ? 'Enabled' : 'Suspended' },
+          })
+        });
       }
 
       // Acceleration
       if (merged.acceleration) {
-        out.push({ type: 'aws_s3_bucket_accelerate', name: resName, properties: stripNullsDeep({
-          bucket: { __ref: `aws_s3_bucket.${resName}.id` },
-          accelerate_status: 'Enabled',
-        })});
+        out.push({
+          type: 'aws_s3_bucket_accelerate', name: resName, properties: stripNullsDeep({
+            bucket: { __ref: `aws_s3_bucket.${resName}.id` },
+            accelerate_status: 'Enabled',
+          })
+        });
       }
 
       // SSE configuration
@@ -437,36 +451,42 @@ export function ExportPanel() {
 
       // Logging
       if (merged.logging && merged.logging.bucket) {
-        out.push({ type: 'aws_s3_bucket_logging', name: resName, properties: stripNullsDeep({
-          bucket: { __ref: `aws_s3_bucket.${resName}.id` },
-          target_bucket: merged.logging.bucket,
-          target_prefix: merged.logging.prefix || undefined,
-        })});
+        out.push({
+          type: 'aws_s3_bucket_logging', name: resName, properties: stripNullsDeep({
+            bucket: { __ref: `aws_s3_bucket.${resName}.id` },
+            target_bucket: merged.logging.bucket,
+            target_prefix: merged.logging.prefix || undefined,
+          })
+        });
       }
 
       // CORS
       if (merged.cors && (merged.cors.allowed_origins || merged.cors.allowed_methods || merged.cors.allowed_headers)) {
         // Allow comma-separated strings from UI
         const split = (v: any) => typeof v === 'string' ? v.split(',').map((x: string) => x.trim()).filter(Boolean) : v;
-        out.push({ type: 'aws_s3_bucket_cors_configuration', name: resName, properties: stripNullsDeep({
-          bucket: { __ref: `aws_s3_bucket.${resName}.id` },
-          cors_rule: {
-            allowed_origins: split(merged.cors.allowed_origins) || ['*'],
-            allowed_methods: split(merged.cors.allowed_methods) || ['GET'],
-            allowed_headers: split(merged.cors.allowed_headers) || undefined,
-            expose_headers: split(merged.cors.expose_headers) || undefined,
-            max_age_seconds: typeof merged.cors.max_age_seconds === 'number' ? merged.cors.max_age_seconds : undefined,
-          },
-        })});
+        out.push({
+          type: 'aws_s3_bucket_cors_configuration', name: resName, properties: stripNullsDeep({
+            bucket: { __ref: `aws_s3_bucket.${resName}.id` },
+            cors_rule: {
+              allowed_origins: split(merged.cors.allowed_origins) || ['*'],
+              allowed_methods: split(merged.cors.allowed_methods) || ['GET'],
+              allowed_headers: split(merged.cors.allowed_headers) || undefined,
+              expose_headers: split(merged.cors.expose_headers) || undefined,
+              max_age_seconds: typeof merged.cors.max_age_seconds === 'number' ? merged.cors.max_age_seconds : undefined,
+            },
+          })
+        });
       }
 
       // Website
       if (merged.website && (merged.website.index_document || merged.website.error_document)) {
-        out.push({ type: 'aws_s3_bucket_website_configuration', name: resName, properties: stripNullsDeep({
-          bucket: { __ref: `aws_s3_bucket.${resName}.id` },
-          index_document: merged.website.index_document || undefined,
-          error_document: merged.website.error_document || undefined,
-        })});
+        out.push({
+          type: 'aws_s3_bucket_website_configuration', name: resName, properties: stripNullsDeep({
+            bucket: { __ref: `aws_s3_bucket.${resName}.id` },
+            index_document: merged.website.index_document || undefined,
+            error_document: merged.website.error_document || undefined,
+          })
+        });
       }
 
       // Lifecycle
@@ -474,10 +494,12 @@ export function ExportPanel() {
         const rule: any = { id: 'default', status: 'Enabled' };
         if (merged.lifecycle.transition_days) rule.transition = { days: merged.lifecycle.transition_days, storage_class: 'STANDARD_IA' };
         if (merged.lifecycle.expiration_days) rule.expiration = { days: merged.lifecycle.expiration_days };
-        out.push({ type: 'aws_s3_bucket_lifecycle_configuration', name: resName, properties: stripNullsDeep({
-          bucket: { __ref: `aws_s3_bucket.${resName}.id` },
-          rule,
-        })});
+        out.push({
+          type: 'aws_s3_bucket_lifecycle_configuration', name: resName, properties: stripNullsDeep({
+            bucket: { __ref: `aws_s3_bucket.${resName}.id` },
+            rule,
+          })
+        });
       }
 
       return out;
@@ -1120,7 +1142,7 @@ export function ExportPanel() {
               // Only build EC2-style stack if EC2 present
               const hasEc2 = group.services.some((s: any) => s === 'ec2-instance');
               if (!hasEc2) return;
-
+              console.log(group,"group")
               const baseName = sanitize(group.name);
               const ami = typeof group.properties.ami === 'string' ? group.properties.ami : 'ami-0abcdef1234567890';
               const instanceType = typeof group.properties.instanceType === 'string' ? group.properties.instanceType : 't2.micro';
@@ -1130,28 +1152,40 @@ export function ExportPanel() {
               const sgName = typeof group.properties.groupName === 'string' && group.properties.groupName.trim()
                 ? group.properties.groupName.trim()
                 : 'default-sg';
-
+              console.log(group.properties, "group.properties")
               const ports = parsePorts(group.properties.inboundRules);
-              const ingressPorts = ports.length ? ports : [22, 80, 443];
+              const selectedGroupNames = Array.isArray(group.properties.securityGroups) ? group.properties.securityGroups : [];
+              const selectedGroups = selectedGroupNames
+                .map((nm: string) => allSecurityGroups.find((g) => g?.name === nm))
+                .filter(Boolean);
+              const portLabel = (p: number) => (p === 22 ? 'SSH' : p === 80 ? 'HTTP' : p === 443 ? 'HTTPS' : 'Port ' + p);
 
+              // Build dynamic ingress/egress from selected groups; fallback to parsed inbound ports; no static defaults
+              const ingressRules = selectedGroups.length
+                ? selectedGroups.flatMap((g: any) => (g?.ingress || []))
+                : ports.map((p: number) => ({ protocol: 'tcp', fromPort: p, toPort: p, cidr: '0.0.0.0/0', description: portLabel(p) }));
+              const egressRules = selectedGroups.length
+                ? selectedGroups.flatMap((g: any) => (g?.egress || []))
+                : [];
+              // console.log(selectedGroups, "selectedGroups")
               // Security Group
               hclParts.push(`resource "aws_security_group" "ec2_instance_${baseName}_sg" {
   name        = "${sgName}"
-  description = "Allow SSH, HTTP, and HTTPS"
+  description = "${ingressRules.length ? 'Allow ' + ingressRules.map((r: any) => r.description || ((r.protocol === '-1' ? 'ALL' : r.protocol.toUpperCase()) + ' ' + r.fromPort)).join(', ') : 'Custom SG'}"
   vpc_id      = "your-vpc-id"
-${ingressPorts.map((p: number) => `  ingress {
-    description = "${p === 22 ? 'SSH' : p === 80 ? 'HTTP' : p === 443 ? 'HTTPS' : 'Port ' + p}"
-    from_port   = ${p}
-    to_port     = ${p}
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+${ingressRules.map((r: any) => `  ingress {
+    description = "${r.description || ''}"
+    from_port   = ${r.fromPort}
+    to_port     = ${r.toPort}
+    protocol    = "${r.protocol}"
+    cidr_blocks = ["${r.cidr}"]
   }`).join('\n')}
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+${egressRules.map((r: any) => `  egress {
+    from_port   = ${r.fromPort}
+    to_port     = ${r.toPort}
+    protocol    = "${r.protocol}"
+    cidr_blocks = ["${r.cidr}"]
+  }`).join('\n')}
   tags = {
     Name = "${sgName}"
   }
