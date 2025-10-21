@@ -1379,7 +1379,6 @@ const PropertiesPanel: React.FC = () => {
                                   s3Blocks.push(`  bucket        = \"${bucketName}\"`);
                                   s3Blocks.push(`  acl           = \"${blockPublic ? 'private' : 'public-read'}\"`);
                                   s3Blocks.push(`  force_destroy = ${forceDestroy ? 'true' : 'false'}`);
-                                  s3Blocks.push(`  tags = merge(var.tags, {})`);
                                   s3Blocks.push(`  lifecycle_rule {`);
                                   s3Blocks.push(`    expiration {`);
                                   s3Blocks.push(`      days = ${typeof expirationDays === 'number' ? expirationDays : '\${var.s3_expiration_days}'}`);
@@ -1612,7 +1611,8 @@ const PropertiesPanel: React.FC = () => {
                           editingNode?.subServiceId === 's3-bucket' ||
                           editingNode?.subServiceId === 's3-lifecycle' ||
                           editingNode?.subServiceId === "ec2-instance" ||
-                          editingNode?.subServiceId === "ebs-volume" 
+                          (editingNode?.serviceId === "ec2" && editingNode?.subServiceId != "security-group") ||
+                          editingNode?.subServiceId === "ebs-volume"
                         ) && (
                             <div className="p-4 rounded-xl border bg-white mt-3">
                               <div className="flex items-center justify-between mb-1">
@@ -1805,7 +1805,7 @@ const PropertiesPanel: React.FC = () => {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-3">
-                    {subServicesList.map((sub: any, idx: number) => (
+                    {(service?.id === 'ec2' ? subServicesList.filter((sub: any) => sub?.id !== 'security-group') : subServicesList).map((sub: any, idx: number) => (
                       <div key={idx} className="p-3 rounded-lg border bg-white hover:shadow-sm transition-all">
                         <div className="flex items-start gap-2">
                           <span className="text-lg">{sub.icon || '🧩'}</span>
