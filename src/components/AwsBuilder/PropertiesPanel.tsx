@@ -832,7 +832,8 @@ const PropertiesPanel: React.FC = () => {
     const hasError = !!errors[property.id];
     const isPrimaryName = !!primaryNameId && property.id === primaryNameId;
     // Allow renaming the parent instance even when configuring a sub-service
-    const isReadOnlyInstanceName = false;
+    // Disable name field for inner services/sub-services, keep editable for main instances
+    const isReadOnlyInstanceName = editingNode?.isSubService || !!subService;
 
     switch (property.type) {
       case 'text':
@@ -1307,8 +1308,6 @@ const PropertiesPanel: React.FC = () => {
                                   ec2Lines.push(`resource \"aws_instance\" \"${instanceResName}\" {`);
                                   const ec2Node = nodes.find((n: any) => n?.subServiceId === 'ec2-instance' || n?.icon?.id === 'ec2-instance');
                                   const nodeRegion = ((ec2Node as any)?.properties?.region || properties.region || selectedRegion).trim();
-                                  const regionAlias = `region_${sanitize(nodeRegion)}`;
-                                  ec2Lines.push(`  provider               = aws.${regionAlias}`);
                                   ec2Lines.push(`  region                 = \"${nodeRegion}\"`);
                                   ec2Lines.push(`  ami                    = \"${ami}\"`);
                                   ec2Lines.push(`  instance_type          = \"${instanceType}\"`);
