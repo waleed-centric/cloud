@@ -22,25 +22,26 @@ const PropertiesPanel: React.FC = () => {
   const { groups: allSecurityGroups, updateGroup } = useSecurityGroups();
   const [sgModalOpen, setSgModalOpen] = useState(false);
   const [sgEditTargetId, setSgEditTargetId] = useState<string | null>(null);
- 
+
   const service = state.selectedService;
   const subService = state.selectedSubService;
   const editingNode = state.selectedNodeId
     ? state.placedNodes.find(n => n.id === state.selectedNodeId)
     : null;
-
+  console.log(editingNode, "editingNode")
   const theme = getProviderTheme(currentProvider);
   const subServicesList = useMemo(() => {
     const svc = service as any;
     return Array.isArray(svc?.subServices) ? svc.subServices : [];
   }, [service]);
-  
+
   useEffect(() => {
     if (!editingNode) {
       setSelectedSecurityGroups([]);
       return;
     }
-    const isEc2Instance = editingNode.subServiceId === 'ec2-instance' || (editingNode as any)?.icon?.id === 'ec2-instance';
+    const isEc2Instance = editingNode.subServiceId === 'ec2-instance' ||
+      (editingNode as any)?.icon?.id === 'ec2-instance';
     if (isEc2Instance) {
       const sgNames: string[] = Array.isArray((editingNode as any)?.properties?.securityGroups)
         ? (editingNode as any).properties.securityGroups
@@ -731,7 +732,7 @@ const PropertiesPanel: React.FC = () => {
       // Decide between editing existing node vs creating a new sub-service
       const commonPropIds = (service?.commonProperties || []).map(p => p.id);
       const subPropIds = (subService?.properties || []).map(p => p.id);
-      
+
       const parentNode = editingNode && !editingNode.isSubService ? editingNode : null;
 
       if (editingNode && !subService) {
@@ -1004,12 +1005,6 @@ const PropertiesPanel: React.FC = () => {
               >
                 ›
               </button>
-              <button
-                onClick={closePropertiesPanel}
-                className="text-slate-700 hover:text-slate-900 text-xl font-bold w-6 h-6 flex items-center justify-center flex-shrink-0 ml-2"
-              >
-                ×
-              </button>
             </div>
             <div className="mt-1">
               <span className="inline-block text-xs px-2 py-0.5 rounded-md border bg-slate-100 text-slate-700">
@@ -1173,7 +1168,7 @@ const PropertiesPanel: React.FC = () => {
                                   }
                                 }
                                 return ports;
-                              }; 
+                              };
                               const terraformCode = exportGroups.map((group: any) => {
                                 const { name, properties, services, nodes } = group;
                                 const resName = sanitize(name);
@@ -1285,7 +1280,6 @@ const PropertiesPanel: React.FC = () => {
                                   // Optional EIP block
                                   const eipLines: string[] = [];
                                   if (hasEip) {
-                                    eipLines.push(`# Allocate and associate Elastic IP`);
                                     eipLines.push(`resource \"aws_eip\" \"${eipResName}\" {`);
                                     eipLines.push(`  instance = aws_instance.${instanceResName}.id`);
                                     eipLines.push(`  domain   = \"${eipDomain}\"`);
@@ -1332,7 +1326,7 @@ const PropertiesPanel: React.FC = () => {
                                   // Derive lifecycle from s3-lifecycle child if present
                                   let transitionDays: number | undefined;
                                   let expirationDays: number | undefined;
-                                  const S3Group=groups.filter((item: any) => item.subServiceId === "s3-lifecycle")
+                                  const S3Group = groups.filter((item: any) => item.subServiceId === "s3-lifecycle")
                                   {
                                     const parentId = (s3Node as any)?.parentNodeId;
                                     if (parentId) {
@@ -1398,15 +1392,10 @@ const PropertiesPanel: React.FC = () => {
                                   s3Blocks.push(`  object_lock_configuration {`);
                                   s3Blocks.push(`    object_lock_enabled = ${objectLockEnabledValue ? '"' + objectLockEnabledValue + '"' : 'var.s3_object_lock_enabled'}`);
                                   s3Blocks.push(`  }`);
-                                  s3Blocks.push(`}`);
-
                                   if (accelEnabled) {
-                                    s3Blocks.push(`# S3 transfer acceleration`);
-                                    s3Blocks.push(`resource \"aws_s3_bucket_accelerate\" \"${s3ResName}\" {`);
-                                    s3Blocks.push(`  bucket            = aws_s3_bucket.${s3ResName}.id`);
-                                    s3Blocks.push(`  accelerate_status = \"Enabled\"`);
-                                    s3Blocks.push(`}`);
+                                    s3Blocks.push(`  acceleration_status = \"Enabled\"`);
                                   }
+                                  s3Blocks.push(`}`);
 
                                   if (websiteIndex || websiteError) {
                                     s3Blocks.push(`# S3 website configuration`);
@@ -1619,61 +1608,63 @@ const PropertiesPanel: React.FC = () => {
                           </div>
                         ))}
 
-                        {/* Security Groups selection inside Configuration for EC2 Instances (central SG management) */}
+                        {!(
+                          editingNode?.subServiceId === 's3-bucket' ||
+                          editingNode?.subServiceId === 's3-lifecycle' ||
+                          editingNode?.subServiceId === "ec2-instance" ||
+                          editingNode?.subServiceId === "ebs-volume" 
+                        ) && (
+                            <div className="p-4 rounded-xl border bg-white mt-3">
+                              <div className="flex items-center justify-between mb-1">
+                                <label className="text-xs font-medium text-slate-700">Global Security Groups</label>
+                                <span className="text-xs px-2 py-0.5 rounded border bg-green-50 text-green-700">Selectable</span>
+                              </div>
+                              <p className="text-xs mb-2 text-slate-600">Dropdown se groups select karo aur EC2 par apply ho jayenge.</p>
+                              {(() => {
+                                const names = selectedSecurityGroups;
+                                const nameToId = (nm: string) => allSecurityGroups.find((g) => g.name === nm)?.id || '';
+                                const idToName = (id: string) => allSecurityGroups.find((g) => g.id === id)?.name || '';
+                                const selectedIds = names.map(nameToId).filter(Boolean);
+                                const handleIdsChange = (ids: string[]) => {
+                                  const nextNames = ids.map(idToName).filter((s) => s && s.trim());
+                                  setSelectedSecurityGroups(nextNames);
+                                  updateEc2SecurityGroups((editingNode as any).id, nextNames);
+                                };
+                                return (
+                                  <SecurityGroupDropdown selectedIds={selectedIds} onChange={handleIdsChange} allowMulti buttonLabel={'Open Security Groups'} />
+                                );
+                              })()}
+                              {/* Selected SG chips with remove (cross) */}
+                              <div className="mt-2 flex flex-wrap gap-2 bg-slate-50 rounded-lg p-2 border border-slate-200">
+                                {securityTabs.length === 0 && (
+                                  <span className="text-[11px] text-slate-500">No security groups selected</span>
+                                )}
+                                {securityTabs?.map((name: string, i: number) => {
+                                  const removeOne = () => {
+                                    const next = selectedSecurityGroups.filter((n) => n !== name);
+                                    setSelectedSecurityGroups(next);
+                                    updateEc2SecurityGroups((editingNode as any).id, next);
+                                  };
+                                  return (
+                                    <span key={`${name}-${i}`} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-300 text-[12px]">
+                                      {name}
+                                      <button
+                                        type="button"
+                                        className="ml-1 w-4 h-4 inline-flex items-center justify-center rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        aria-label={`Remove ${name}`}
+                                        title={`Remove ${name}`}
+                                        onClick={removeOne}
+                                      >
+                                        ×
+                                      </button>
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
 
-
-                        {/* Global Security Groups viewer (interactive selection) */}
-                        <div className="p-4 rounded-xl border bg-white mt-3">
-                          <div className="flex items-center justify-between mb-1">
-                            <label className="text-xs font-medium text-slate-700">Global Security Groups</label>
-                            <span className="text-xs px-2 py-0.5 rounded border bg-green-50 text-green-700">Selectable</span>
-                          </div>
-                          <p className="text-xs mb-2 text-slate-600">Dropdown se groups select karo aur EC2 par apply ho jayenge.</p>
-                          {(() => {
-                            const names = selectedSecurityGroups;
-                            const nameToId = (nm: string) => allSecurityGroups.find((g) => g.name === nm)?.id || '';
-                            const idToName = (id: string) => allSecurityGroups.find((g) => g.id === id)?.name || '';
-                            const selectedIds = names.map(nameToId).filter(Boolean);
-                            const handleIdsChange = (ids: string[]) => {
-                              const nextNames = ids.map(idToName).filter((s) => s && s.trim());
-                              setSelectedSecurityGroups(nextNames);
-                              updateEc2SecurityGroups((editingNode as any).id, nextNames);
-                            };
-                            return (
-                              <SecurityGroupDropdown selectedIds={selectedIds} onChange={handleIdsChange} allowMulti buttonLabel={'Open Security Groups'} />
-                            );
-                          })()}
-                          {/* Selected SG chips with remove (cross) */}
-                          <div className="mt-2 flex flex-wrap gap-2 bg-slate-50 rounded-lg p-2 border border-slate-200">
-                            {securityTabs.length === 0 && (
-                              <span className="text-[11px] text-slate-500">No security groups selected</span>
-                            )}
-                            {securityTabs?.map((name: string, i: number) => {
-                              const removeOne = () => {
-                                const next = selectedSecurityGroups.filter((n) => n !== name);
-                                setSelectedSecurityGroups(next);
-                                updateEc2SecurityGroups((editingNode as any).id, next);
-                              };
-                              return (
-                                <span key={`${name}-${i}`} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-300 text-[12px]">
-                                  {name}
-                                  <button
-                                    type="button"
-                                    className="ml-1 w-4 h-4 inline-flex items-center justify-center rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    aria-label={`Remove ${name}`}
-                                    title={`Remove ${name}`}
-                                    onClick={removeOne}
-                                  >
-                                    ×
-                                  </button>
-                                </span>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* SG Modal for deep edits from card "Edit Rules" */}
-                        {sgModalOpen && (
+                        {!(editingNode?.subServiceId === 's3-bucket' || (editingNode as any)?.icon?.id === 's3-bucket') && sgModalOpen && (
                           <SecurityGroupModal
                             open={sgModalOpen}
                             onClose={() => setSgModalOpen(false)}
