@@ -3,7 +3,7 @@ import { useAwsBuilder } from '@/context/AwsBuilderContext';
 import { useSecurityGroups } from '@/context/SecurityGroupsContext';
 import { useCloudProvider } from '@/context/CloudProviderContext';
 import { getProviderTheme } from '@/data/theme-colors';
-import { ServiceProperty, SubService, DetailedAwsService } from '../../data/aws-services-detailed';
+import { ServiceProperty, SubService, DetailedAwsService, DETAILED_AWS_SERVICES } from '../../data/aws-services-detailed';
 import SecurityGroupDropdown from '@/components/SecurityGroups/SecurityGroupDropdown';
 import SecurityGroupModal from '@/components/SecurityGroups/SecurityGroupModal';
 
@@ -22,6 +22,7 @@ const PropertiesPanel: React.FC = () => {
   const { groups: allSecurityGroups, updateGroup } = useSecurityGroups();
   const [sgModalOpen, setSgModalOpen] = useState(false);
   const [sgEditTargetId, setSgEditTargetId] = useState<string | null>(null);
+  const [validationResult, setValidationResult] = useState<{ ok: boolean; issues: string[] } | null>(null);
 
   const service = state.selectedService;
   const subService = state.selectedSubService;
@@ -747,6 +748,29 @@ const PropertiesPanel: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Copy Terraform output under Canvas Nodes JSON to clipboard
+  const runTerraformValidation = async () => {
+    const preEl = document.querySelector('.text-xs.text-black.p-0.rounded-lg.bg-slate-50.border.overflow-x-auto pre.text-xs.text-slate-700.whitespace-pre') as HTMLElement | null;
+    const terraformText = preEl?.textContent || '';
+
+    if (!terraformText.trim()) {
+      console.log('Terraform output not found under Canvas Nodes JSON.');
+      return;
+    }
+    console.log(terraformText, "terraformText")
+    const fileName = `${service?.name || 'service'}-${subService?.name || 'sub-service'}.tf`;
+    const blob = new Blob([terraformText], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+
+    const formData = new FormData();
+    formData.append('tfFile', blob, fileName)
+    formData.append('customerId', '1');
+    formData.append('pemFileName', "abc"); //Pem file name ani chahiye yahan
+
+  };
+
+
   const handleSave = () => {
     if (validateProperties()) {
       // Decide between editing existing node vs creating a new sub-service
@@ -1091,6 +1115,22 @@ const PropertiesPanel: React.FC = () => {
                       <div className="mt-4">
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="text-sm font-semibold text-slate-800">Canvas Nodes JSON</h4>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={runTerraformValidation}
+                              className="text-xs px-2 py-1 rounded border bg-blue-50 text-blue-700 hover:bg-blue-100"
+                            >
+                              Validate
+                            </button>
+                            {validationResult && (
+                              validationResult.ok ? (
+                                <span className="text-xs px-2 py-1 rounded border bg-green-50 text-green-700">Valid</span>
+                              ) : (
+                                <span className="text-xs px-2 py-1 rounded border bg-red-50 text-red-700">{validationResult.issues.length} issues</span>
+                              )
+                            )}
+                          </div>
                         </div>
                         <div className="text-xs text-black p-0 rounded-lg bg-slate-50 border overflow-x-auto">
                           <div className="p-3">
@@ -1247,7 +1287,7 @@ const PropertiesPanel: React.FC = () => {
                                 const { name, properties, services, nodes, region } = group;
                                 const resName = sanitize(name);
                                 const blocks: string[] = [];
-                                
+
                                 // EC2-centric blocks (security group, instance, ebs, eip)
                                 const hasEc2 = services.includes('ec2-instance');
                                 if (hasEc2) {
