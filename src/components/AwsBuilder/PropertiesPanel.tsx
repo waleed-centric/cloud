@@ -1327,7 +1327,10 @@ const PropertiesPanel: React.FC = () => {
                                   const ec2Lines: string[] = [];
                                   ec2Lines.push(`resource \"aws_instance\" \"${instanceResName}\" {`);
                                   const ec2Node = nodes.find((n: any) => n?.subServiceId === 'ec2-instance' || n?.icon?.id === 'ec2-instance');
-                                  const nodeRegion = ((ec2Node as any)?.properties?.region || properties.region || selectedRegion).trim();
+                                  const parentRegion = (ec2Node as any)?.parentNodeId
+                                    ? (state.placedNodes.find((m: any) => m.id === (ec2Node as any).parentNodeId)?.properties?.region)
+                                    : undefined;
+                                  const nodeRegion = (((ec2Node as any)?.properties?.region) || parentRegion || properties.region || selectedRegion).trim();
                                   ec2Lines.push(`  region                 = \"${nodeRegion}\"`);
                                   ec2Lines.push(`  ami                    = \"${ami}\"`);
                                   ec2Lines.push(`  instance_type          = \"${instanceType}\"`);
