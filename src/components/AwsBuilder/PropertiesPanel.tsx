@@ -656,12 +656,32 @@ const PropertiesPanel: React.FC = () => {
   useEffect(() => {
     // Initialize property values with either existing node values (edit mode) or defaults (create mode)
     const initialProps: Record<string, any> = {};
+    const commonIds = (service?.commonProperties || []).map(p => p.id);
+
+    // Resolve host parent for common properties when editing a sub-service
+    const hostParent =
+      (editingNode && !editingNode.isSubService ? editingNode : null)
+      || (editingNode && editingNode.isSubService && editingNode.parentNodeId
+        ? (state.placedNodes.find(n => n.id === editingNode.parentNodeId && !n.isSubService) || null)
+        : null)
+      || (state.selectedNodeId
+        ? (state.placedNodes.find(n => n.id === state.selectedNodeId && !n.isSubService) || null)
+        : null);
+
     allProperties.forEach(prop => {
-      const existingVal = editingNode?.properties?.[prop.id];
+      let existingVal: any;
+      if (editingNode?.isSubService && commonIds.includes(prop.id)) {
+        // For common properties in a sub-service panel, read from parent node
+        existingVal = hostParent?.properties?.[prop.id];
+      } else {
+        existingVal = editingNode?.properties?.[prop.id];
+      }
       initialProps[prop.id] = existingVal !== undefined ? existingVal : (prop.defaultValue ?? '');
     });
+
     setPropertyValues(initialProps);
     setErrors({});
+
     // Seed listeners only for Load Balancer-like services for UI preview
     const name = (subService?.name || service?.name || '').toLowerCase();
     if (name.includes('load balancer') || name.includes('elb') || name.includes('alb')) {
