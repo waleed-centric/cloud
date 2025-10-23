@@ -14,7 +14,7 @@ const createTab = (index: number): WorkspaceTab => ({
   title: `Project ${index}`,
 });
 
-const TabWorkspace: React.FC = () => {
+const TabWorkspace: React.FC<{ title: string }> = ({ title }) => {
   const clearCanvasRef = useRef<(() => void) | null>(null);
 
   const handleProviderChange = () => {
@@ -27,7 +27,7 @@ const TabWorkspace: React.FC = () => {
     <CloudProviderProvider onProviderChange={handleProviderChange}>
       <SecurityGroupsProvider>
         <AwsBuilderProvider>
-          <DragDropBuilder clearCanvasRef={clearCanvasRef} />
+          <DragDropBuilder clearCanvasRef={clearCanvasRef} canvasName={title} />
         </AwsBuilderProvider>
       </SecurityGroupsProvider>
     </CloudProviderProvider>
@@ -66,14 +66,14 @@ export const WorkspaceTabs: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full w-full">
-      {/* Tabs Header */}
-      <div className="flex items-center gap-2 px-2 py-1 bg-slate-100 border-b">
+    <div className="flex flex-col h-full w-full pb-8">
+      {/* Tabs Header (moved visually to bottom) */}
+      <div className="order-last flex items-center gap-1 bg-white border-t">
         {tabs.map((tab) => (
           <div
             key={tab.id}
-            className={`group flex items-center max-w-[220px] rounded-md border px-3 py-1.5 text-sm cursor-pointer select-none ${
-              tab.id === activeId ? 'bg-white border-blue-500 text-blue-700' : 'bg-white text-slate-700 hover:bg-slate-50'
+            className={`group flex items-center p-2 text-sm cursor-pointer select-none ${
+              tab.id === activeId ? 'text-slate-900 font-semibold bg-[#F3F4F6]' : 'text-slate-600  hover:text-slate-900'
             }`}
             onClick={() => setActiveId(tab.id)}
             title={tab.title}
@@ -81,14 +81,14 @@ export const WorkspaceTabs: React.FC = () => {
             <input
               value={tab.title}
               onChange={(e) => renameTab(tab.id, e.target.value)}
-              className="bg-transparent outline-none mr-2 flex-1 min-w-0"
+              className="bg-transparent outline-none mr-2 flex-1 min-w-0 border-none"
             />
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 closeTab(tab.id);
               }}
-              className="ml-2 text-slate-500 hover:text-red-600"
+              className="ml-2 text-slate-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
               aria-label="Close tab"
             >
               ✕
@@ -97,18 +97,19 @@ export const WorkspaceTabs: React.FC = () => {
         ))}
         <button
           onClick={addTab}
-          className="ml-1 px-3 py-1.5 rounded-md border bg-slate-300 hover:bg-slate-50"
+          className=" w-[30px] rounded border hover:bg-slate-50"
           title="Add new workspace tab"
+          aria-label="Add new workspace tab"
         >
-          +
+          <img src="/aws/Button.svg" alt="Add tab" className="h-full w-full" />
         </button>
       </div>
 
       {/* Tabs Content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="order-first flex-1 overflow-hidden">
         {tabs.map((tab) => (
           <div key={tab.id} className={tab.id === activeId ? 'h-full w-full' : 'hidden'}>
-            <TabWorkspace />
+            <TabWorkspace title={tab.title} />
           </div>
         ))}
       </div>

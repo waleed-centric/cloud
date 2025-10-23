@@ -973,7 +973,7 @@ const PropertiesPanel: React.FC = () => {
   securityTabs = editingNode?.properties?.securityGroups || selectedSecurityGroups
   return (
     <div
-      className={`fixed top-0 right-0 h-[calc(100vh-104px)] mt-[104px] ${panelExpanded ? 'w-96' : 'w-14'} shadow-2xl z-[100] transition-all duration-300 ease-in-out border-l`}
+      className={`fixed top-0 right-0 h-[calc(100vh-158px)] mt-[90px] ${panelExpanded ? 'w-96' : 'w-14'} shadow-2xl z-[100] transition-all duration-300 ease-in-out border-l`}
       style={{
         backgroundColor: '#f8fafc',
         borderColor: "#E5E7EB"

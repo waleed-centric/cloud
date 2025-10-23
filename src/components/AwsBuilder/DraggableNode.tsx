@@ -147,7 +147,8 @@ export function DraggableNode({ node, isSelected }: DraggableNodeProps) {
   return (
     <div
       ref={nodeRef}
-      className={`absolute cursor-pointer select-none transition-all ${
+      data-node-root="true"
+    className={`draggable-node absolute cursor-pointer select-none transition-all ${
         isDragging ? 'z-50 scale-105' : 'z-10'
       } cursor-move`}
       style={{

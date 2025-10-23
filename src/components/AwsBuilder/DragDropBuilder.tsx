@@ -7,15 +7,17 @@ import { ServiceDetailModal } from '@/components/AwsBuilder/ServiceDetailModal';
 import { PropertiesPanel } from '@/components/AwsBuilder/PropertiesPanel';
 import { PricingDisplay } from '@/components/PricingDisplay';
 import { TopNavbar } from '@/components/AwsBuilder/TopNavbar';
+import { BottomStatusBar } from '@/components/AwsBuilder/BottomStatusBar';
 
 // Summary: Main DnD Builder component - combines palette, canvas, export, and service modals
 // - Layout management for drag and drop interface with detailed service functionality
 
 interface DragDropBuilderProps {
   clearCanvasRef?: React.MutableRefObject<(() => void) | null>;
+  canvasName?: string;
 }
 
-export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
+export function DragDropBuilder({ clearCanvasRef, canvasName }: DragDropBuilderProps) {
   const { state, clearAll } = useAwsBuilder();
   const [showExportPanel, setShowExportPanel] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
@@ -62,11 +64,11 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
   }, [clearCanvasRef, clearAll]);
 
   return (
-    <div className="h-screen bg-white text-slate-200 flex flex-col">
-      {/* Top Navigation Bar */}
+    <div className="h-screen bg-white text-slate-200 flex flex-col pb-8">
       <TopNavbar 
         onClearAll={clearAll}
         onExport={() => setShowExportPanel(true)}
+        className="sticky top-0 z-50"
       />
 
       {/* Main Content Area */}
@@ -113,8 +115,7 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
 
           {/* Main Canvas Area */}
           <div className={`flex-1 flex flex-col transition-all duration-300`}>
-            <div className=" rounded-lg shadow-xl border  flex-1 overflow-hidden">
-             
+            <div className="flex-1 overflow-auto">
               <CanvasArea />
             </div>
           </div>
@@ -133,6 +134,10 @@ export function DragDropBuilder({ clearCanvasRef }: DragDropBuilderProps) {
 
       {/* Properties/AI Tabs - persistent right sidebar */}
       <PropertiesPanel />
+
+      {/* Navigation bar moved to top */}
+      {/* Bottom Status Bar */}
+      <BottomStatusBar canvasName={canvasName} />
     </div>
   );
-}
+ }

@@ -138,9 +138,9 @@ export function CanvasArea() {
     // Left button only
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
-    // Start panning only when clicking the bare canvas background
-    if (target !== canvasRef.current) return;
-  
+    // Ignore drags starting on nodes; pan only on empty background
+    if (target.closest('.draggable-node')) return;
+
     setIsPanning(true);
     const scroller = canvasRef.current;
     panStartRef.current = {
@@ -184,10 +184,14 @@ export function CanvasArea() {
         <div
           style={{
             backgroundColor: 'white',
-            backgroundImage: 'url(/aws/DesignCanvas.png)',
+            backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
+            backgroundSize: '18px 18px',
+            backgroundPosition: '0 0',
             // Make canvas substantially larger than viewport to enable scroll-based panning
-            width: `${Math.max(2000, (state.placedNodes.reduce((max, n) => Math.max(max, n.x + (n.icon?.width || 80)), 0) + 400))}px`,
-            height: `${Math.max(1500, (state.placedNodes.reduce((max, n) => Math.max(max, n.y + (n.icon?.height || 80)), 0) + 400))}px`,
+            minWidth: '200vw',
+            minHeight: '150vh',
+            width: `${Math.max(22400, (state.placedNodes.reduce((max, n) => Math.max(max, n.x + (n.icon?.width || 80)), 0) + 2800))}px`,
+            height: `${Math.max(21800, (state.placedNodes.reduce((max, n) => Math.max(max, n.y + (n.icon?.height || 80)), 0) + 2800))}px`,
             transform: `scale(${state.zoom || 1})`,
             transformOrigin: 'top left',
             position: 'relative',
