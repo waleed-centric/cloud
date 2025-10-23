@@ -748,13 +748,13 @@ const PropertiesPanel: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Copy Terraform output under Canvas Nodes JSON to clipboard
+  // Copy Terraform output under Canvas Nodes Terraform to clipboard
   const runTerraformValidation = async () => {
     const preEl = document.querySelector('.text-xs.text-black.p-0.rounded-lg.bg-slate-50.border.overflow-x-auto pre.text-xs.text-slate-700.whitespace-pre') as HTMLElement | null;
     const terraformText = preEl?.textContent || '';
 
     if (!terraformText.trim()) {
-      console.log('Terraform output not found under Canvas Nodes JSON.');
+      console.log('Terraform output not found under Canvas Nodes Terraform.');
       return;
     }
     console.log(terraformText, "terraformText")
@@ -1114,7 +1114,7 @@ const PropertiesPanel: React.FC = () => {
                     <>
                       <div className="mt-4">
                         <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-sm font-semibold text-slate-800">Canvas Nodes JSON</h4>
+                          <h4 className="text-sm font-semibold text-slate-800">Canvas Nodes Terraform</h4>
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
