@@ -68,7 +68,7 @@ export const WorkspaceTabs: React.FC = () => {
   return (
     <div className="flex flex-col h-full w-full pb-8">
       {/* Tabs Header (moved visually to bottom) */}
-      <div className="order-last flex items-center gap-1 bg-white border-t">
+      <div className="order-last flex items-center gap-1 bg-white border-t border-slate-200">
         {tabs.map((tab) => (
           <div
             key={tab.id}
