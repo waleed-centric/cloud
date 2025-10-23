@@ -13,12 +13,14 @@ export function CanvasArea() {
   const { state, addNode, setConnecting, removeConnection, setSelectedNode, closePropertiesPanel } = useAwsBuilder();
   const { currentProvider } = useCloudProvider();
   const canvasRef = useRef<HTMLDivElement>(null);
+  const innerCanvasRef = useRef<HTMLDivElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [showAISuggestion, setShowAISuggestion] = useState(false);
   const [suggestionPosition, setSuggestionPosition] = useState({ x: 0, y: 0 });
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | undefined>(undefined);
   const [isPanning, setIsPanning] = useState(false);
-  const panStartRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
+  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const panStartRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
@@ -39,10 +41,10 @@ export function CanvasArea() {
       const icon: AwsIcon = JSON.parse(iconData);
       
       if (canvasRef.current) {
-        const rect = canvasRef.current.getBoundingClientRect();
+        const rect = (innerCanvasRef.current ?? canvasRef.current).getBoundingClientRect();
         const scale = state.zoom || 1;
-        let x = (e.clientX - rect.left) / scale - 40; // Center the icon (80px width / 2)
-        let y = (e.clientY - rect.top) / scale - 40;  // Center the icon (80px height / 2)
+        let x = (e.clientX - rect.left) / scale - 40;
+        let y = (e.clientY - rect.top) / scale - 40;
         
         // Smart positioning: Check if there's already a node at this position
         // If yes, offset the new node to prevent overlapping
@@ -135,38 +137,37 @@ export function CanvasArea() {
 
   const handlePanMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!canvasRef.current) return;
-    // Left button only
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
-    // Ignore drags starting on nodes; pan only on empty background
     if (target.closest('.draggable-node')) return;
 
     setIsPanning(true);
-    const scroller = canvasRef.current;
     panStartRef.current = {
       x: e.clientX,
       y: e.clientY,
-      left: scroller.scrollLeft,
-      top: scroller.scrollTop,
+      offsetX: panOffset.x,
+      offsetY: panOffset.y,
     };
     e.preventDefault();
-  
+
     const handleMove = (ev: MouseEvent) => {
-      if (!panStartRef.current || !canvasRef.current) return;
+      if (!panStartRef.current) return;
       const scale = state.zoom || 1;
       const dx = ev.clientX - panStartRef.current.x;
       const dy = ev.clientY - panStartRef.current.y;
-      canvasRef.current.scrollLeft = panStartRef.current.left - dx / scale;
-      canvasRef.current.scrollTop = panStartRef.current.top - dy / scale;
+      setPanOffset({
+        x: panStartRef.current.offsetX + dx / scale,
+        y: panStartRef.current.offsetY + dy / scale,
+      });
     };
-  
+
     const handleUp = () => {
       setIsPanning(false);
       panStartRef.current = null;
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleUp);
     };
-  
+
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleUp);
   };
@@ -178,21 +179,21 @@ export function CanvasArea() {
         className={`w-full h-full relative overflow-auto transition-colors ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
         onMouseDown={handlePanMouseDown}
         style={{
-          backgroundColor: '#f5f5f5',
+          backgroundColor: '#ffffff',
         }}
       >
         <div
+          ref={innerCanvasRef}
           style={{
             backgroundColor: 'white',
             backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)',
             backgroundSize: '18px 18px',
             backgroundPosition: '0 0',
-            // Make canvas substantially larger than viewport to enable scroll-based panning
             minWidth: '200vw',
             minHeight: '150vh',
             width: `${Math.max(22400, (state.placedNodes.reduce((max, n) => Math.max(max, n.x + (n.icon?.width || 80)), 0) + 2800))}px`,
             height: `${Math.max(21800, (state.placedNodes.reduce((max, n) => Math.max(max, n.y + (n.icon?.height || 80)), 0) + 2800))}px`,
-            transform: `scale(${state.zoom || 1})`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${state.zoom || 1})`,
             transformOrigin: 'top left',
             position: 'relative',
           }}
